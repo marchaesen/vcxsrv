@@ -673,8 +673,7 @@ v3d_nir_lower_io(nir_shader *s, struct v3d_compile *c)
                         emit_gs_vpm_output_header_prolog(c, &b, &state);
                 }
 
-                nir_metadata_preserve(impl,
-                                      nir_metadata_control_flow);
+                nir_progress(true, impl, nir_metadata_control_flow);
         }
 
         if (s->info.stage != MESA_SHADER_COMPUTE)

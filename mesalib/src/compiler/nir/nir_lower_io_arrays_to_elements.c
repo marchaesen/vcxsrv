@@ -351,11 +351,7 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
          }
       }
 
-      if (progress) {
-         nir_metadata_preserve(impl, nir_metadata_control_flow);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
+      nir_progress(progress, impl, nir_metadata_control_flow);
    }
 }
 

@@ -217,24 +217,53 @@ nir_printf_fmt(nir_builder *b, unsigned ptr_bit_size, const char *fmt, ...)
    while ((pos = util_printf_next_spec_pos(fmt, pos)) != -1) {
       unsigned arg_size;
       switch (fmt[pos]) {
-      case 'c': arg_size = 1; break;
-      case 'd': arg_size = 4; break;
-      case 'e': arg_size = 4; break;
-      case 'E': arg_size = 4; break;
-      case 'f': arg_size = 4; break;
-      case 'F': arg_size = 4; break;
-      case 'G': arg_size = 4; break;
-      case 'a': arg_size = 4; break;
-      case 'A': arg_size = 4; break;
-      case 'i': arg_size = 4; break;
-      case 'u': arg_size = 4; break;
-      case 'x': arg_size = 4; break;
-      case 'X': arg_size = 4; break;
-      case 'p': arg_size = 8; break;
-      default:  unreachable("invalid");
+      case 'c':
+         arg_size = 1;
+         break;
+      case 'd':
+         arg_size = 4;
+         break;
+      case 'e':
+         arg_size = 4;
+         break;
+      case 'E':
+         arg_size = 4;
+         break;
+      case 'f':
+         arg_size = 4;
+         break;
+      case 'F':
+         arg_size = 4;
+         break;
+      case 'G':
+         arg_size = 4;
+         break;
+      case 'a':
+         arg_size = 4;
+         break;
+      case 'A':
+         arg_size = 4;
+         break;
+      case 'i':
+         arg_size = 4;
+         break;
+      case 'u':
+         arg_size = 4;
+         break;
+      case 'x':
+         arg_size = 4;
+         break;
+      case 'X':
+         arg_size = 4;
+         break;
+      case 'p':
+         arg_size = 8;
+         break;
+      default:
+         unreachable("invalid");
       }
 
-      ASSERTED nir_def *def = va_arg(ap, nir_def*);
+      ASSERTED nir_def *def = va_arg(ap, nir_def *);
       assert(def->bit_size / 8 == arg_size);
 
       info.num_args++;
@@ -259,7 +288,7 @@ nir_printf_fmt(nir_builder *b, unsigned ptr_bit_size, const char *fmt, ...)
       total_size += info.arg_sizes[a];
 
    nir_push_if(b, nir_ilt(b, nir_iadd_imm(b, buffer_offset, total_size),
-                             nir_load_printf_buffer_size(b)));
+                          nir_load_printf_buffer_size(b)));
    {
       nir_def *identifier = nir_imm_int(b, u_printf_hash(&info));
       nir_def *store_addr =
@@ -270,7 +299,7 @@ nir_printf_fmt(nir_builder *b, unsigned ptr_bit_size, const char *fmt, ...)
       va_start(ap, fmt);
       unsigned store_offset = sizeof(uint32_t);
       for (unsigned a = 0; a < info.num_args; a++) {
-         nir_def *def = va_arg(ap, nir_def*);
+         nir_def *def = va_arg(ap, nir_def *);
 
          nir_store_global(b, nir_iadd_imm(b, store_addr, store_offset),
                           4, def, 0x1);

@@ -215,9 +215,12 @@ get_device_extensions(const struct panvk_physical_device *device,
       .KHR_shader_draw_parameters = true,
       .KHR_shader_expect_assume = true,
       .KHR_shader_float16_int8 = true,
+      .KHR_shader_maximal_reconvergence = arch >= 10, /* requires vk1.1 */
       .KHR_shader_non_semantic_info = true,
+      .KHR_shader_quad_control = arch >= 10, /* requires vk1.1 */
       .KHR_shader_relaxed_extended_instruction = true,
       .KHR_shader_subgroup_rotate = true,
+      .KHR_shader_subgroup_uniform_control_flow = arch >= 10, /* requires vk1.1 */
       .KHR_storage_buffer_storage_class = true,
 #ifdef PANVK_USE_WSI_PLATFORM
       .KHR_swapchain = true,
@@ -237,6 +240,7 @@ get_device_extensions(const struct panvk_physical_device *device,
       .EXT_global_priority = true,
       .EXT_global_priority_query = true,
       .EXT_graphics_pipeline_library = true,
+      .EXT_hdr_metadata = true,
       .EXT_host_query_reset = true,
       .EXT_image_drm_format_modifier = true,
       .EXT_image_robustness = true,
@@ -315,7 +319,7 @@ get_features(const struct panvk_physical_device *device,
       .storagePushConstant8 = false,
       .shaderBufferInt64Atomics = false,
       .shaderSharedInt64Atomics = false,
-      .shaderFloat16 = false,
+      .shaderFloat16 = true,
       .shaderInt8 = true,
 
       .descriptorIndexing = false,
@@ -423,8 +427,17 @@ get_features(const struct panvk_physical_device *device,
       /* VK_EXT_pipeline_robustness */
       .pipelineRobustness = true,
 
+      /* VK_KHR_shader_quad_control */
+      .shaderQuadControl = true,
+
       /* VK_KHR_shader_relaxed_extended_instruction */
       .shaderRelaxedExtendedInstruction = true,
+
+      /* VK_KHR_shader_maximal_reconvergence */
+      .shaderMaximalReconvergence = true,
+
+      /* VK_KHR_shader_subgroup_uniform_control_flow */
+      .shaderSubgroupUniformControlFlow = true,
 
       /* VK_KHR_shader_expect_assume */
       .shaderExpectAssume = true,
@@ -717,11 +730,9 @@ get_device_properties(const struct panvk_instance *instance,
        * be observed through subgroup ops (though the user can observe them
        * through infinte loops anyway), so subgroup ops can't be supported in
        * VS.
-       *
-       * In FS, voting and potentially other subgroup ops are currently broken,
-       * so we don't report support for this stage either.
        */
-      .subgroupSupportedStages = VK_SHADER_STAGE_COMPUTE_BIT,
+      .subgroupSupportedStages =
+         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
       .subgroupSupportedOperations =
          VK_SUBGROUP_FEATURE_BASIC_BIT |
          VK_SUBGROUP_FEATURE_VOTE_BIT |
@@ -1195,10 +1206,6 @@ format_is_supported(struct panvk_physical_device *physical_device,
       if (!(BITFIELD_BIT(fmt.texfeat_bit) & supported_compr_fmts))
          return false;
    }
-
-   /* 3byte formats are not supported by the buffer <-> image copy helpers. */
-   if (util_format_get_blocksize(pfmt) == 3)
-      return false;
 
    return true;
 }

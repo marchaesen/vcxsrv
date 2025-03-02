@@ -363,7 +363,7 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
    struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_winsys_bo *bo = (struct amdgpu_winsys_bo*)buf;
    struct amdgpu_bo_real *real;
-   struct amdgpu_cs *cs = rcs ? amdgpu_cs(rcs) : NULL;
+   struct amdgpu_cs *acs = rcs ? amdgpu_cs(rcs) : NULL;
 
    assert(bo->type != AMDGPU_BO_SPARSE);
 
@@ -379,9 +379,9 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
              * (neither one is changing it).
              *
              * Only check whether the buffer is being used for write. */
-            if (cs && amdgpu_bo_is_referenced_by_cs_with_usage(cs, bo,
-                                                               RADEON_USAGE_WRITE)) {
-               cs->flush_cs(cs->flush_data,
+            if (acs && amdgpu_bo_is_referenced_by_cs_with_usage(acs, bo,
+                                                                RADEON_USAGE_WRITE)) {
+               acs->flush_cs(acs->flush_data,
 			    RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW, NULL);
                return NULL;
             }
@@ -391,8 +391,8 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
                return NULL;
             }
          } else {
-            if (cs && amdgpu_bo_is_referenced_by_cs(cs, bo)) {
-               cs->flush_cs(cs->flush_data,
+            if (acs && amdgpu_bo_is_referenced_by_cs(acs, bo)) {
+               acs->flush_cs(acs->flush_data,
 			    RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW, NULL);
                return NULL;
             }
@@ -413,10 +413,10 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
              * (neither one is changing it).
              *
              * Only check whether the buffer is being used for write. */
-            if (cs) {
-               if (amdgpu_bo_is_referenced_by_cs_with_usage(cs, bo,
+            if (acs) {
+               if (amdgpu_bo_is_referenced_by_cs_with_usage(acs, bo,
                                                             RADEON_USAGE_WRITE)) {
-                  cs->flush_cs(cs->flush_data,
+                  acs->flush_cs(acs->flush_data,
 			       RADEON_FLUSH_START_NEXT_GFX_IB_NOW, NULL);
                } else {
                   /* Try to avoid busy-waiting in amdgpu_bo_wait. */
@@ -429,9 +429,9 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
                            RADEON_USAGE_WRITE);
          } else {
             /* Mapping for write. */
-            if (cs) {
-               if (amdgpu_bo_is_referenced_by_cs(cs, bo)) {
-                  cs->flush_cs(cs->flush_data,
+            if (acs) {
+               if (amdgpu_bo_is_referenced_by_cs(acs, bo)) {
+                  acs->flush_cs(acs->flush_data,
 			       RADEON_FLUSH_START_NEXT_GFX_IB_NOW, NULL);
                } else {
                   /* Try to avoid busy-waiting in amdgpu_bo_wait. */

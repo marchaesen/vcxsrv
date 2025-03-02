@@ -1215,8 +1215,7 @@ gl_nir_add_point_size(nir_shader *nir)
    nir->info.outputs_written |= VARYING_BIT_PSIZ;
 
    /* We always modify the entrypoint */
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
-   return true;
+   return nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 static void
@@ -1251,8 +1250,7 @@ gl_nir_zero_initialize_clip_distance(nir_shader *nir)
    if (clip_dist1)
       zero_array_members(&b, clip_dist1);
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
-   return true;
+   return nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 static void

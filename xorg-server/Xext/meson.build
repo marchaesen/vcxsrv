@@ -10,7 +10,6 @@ srcs_xext = [
 
 hdrs_xext = [
     'geext.h',
-    'geint.h',
     'syncsdk.h',
 ]
 
@@ -45,7 +44,6 @@ endif
 
 if build_xinerama
     srcs_xext += ['panoramiX.c', 'panoramiXprocs.c', 'panoramiXSwap.c']
-    hdrs_xext += ['panoramiX.h', 'panoramiXsrv.h']
 endif
 
 if build_xsecurity

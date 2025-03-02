@@ -58,10 +58,6 @@ cat > sdksyms.c << EOF
 #include "shmint.h"
 #endif
 #include "syncsdk.h"
-#ifdef XINERAMA
-# include "panoramiXsrv.h"
-# include "panoramiX.h"
-#endif
 
 /* glx/Makefile.am */
 #ifdef GLX
@@ -203,6 +199,7 @@ cat > sdksyms.c << EOF
 #include "mizerarc.h"
 #include "micoord.h"
 #include "mistruct.h"
+#include "mioverlay.h"
 
 
 /* randr/Makefile.am */

@@ -47,8 +47,7 @@ agx_nir_lower_alpha_to_coverage(nir_shader *shader, uint8_t nr_samples)
     */
    nir_def *rgba = store ? store->src[0].ssa : NULL;
    if (!rgba || rgba->num_components < 4) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    nir_builder _b = nir_builder_at(nir_before_instr(&store->instr));
@@ -68,8 +67,7 @@ agx_nir_lower_alpha_to_coverage(nir_shader *shader, uint8_t nr_samples)
    /* Discard samples that aren't covered */
    nir_discard_agx(b, nir_inot(b, mask));
    shader->info.fs.uses_discard = true;
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
-   return true;
+   return nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 /*
@@ -117,11 +115,5 @@ agx_nir_lower_alpha_to_one(nir_shader *shader)
       progress = true;
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }

@@ -201,10 +201,7 @@ ir3_nir_move_varying_inputs(nir_shader *shader)
          progress |= move_varying_inputs_block(&state, block);
       }
 
-      if (progress) {
-         nir_metadata_preserve(
-            function->impl, nir_metadata_control_flow);
-      }
+      nir_progress(progress, function->impl, nir_metadata_control_flow);
    }
 
    return progress;

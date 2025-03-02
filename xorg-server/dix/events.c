@@ -125,6 +125,7 @@ Equipment Corporation.
 #include "dix/eventconvert.h"
 #include "dix/exevents_priv.h"
 #include "os/bug_priv.h"
+#include "os/client_priv.h"
 #include "os/fmt.h"
 #include "xkb/xkbsrv_priv.h"
 
@@ -147,8 +148,6 @@ Equipment Corporation.
 #include "extnsionst.h"
 #include "dixevents.h"
 #include "dispatch.h"
-#include "geext.h"
-#include "geint.h"
 #include "dixstruct_priv.h"
 #include "eventstr.h"
 #include "enterleave.h"
@@ -1319,7 +1318,7 @@ ComputeFreezes(void)
 
     for (dev = inputInfo.devices; dev; dev = dev->next)
         FreezeThaw(dev, dev->deviceGrab.sync.other ||
-                   (dev->deviceGrab.sync.state >= FROZEN));
+                   (dev->deviceGrab.sync.state >= GRAB_STATE_FROZEN));
     if (syncEvents.playingEvents ||
         (!replayDev && xorg_list_is_empty(&syncEvents.pending)))
         return;
@@ -1421,9 +1420,9 @@ CheckGrabForSyncs(DeviceIntPtr thisDev, Bool thisMode, Bool otherMode)
     DeviceIntPtr dev;
 
     if (thisMode == GrabModeSync)
-        thisDev->deviceGrab.sync.state = FROZEN_NO_EVENT;
+        thisDev->deviceGrab.sync.state = GRAB_STATE_FROZEN_NO_EVENT;
     else {                      /* free both if same client owns both */
-        thisDev->deviceGrab.sync.state = THAWED;
+        thisDev->deviceGrab.sync.state = GRAB_STATE_THAWED;
         if (thisDev->deviceGrab.sync.other &&
             (CLIENT_BITS(thisDev->deviceGrab.sync.other->resource) ==
              CLIENT_BITS(grab->resource)))
@@ -1661,7 +1660,7 @@ DeactivatePointerGrab(DeviceIntPtr mouse)
 
     mouse->valuator->motionHintWindow = NullWindow;
     mouse->deviceGrab.grab = NullGrab;
-    mouse->deviceGrab.sync.state = NOT_GRABBED;
+    mouse->deviceGrab.sync.state = GRAB_STATE_NOT_GRABBED;
     mouse->deviceGrab.fromPassiveGrab = FALSE;
 
     for (dev = inputInfo.devices; dev; dev = dev->next) {
@@ -1753,7 +1752,7 @@ DeactivateKeyboardGrab(DeviceIntPtr keybd)
     if (keybd->valuator)
         keybd->valuator->motionHintWindow = NullWindow;
     keybd->deviceGrab.grab = NullGrab;
-    keybd->deviceGrab.sync.state = NOT_GRABBED;
+    keybd->deviceGrab.sync.state = GRAB_STATE_NOT_GRABBED;
     keybd->deviceGrab.fromPassiveGrab = FALSE;
 
     for (dev = inputInfo.devices; dev; dev = dev->next) {
@@ -1806,37 +1805,37 @@ AllowSome(ClientPtr client, TimeStamp time, DeviceIntPtr thisDev, int newState)
             otherGrabbed = TRUE;
             if (grabinfo->sync.other == devgrabinfo->grab)
                 thisSynced = TRUE;
-            if (devgrabinfo->sync.state >= FROZEN)
+            if (devgrabinfo->sync.state >= GRAB_STATE_FROZEN)
                 othersFrozen = TRUE;
         }
     }
-    if (!((thisGrabbed && grabinfo->sync.state >= FROZEN) || thisSynced))
+    if (!((thisGrabbed && grabinfo->sync.state >= GRAB_STATE_FROZEN) || thisSynced))
         return;
     if ((CompareTimeStamps(time, currentTime) == LATER) ||
         (CompareTimeStamps(time, grabTime) == EARLIER))
         return;
     switch (newState) {
-    case THAWED:               /* Async */
+    case GRAB_STATE_THAWED:               /* Async */
         if (thisGrabbed)
-            grabinfo->sync.state = THAWED;
+            grabinfo->sync.state = GRAB_STATE_THAWED;
         if (thisSynced)
             grabinfo->sync.other = NullGrab;
         ComputeFreezes();
         break;
-    case FREEZE_NEXT_EVENT:    /* Sync */
+    case GRAB_STATE_FREEZE_NEXT_EVENT:    /* Sync */
         if (thisGrabbed) {
-            grabinfo->sync.state = FREEZE_NEXT_EVENT;
+            grabinfo->sync.state = GRAB_STATE_FREEZE_NEXT_EVENT;
             if (thisSynced)
                 grabinfo->sync.other = NullGrab;
             ComputeFreezes();
         }
         break;
-    case THAWED_BOTH:          /* AsyncBoth */
+    case GRAB_STATE_THAWED_BOTH:          /* AsyncBoth */
         if (othersFrozen) {
             for (dev = inputInfo.devices; dev; dev = dev->next) {
                 devgrabinfo = &dev->deviceGrab;
                 if (devgrabinfo->grab && SameClient(devgrabinfo->grab, client))
-                    devgrabinfo->sync.state = THAWED;
+                    devgrabinfo->sync.state = GRAB_STATE_THAWED;
                 if (devgrabinfo->sync.other &&
                     SameClient(devgrabinfo->sync.other, client))
                     devgrabinfo->sync.other = NullGrab;
@@ -1844,12 +1843,12 @@ AllowSome(ClientPtr client, TimeStamp time, DeviceIntPtr thisDev, int newState)
             ComputeFreezes();
         }
         break;
-    case FREEZE_BOTH_NEXT_EVENT:       /* SyncBoth */
+    case GRAB_STATE_FREEZE_BOTH_NEXT_EVENT:       /* SyncBoth */
         if (othersFrozen) {
             for (dev = inputInfo.devices; dev; dev = dev->next) {
                 devgrabinfo = &dev->deviceGrab;
                 if (devgrabinfo->grab && SameClient(devgrabinfo->grab, client))
-                    devgrabinfo->sync.state = FREEZE_BOTH_NEXT_EVENT;
+                    devgrabinfo->sync.state = GRAB_STATE_FREEZE_BOTH_NEXT_EVENT;
                 if (devgrabinfo->sync.other
                     && SameClient(devgrabinfo->sync.other, client))
                     devgrabinfo->sync.other = NullGrab;
@@ -1857,8 +1856,8 @@ AllowSome(ClientPtr client, TimeStamp time, DeviceIntPtr thisDev, int newState)
             ComputeFreezes();
         }
         break;
-    case NOT_GRABBED:          /* Replay */
-        if (thisGrabbed && grabinfo->sync.state == FROZEN_WITH_EVENT) {
+    case GRAB_STATE_NOT_GRABBED:          /* Replay */
+        if (thisGrabbed && grabinfo->sync.state == GRAB_STATE_FROZEN_WITH_EVENT) {
             if (thisSynced)
                 grabinfo->sync.other = NullGrab;
             syncEvents.replayDev = thisDev;
@@ -1867,14 +1866,14 @@ AllowSome(ClientPtr client, TimeStamp time, DeviceIntPtr thisDev, int newState)
             syncEvents.replayDev = (DeviceIntPtr) NULL;
         }
         break;
-    case THAW_OTHERS:          /* AsyncOthers */
+    case GRAB_STATE_THAW_OTHERS:          /* AsyncOthers */
         if (othersFrozen) {
             for (dev = inputInfo.devices; dev; dev = dev->next) {
                 if (dev == thisDev)
                     continue;
                 devgrabinfo = &dev->deviceGrab;
                 if (devgrabinfo->grab && SameClient(devgrabinfo->grab, client))
-                    devgrabinfo->sync.state = THAWED;
+                    devgrabinfo->sync.state = GRAB_STATE_THAWED;
                 if (devgrabinfo->sync.other
                     && SameClient(devgrabinfo->sync.other, client))
                     devgrabinfo->sync.other = NullGrab;
@@ -1889,7 +1888,7 @@ AllowSome(ClientPtr client, TimeStamp time, DeviceIntPtr thisDev, int newState)
      * we've handled in ComputeFreezes() (during DeactivateGrab) above,
      * anything else is accept.
      */
-    if (newState != NOT_GRABBED /* Replay */ &&
+    if (newState != GRAB_STATE_NOT_GRABBED /* Replay */ &&
         IsTouchEvent(grabinfo->sync.event)) {
         TouchAcceptAndEnd(thisDev, grabinfo->sync.event->device_event.touchid);
     }
@@ -1918,28 +1917,28 @@ ProcAllowEvents(ClientPtr client)
 
     switch (stuff->mode) {
     case ReplayPointer:
-        AllowSome(client, time, mouse, NOT_GRABBED);
+        AllowSome(client, time, mouse, GRAB_STATE_NOT_GRABBED);
         break;
     case SyncPointer:
-        AllowSome(client, time, mouse, FREEZE_NEXT_EVENT);
+        AllowSome(client, time, mouse, GRAB_STATE_FREEZE_NEXT_EVENT);
         break;
     case AsyncPointer:
-        AllowSome(client, time, mouse, THAWED);
+        AllowSome(client, time, mouse, GRAB_STATE_THAWED);
         break;
     case ReplayKeyboard:
-        AllowSome(client, time, keybd, NOT_GRABBED);
+        AllowSome(client, time, keybd, GRAB_STATE_NOT_GRABBED);
         break;
     case SyncKeyboard:
-        AllowSome(client, time, keybd, FREEZE_NEXT_EVENT);
+        AllowSome(client, time, keybd, GRAB_STATE_FREEZE_NEXT_EVENT);
         break;
     case AsyncKeyboard:
-        AllowSome(client, time, keybd, THAWED);
+        AllowSome(client, time, keybd, GRAB_STATE_THAWED);
         break;
     case SyncBoth:
-        AllowSome(client, time, keybd, FREEZE_BOTH_NEXT_EVENT);
+        AllowSome(client, time, keybd, GRAB_STATE_FREEZE_BOTH_NEXT_EVENT);
         break;
     case AsyncBoth:
-        AllowSome(client, time, keybd, THAWED_BOTH);
+        AllowSome(client, time, keybd, GRAB_STATE_THAWED_BOTH);
         break;
     default:
         client->errorValue = stuff->mode;
@@ -3820,8 +3819,8 @@ void ActivateGrabNoDelivery(DeviceIntPtr dev, GrabPtr grab,
     (*grabinfo->ActivateGrab) (dev, grab,
                                ClientTimeToServerTime(event->any.time), TRUE);
 
-    if (grabinfo->sync.state == FROZEN_NO_EVENT)
-        grabinfo->sync.state = FROZEN_WITH_EVENT;
+    if (grabinfo->sync.state == GRAB_STATE_FROZEN_NO_EVENT)
+        grabinfo->sync.state = GRAB_STATE_FROZEN_WITH_EVENT;
     CopyPartialInternalEvent(grabinfo->sync.event, real_event);
 }
 
@@ -4387,20 +4386,20 @@ FreezeThisEventIfNeededForSyncGrab(DeviceIntPtr thisDev, InternalEvent *event)
     DeviceIntPtr dev;
 
     switch (grabinfo->sync.state) {
-    case FREEZE_BOTH_NEXT_EVENT:
+    case GRAB_STATE_FREEZE_BOTH_NEXT_EVENT:
         dev = GetPairedDevice(thisDev);
         if (dev) {
             FreezeThaw(dev, TRUE);
-            if ((dev->deviceGrab.sync.state == FREEZE_BOTH_NEXT_EVENT) &&
+            if ((dev->deviceGrab.sync.state == GRAB_STATE_FREEZE_BOTH_NEXT_EVENT) &&
                 (CLIENT_BITS(grab->resource) ==
                  CLIENT_BITS(dev->deviceGrab.grab->resource)))
-                dev->deviceGrab.sync.state = FROZEN_NO_EVENT;
+                dev->deviceGrab.sync.state = GRAB_STATE_FROZEN_NO_EVENT;
             else
                 dev->deviceGrab.sync.other = grab;
         }
         /* fall through */
-    case FREEZE_NEXT_EVENT:
-        grabinfo->sync.state = FROZEN_WITH_EVENT;
+    case GRAB_STATE_FREEZE_NEXT_EVENT:
+        grabinfo->sync.state = GRAB_STATE_FROZEN_WITH_EVENT;
         FreezeThaw(thisDev, TRUE);
         CopyPartialInternalEvent(grabinfo->sync.event, event);
         break;

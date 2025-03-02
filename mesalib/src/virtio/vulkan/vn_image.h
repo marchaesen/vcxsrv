@@ -58,8 +58,6 @@ struct vn_image_create_deferred_info {
 struct vn_image {
    struct vn_image_base base;
 
-   VkSharingMode sharing_mode;
-
    struct vn_image_memory_requirements requirements[4];
 
    /* For VK_ANDROID_external_memory_android_hardware_buffer, real image

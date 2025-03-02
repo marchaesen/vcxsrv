@@ -81,7 +81,6 @@ setupLoaderExtensions(struct dri_screen *screen,
    static const struct dri_extension_match matches[] = {
        {__DRI_DRI2_LOADER, 1, offsetof(struct dri_screen, dri2.loader), true},
        {__DRI_IMAGE_LOOKUP, 1, offsetof(struct dri_screen, dri2.image), true},
-       {__DRI_USE_INVALIDATE, 1, offsetof(struct dri_screen, dri2.useInvalidate), true},
        {__DRI_BACKGROUND_CALLABLE, 1, offsetof(struct dri_screen, dri2.backgroundCallable), true},
        {__DRI_SWRAST_LOADER, 1, offsetof(struct dri_screen, swrast_loader), true},
        {__DRI_IMAGE_LOADER, 1, offsetof(struct dri_screen, image.loader), true},
@@ -112,11 +111,6 @@ driCreateNewScreen3(int scrn, int fd,
        return NULL;
 
     setupLoaderExtensions(screen, loader_extensions);
-    // dri2 drivers require working invalidate
-    if (fd != -1 && !screen->dri2.useInvalidate) {
-       free(screen);
-       return NULL;
-    }
 
     screen->loaderPrivate = data;
 

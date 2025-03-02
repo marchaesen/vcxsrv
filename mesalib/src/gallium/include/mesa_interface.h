@@ -371,26 +371,6 @@ typedef struct {
 } __DRIswrastLoaderExtension;
 
 /**
- * Invalidate loader extension.  The presence of this extension
- * indicates to the DRI driver that the loader will call invalidate in
- * the __DRI2_FLUSH extension, whenever the needs to query for new
- * buffers.  This means that the DRI driver can drop the polling in
- * glViewport().
- *
- * The extension doesn't provide any functionality, it's only use to
- * indicate to the driver that it can use the new semantics.  A DRI
- * driver can use this to switch between the different semantics or
- * just refuse to initialize if this extension isn't present.
- *
- * Advertised by the X server.
- */
-#define __DRI_USE_INVALIDATE "DRI_UseInvalidate"
-
-typedef struct {
-   __DRIextension base;
-} __DRIuseInvalidateExtension;
-
-/**
  * Tokens for struct dri_config attribs.  A number of attributes defined by
  * GLX or EGL standards are not in the table, as they must be provided
  * by the loader.  For example, FBConfig ID or visual ID, drawable type.

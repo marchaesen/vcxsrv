@@ -373,7 +373,7 @@ init_context(isel_context* ctx, nir_shader* shader)
 
    /* sanitize control flow */
    sanitize_cf_list(impl, &impl->body);
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    /* we'll need these for isel */
    nir_metadata_require(impl, nir_metadata_block_index);

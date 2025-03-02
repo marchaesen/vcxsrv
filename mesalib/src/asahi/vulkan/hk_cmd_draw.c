@@ -540,7 +540,7 @@ hk_pack_zls_control(struct agx_zls_control_packed *packed,
             attach_z->loadOp == VK_ATTACHMENT_LOAD_OP_LOAD || partial_render ||
             incomplete_render_area;
 
-         if (ail_is_compressed(z_layout)) {
+         if (z_layout->compressed) {
             zls_control.z_compress_1 = true;
             zls_control.z_compress_2 = true;
          }
@@ -568,7 +568,7 @@ hk_pack_zls_control(struct agx_zls_control_packed *packed,
             attach_s->loadOp == VK_ATTACHMENT_LOAD_OP_LOAD || partial_render ||
             incomplete_render_area;
 
-         if (ail_is_compressed(s_layout)) {
+         if (s_layout->compressed) {
             zls_control.s_compress_1 = true;
             zls_control.s_compress_2 = true;
          }
@@ -715,7 +715,7 @@ hk_CmdBeginRendering(VkCommandBuffer commandBuffer,
 
       assert(z_layout->tiling != AIL_TILING_LINEAR && "must tile");
 
-      if (ail_is_compressed(z_layout)) {
+      if (z_layout->compressed) {
          render->cr.depth.meta =
             hk_image_base_address(image, 0) + z_layout->metadata_offset_B +
             (first_layer * z_layout->compression_layer_stride_B) +
@@ -764,7 +764,7 @@ hk_CmdBeginRendering(VkCommandBuffer commandBuffer,
       unsigned stride_pages = s_layout->layer_stride_B / AIL_PAGESIZE;
       render->cr.stencil.stride = ((stride_pages - 1) << 14) | 1;
 
-      if (ail_is_compressed(s_layout)) {
+      if (s_layout->compressed) {
          render->cr.stencil.meta =
             hk_image_base_address(image, plane) + s_layout->metadata_offset_B +
             (first_layer * s_layout->compression_layer_stride_B) +

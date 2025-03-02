@@ -26,6 +26,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include "drm-uapi/panthor_drm.h"
+
 #include "genxml/gen_macros.h"
 
 #include "panvk_buffer.h"
@@ -128,7 +130,8 @@ finish_cs(struct panvk_cmd_buffer *cmdbuf, uint32_t subqueue)
    cs_move32_to(b, flush_id, 0);
    cs_wait_slots(b, SB_ALL_MASK, false);
    cs_flush_caches(b, MALI_CS_FLUSH_MODE_CLEAN, MALI_CS_FLUSH_MODE_CLEAN,
-                   false, flush_id, cs_defer(SB_IMM_MASK, SB_ID(IMM_FLUSH)));
+                   MALI_CS_OTHER_FLUSH_MODE_NONE, flush_id,
+                   cs_defer(SB_IMM_MASK, SB_ID(IMM_FLUSH)));
    cs_wait_slot(b, SB_ID(IMM_FLUSH), false);
 
    /* If we're in sync/trace more, we signal the debug object. */
@@ -331,13 +334,13 @@ add_memory_dependency(struct panvk_cache_flush_info *cache_flush,
 
    /* visibility op */
    if (dst_access & ro_l1_access)
-      cache_flush->others |= true;
+      cache_flush->others |= MALI_CS_OTHER_FLUSH_MODE_INVALIDATE;
 
    /* host-to-device domain op */
    if (src_access & VK_ACCESS_2_HOST_WRITE_BIT) {
       cache_flush->l2 |= MALI_CS_FLUSH_MODE_CLEAN_AND_INVALIDATE;
       cache_flush->lsc |= MALI_CS_FLUSH_MODE_CLEAN_AND_INVALIDATE;
-      cache_flush->others |= true;
+      cache_flush->others |= MALI_CS_OTHER_FLUSH_MODE_INVALIDATE;
    }
 
    /* device-to-host domain op */
@@ -564,7 +567,8 @@ panvk_per_arch(CmdPipelineBarrier2)(VkCommandBuffer commandBuffer,
 
       struct panvk_cache_flush_info cache_flush = deps.src[i].cache_flush;
       if (cache_flush.l2 != MALI_CS_FLUSH_MODE_NONE ||
-          cache_flush.lsc != MALI_CS_FLUSH_MODE_NONE || cache_flush.others) {
+          cache_flush.lsc != MALI_CS_FLUSH_MODE_NONE ||
+          cache_flush.others != MALI_CS_OTHER_FLUSH_MODE_NONE) {
          struct cs_index flush_id = cs_scratch_reg32(b, 0);
 
          cs_move32_to(b, flush_id, 0);
@@ -683,14 +687,17 @@ init_cs_builders(struct panvk_cmd_buffer *cmdbuf)
       [PANVK_SUBQUEUE_COMPUTE] = panvk_cs_compute_reg_perm,
    };
 
+   const struct drm_panthor_csif_info *csif_info =
+      panthor_kmod_get_csif_props(dev->kmod.dev);
+
    for (uint32_t i = 0; i < ARRAY_SIZE(cmdbuf->state.cs); i++) {
       struct cs_builder *b = &cmdbuf->state.cs[i].builder;
       /* Lazy allocation of the root CS. */
       struct cs_buffer root_cs = {0};
 
       struct cs_builder_conf conf = {
-         .nr_registers = 96,
-         .nr_kernel_registers = 4,
+         .nr_registers = csif_info->cs_reg_count,
+         .nr_kernel_registers = MAX2(csif_info->unpreserved_cs_reg_count, 4),
          .alloc_buffer = alloc_cs_buffer,
          .cookie = cmdbuf,
       };

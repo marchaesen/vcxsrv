@@ -129,6 +129,7 @@ HANDWRITTEN_ENTRY_POINTS = [
     # TODO: Make a codegen module (use deepcopy as reference) to make this more robust
     "vkAllocateMemory",
     "vkUpdateDescriptorSets",
+    "vkGetPhysicalDeviceFormatProperties2",
 ]
 
 # Handles that need to be translated to/from their corresponding gfxstream object types

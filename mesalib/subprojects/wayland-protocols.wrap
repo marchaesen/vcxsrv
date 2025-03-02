@@ -1,8 +1,8 @@
 [wrap-file]
-directory = wayland-protocols-1.38
-source_url = https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.38/downloads/wayland-protocols-1.38.tar.xz
-source_filename = wayland-protocols-1.38.tar.xz
-source_hash = ff17292c05159d2b20ce6cacfe42d7e31a28198fa1429a769b03af7c38581dbe
+directory = wayland-protocols-1.41
+source_url = https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.41/downloads/wayland-protocols-1.41.tar.xz
+source_filename = wayland-protocols-1.41.tar.xz
+source_hash = 2786b6b1b79965e313f2c289c12075b9ed700d41844810c51afda10ee329576b
 
 [provide]
 wayland-protocols = wayland_protocols

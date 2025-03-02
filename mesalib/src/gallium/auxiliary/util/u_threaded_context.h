@@ -712,6 +712,10 @@ tc_add_draw_single_call(struct pipe_context *_pipe,
 struct pipe_vertex_buffer *
 tc_add_set_vertex_buffers_call(struct pipe_context *_pipe, unsigned count);
 
+struct pipe_vertex_buffer *
+tc_add_set_vertex_elements_and_buffers_call(struct pipe_context *_pipe,
+                                            unsigned count);
+
 void
 tc_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *info,
             unsigned drawid_offset,
@@ -832,6 +836,19 @@ tc_track_vertex_buffer(struct pipe_context *_pipe, unsigned index,
    } else {
       tc_unbind_buffer(&tc->vertex_buffers[index]);
    }
+}
+
+/**
+ * "buffers" must be a result of tc_add_set_vertex_elements_and_buffers_call.
+ * This sets the vertex elements state for it. It will be bound before vertex
+ * buffers.
+ */
+static inline void
+tc_set_vertex_elements_for_call(struct pipe_vertex_buffer *buffers,
+                                void *state)
+{
+   void **ptr = (void**)buffers;
+   ptr[-1] = state;
 }
 
 #ifdef __cplusplus

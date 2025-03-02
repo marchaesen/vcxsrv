@@ -23,8 +23,8 @@
 
 #include "nir_format_convert.h"
 
-#include "util/format_rgb9e5.h"
 #include "util/format/u_format.h"
+#include "util/format_rgb9e5.h"
 #include "util/macros.h"
 
 nir_def *
@@ -216,9 +216,15 @@ _nir_format_norm_factor(nir_builder *b, const unsigned *bits,
        * assert(bits[i] <= 16). But if it's not, you get to pick up the pieces.
        */
       switch (bit_size) {
-      case 32: factor[i].f32 = (1ull << (bits[i] - is_signed)) - 1; break;
-      case 64: factor[i].f64 = (1ull << (bits[i] - is_signed)) - 1; break;
-      default: unreachable("invalid bit size"); break;
+      case 32:
+         factor[i].f32 = (1ull << (bits[i] - is_signed)) - 1;
+         break;
+      case 64:
+         factor[i].f64 = (1ull << (bits[i] - is_signed)) - 1;
+         break;
+      default:
+         unreachable("invalid bit size");
+         break;
       }
    }
    return nir_build_imm(b, num_components, bit_size, factor);
@@ -287,7 +293,7 @@ nir_format_float_to_uscaled(nir_builder *b, nir_def *f, const unsigned *bits)
    }
 
    f = nir_fclamp(b, f, nir_imm_float(b, 0),
-                        nir_build_imm(b, f->num_components, 32, max));
+                  nir_build_imm(b, f->num_components, 32, max));
 
    return nir_f2u32(b, nir_fround_even(b, f));
 }
@@ -305,7 +311,7 @@ nir_format_float_to_sscaled(nir_builder *b, nir_def *f, const unsigned *bits)
    }
 
    f = nir_fclamp(b, f, nir_build_imm(b, f->num_components, 32, min),
-                        nir_build_imm(b, f->num_components, 32, max));
+                  nir_build_imm(b, f->num_components, 32, max));
 
    return nir_f2i32(b, nir_fround_even(b, f));
 }
@@ -430,8 +436,8 @@ nir_def *
 nir_format_unpack_r9g9b9e5(nir_builder *b, nir_def *packed)
 {
    nir_def *rgb = nir_vec3(b, nir_ubitfield_extract_imm(b, packed, 0, 9),
-                              nir_ubitfield_extract_imm(b, packed, 9, 9),
-                              nir_ubitfield_extract_imm(b, packed, 18, 9));
+                           nir_ubitfield_extract_imm(b, packed, 9, 9),
+                           nir_ubitfield_extract_imm(b, packed, 18, 9));
 
    /* exponent = (rgb >> 27) - RGB9E5_EXP_BIAS - RGB9E5_MANTISSA_BITS;
     * scale.u = (exponent + 127) << 23;
@@ -456,7 +462,7 @@ nir_format_pack_r9g9b9e5(nir_builder *b, nir_def *color)
    b->exact = true;
    nir_def *clamped =
       nir_fmin(b, nir_fmax(b, color, nir_imm_float(b, 0)),
-                  nir_imm_float(b, MAX_RGB9E5));
+               nir_imm_float(b, MAX_RGB9E5));
    b->exact = exact_save;
 
    /* maxrgb.u = MAX3(rc.u, gc.u, bc.u); */
@@ -515,17 +521,17 @@ nir_format_unpack_rgba(nir_builder *b, nir_def *packed,
    case PIPE_FORMAT_R9G9B9E5_FLOAT: {
       nir_def *rgb = nir_format_unpack_r9g9b9e5(b, packed);
       return nir_vec4(b, nir_channel(b, rgb, 0),
-                         nir_channel(b, rgb, 1),
-                         nir_channel(b, rgb, 2),
-                         nir_imm_float(b, 1.0));
+                      nir_channel(b, rgb, 1),
+                      nir_channel(b, rgb, 2),
+                      nir_imm_float(b, 1.0));
    }
 
    case PIPE_FORMAT_R11G11B10_FLOAT: {
       nir_def *rgb = nir_format_unpack_11f11f10f(b, packed);
       return nir_vec4(b, nir_channel(b, rgb, 0),
-                         nir_channel(b, rgb, 1),
-                         nir_channel(b, rgb, 2),
-                         nir_imm_float(b, 1.0));
+                      nir_channel(b, rgb, 1),
+                      nir_channel(b, rgb, 2),
+                      nir_imm_float(b, 1.0));
    }
 
    default:
@@ -538,7 +544,9 @@ nir_format_unpack_rgba(nir_builder *b, nir_def *packed,
 
    nir_def *unpacked;
    if (desc->block.bits <= 32) {
-      unsigned bits[4] = { 0, };
+      unsigned bits[4] = {
+         0,
+      };
       for (uint32_t c = 0; c < desc->nr_channels; c++) {
          if (c != 0) {
             assert(desc->channel[c].shift ==
@@ -557,7 +565,9 @@ nir_format_unpack_rgba(nir_builder *b, nir_def *packed,
       unpacked = nir_trim_vector(b, unpacked, desc->nr_channels);
    }
 
-   nir_def *comps[4] = { NULL, };
+   nir_def *comps[4] = {
+      NULL,
+   };
    for (uint32_t c = 0; c < desc->nr_channels; c++) {
       const struct util_format_channel_description *chan = &desc->channel[c];
 
@@ -615,7 +625,9 @@ nir_format_unpack_rgba(nir_builder *b, nir_def *packed,
       }
    }
 
-   nir_def *swiz_comps[4] = { NULL, };
+   nir_def *swiz_comps[4] = {
+      NULL,
+   };
    for (uint32_t i = 0; i < 4; i++) {
       enum pipe_swizzle s = desc->swizzle[i];
       switch (s) {
@@ -685,7 +697,9 @@ nir_format_pack_rgba(nir_builder *b, enum pipe_format format, nir_def *rgba)
       rgba = srgb;
    }
 
-   nir_def *comps[4] = { NULL, };
+   nir_def *comps[4] = {
+      NULL,
+   };
    for (uint32_t i = 0; i < 4; i++) {
       enum pipe_swizzle s = desc->swizzle[i];
       if (s < PIPE_SWIZZLE_X || s > PIPE_SWIZZLE_W)
@@ -760,7 +774,9 @@ nir_format_pack_rgba(nir_builder *b, enum pipe_format format, nir_def *rgba)
    nir_def *encoded = nir_vec(b, comps, desc->nr_channels);
 
    if (desc->block.bits <= 32) {
-      unsigned bits[4] = { 0, };
+      unsigned bits[4] = {
+         0,
+      };
       for (uint32_t c = 0; c < desc->nr_channels; c++) {
          if (c != 0) {
             assert(desc->channel[c].shift ==

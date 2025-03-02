@@ -61,6 +61,32 @@
     # no need to pull the whole repo to build the container image
     GIT_STRATEGY: none
 
+.container-builds-angle:
+  variables:
+    ANGLE_TAG: "${CONDITIONAL_BUILD_ANGLE_TAG}"
+
+.container-builds-android:
+  extends:
+    - .container-builds-angle
+  variables:
+    # CI_BUILD_COMPONENTS is a space-separated list of components used during early tag checks
+    # If this job inherits from multiple .container-builds-*, it needs to combine them
+    # e.g: inherits from .container-builds-angle and .container-builds-piglit
+    # should make CI_BUILD_COMPONENTS="angle piglit"
+    CI_BUILD_COMPONENTS: "angle"
+
+.container-builds-x86_64:
+  extends:
+    - .container-builds-angle
+  variables:
+    CI_BUILD_COMPONENTS: "angle"
+
+.container-builds-arm64:
+  extends:
+    - .container-builds-angle
+  variables:
+    CI_BUILD_COMPONENTS: "angle"
+
 .use-base-image:
   extends:
     - .container
@@ -164,6 +190,8 @@ debian/s390x_build:
 
 # Android NDK cross-build image
 .android-variables:
+  extends:
+    - .container-builds-android
   variables:
     ANDROID_NDK_VERSION: "r27c"
     ANDROID_SDK_VERSION: 34
@@ -177,6 +205,7 @@ debian/s390x_build:
 debian/android_build:
   extends:
     - .android-variables
+    - .container-builds-android
     - .use-debian/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &debian-android_build ${DEBIAN_BUILD_TAG}
@@ -460,7 +489,9 @@ debian/arm32_test-vk:
 debian/arm64_test-gl:
   tags:
     - aarch64
-  extends: .use-debian/arm64_test-base
+  extends:
+    - .use-debian/arm64_test-base
+    - .container-builds-arm64
   variables:
     MESA_IMAGE_TAG: &debian-arm64_test-gl ${DEBIAN_TEST_GL_TAG}
 
@@ -532,6 +563,7 @@ kernel+rootfs_x86_64:
     - .use-debian/x86_64_build-base
     - .kernel+rootfs
     - .firmware_x86_64
+    - .container-builds-x86_64
   image: "$FDO_BASE_IMAGE"
   variables:
     DEBIAN_ARCH: "amd64"
@@ -543,6 +575,7 @@ kernel+rootfs_arm64:
     - .use-debian/arm64_build
     - .kernel+rootfs
     - .firmware_arm64
+    - .container-builds-arm64
   tags:
     - aarch64
   variables:

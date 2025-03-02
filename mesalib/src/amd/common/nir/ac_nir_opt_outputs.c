@@ -232,8 +232,7 @@ bool ac_nir_optimize_outputs(nir_shader *nir, bool sprite_tex_disallowed,
 
    if (nir->info.stage != MESA_SHADER_VERTEX &&
        nir->info.stage != MESA_SHADER_TESS_EVAL) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    struct ac_out_info outputs[NUM_TOTAL_VARYING_SLOTS] = { 0 };
@@ -300,10 +299,5 @@ bool ac_nir_optimize_outputs(nir_shader *nir, bool sprite_tex_disallowed,
          ac_eliminate_duplicated_output(outputs, outputs_optimized, i, &b, slot_remap);
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }

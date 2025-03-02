@@ -245,8 +245,7 @@ nir_minimize_call_live_states_impl(nir_function_impl *impl)
 
    ralloc_free(mem_ctx);
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+   nir_progress(true, impl, nir_metadata_block_index | nir_metadata_dominance);
    return progress;
 }
 

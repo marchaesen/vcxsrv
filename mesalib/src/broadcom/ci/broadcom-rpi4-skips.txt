@@ -348,6 +348,11 @@ dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_linear.vk_
 dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_linear.vk_image_type_3d.single.gradient.device.write
 dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_optimal.vk_image_type_3d.single.random.device.write
 
+# These generate OOM on purpose to test failures. Better skip them to
+# avoid interferences when running with other tests in parallel
+dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail.basic
+dEQP-VK.api.object_management.alloc_callback_fail.*
+
 # Slow tests (> 1 minute to run)
 ubsan-dEQP-VK.ssbo.layout.3_level_unsized_array.std140.row_major_mat3x4_store_cols
 ubsan-dEQP-VK.ssbo.layout.basic_unsized_array.std430.column_major_mat4_store_cols

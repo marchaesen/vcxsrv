@@ -4644,8 +4644,6 @@ nir_to_spirv(struct nir_shader *s, const struct zink_shader_info *sinfo, const s
 
    case MESA_SHADER_GEOMETRY:
       spirv_builder_emit_cap(&ctx.builder, SpvCapabilityGeometry);
-      if (s->info.gs.active_stream_mask)
-         spirv_builder_emit_cap(&ctx.builder, SpvCapabilityGeometryStreams);
       if (s->info.outputs_written & BITFIELD64_BIT(VARYING_SLOT_PSIZ))
          spirv_builder_emit_cap(&ctx.builder, SpvCapabilityGeometryPointSize);
       break;

@@ -301,7 +301,7 @@ impl(nir_function_impl *impl, uint8_t bool_bitsize)
       lower_locals_to_regs_block(block, &state);
    }
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 
    _mesa_hash_table_destroy(state.regs_table, NULL);
 

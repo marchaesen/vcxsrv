@@ -265,8 +265,16 @@ vk_physical_device_check_device_features(struct vk_physical_device *physical_dev
       if (!supported)
          continue;
 
+      /* Ignore duplicated structs instead of failing to create the device. */
+      if (supported->sType != 0) {
+         vk_logw(VK_LOG_OBJS(physical_device),
+                 "WARNING: Duplicate sType %s in the device creation chain.\\n",
+                 vk_StructureType_to_str(features->sType));
+         continue;
+      }
+
       /* Check for cycles in the list */
-      if (supported->pNext != NULL || supported->sType != 0)
+      if (supported->pNext != NULL)
          return VK_ERROR_UNKNOWN;
 
       supported->sType = features->sType;

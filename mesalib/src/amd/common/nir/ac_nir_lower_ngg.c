@@ -838,7 +838,7 @@ analyze_shader_before_culling(nir_shader *shader, lower_ngg_nogs_state *s)
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_all);
+      nir_no_progress(impl);
    }
 }
 
@@ -1203,7 +1203,7 @@ add_deferred_attribute_culling(nir_builder *b, nir_cf_list *original_extracted_c
    nir_store_var(b, s->gs_accepted_var, gs_thread, 0x1u);
 
    /* Remove all non-position outputs, and put the position output into the variable. */
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
    remove_culling_shader_outputs(b->shader, s);
    b->cursor = nir_after_impl(impl);
 
@@ -1929,7 +1929,7 @@ ac_nir_lower_ngg_nogs(nir_shader *shader, const ac_nir_lower_ngg_options *option
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
    nir_validate_shader(shader, "after emitting NGG VS/TES");
 
    /* Cleanup */

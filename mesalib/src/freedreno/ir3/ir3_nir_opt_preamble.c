@@ -763,12 +763,13 @@ ir3_nir_opt_prefetch_descriptors(nir_shader *nir, struct ir3_shader_variant *v)
    }
 
 finished:
-   nir_metadata_preserve(main, nir_metadata_all);
+   nir_no_progress(main);
+
    if (preamble) {
-      nir_metadata_preserve(preamble,
-                            nir_metadata_block_index |
-                            nir_metadata_dominance);
+      nir_progress(true, preamble,
+                   nir_metadata_block_index | nir_metadata_dominance);
    }
+
    nir_instr_set_destroy(instr_set);
    free(preamble_defs);
    return progress;
@@ -897,6 +898,5 @@ ir3_nir_lower_preamble(nir_shader *nir, struct ir3_shader_variant *v)
    exec_node_remove(&main->preamble->node);
    main->preamble = NULL;
 
-   nir_metadata_preserve(main, nir_metadata_none);
-   return true;
+   return nir_progress(true, main, nir_metadata_none);
 }

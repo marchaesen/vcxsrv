@@ -132,14 +132,15 @@ static void FreePointerBarrierClient(struct PointerBarrierClient *c)
 
 static struct PointerBarrierDevice *GetBarrierDevice(struct PointerBarrierClient *c, int deviceid)
 {
-    struct PointerBarrierDevice *pbd = NULL;
+    struct PointerBarrierDevice *p, *pbd = NULL;
 
-    xorg_list_for_each_entry(pbd, &c->per_device, entry) {
-        if (pbd->deviceid == deviceid)
+    xorg_list_for_each_entry(p, &c->per_device, entry) {
+        if (p->deviceid == deviceid) {
+            pbd = p;
             break;
+        }
     }
 
-    BUG_WARN(!pbd);
     return pbd;
 }
 
@@ -340,6 +341,9 @@ barrier_find_nearest(BarrierScreenPtr cs, DeviceIntPtr dev,
         double distance;
 
         pbd = GetBarrierDevice(c, dev->id);
+        if (!pbd)
+            continue;
+
         if (pbd->seen)
             continue;
 
@@ -448,6 +452,9 @@ input_constrain_cursor(DeviceIntPtr dev, ScreenPtr screen,
         nearest = &c->barrier;
 
         pbd = GetBarrierDevice(c, master->id);
+        if (!pbd)
+            continue;
+
         new_sequence = !pbd->hit;
 
         pbd->seen = TRUE;
@@ -488,6 +495,9 @@ input_constrain_cursor(DeviceIntPtr dev, ScreenPtr screen,
         int flags = 0;
 
         pbd = GetBarrierDevice(c, master->id);
+        if (!pbd)
+            continue;
+
         pbd->seen = FALSE;
         if (!pbd->hit)
             continue;
@@ -682,6 +692,9 @@ BarrierFreeBarrier(void *data, XID id)
             continue;
 
         pbd = GetBarrierDevice(c, dev->id);
+        if (!pbd)
+            continue;
+
         if (!pbd->hit)
             continue;
 
@@ -741,6 +754,8 @@ static void remove_master_func(void *res, XID id, void *devid)
     barrier = container_of(b, struct PointerBarrierClient, barrier);
 
     pbd = GetBarrierDevice(barrier, *deviceid);
+    if (!pbd)
+        return;
 
     if (pbd->hit) {
         BarrierEvent ev = {
@@ -905,6 +920,10 @@ ProcXIBarrierReleasePointer(ClientPtr client)
         barrier = container_of(b, struct PointerBarrierClient, barrier);
 
         pbd = GetBarrierDevice(barrier, dev->id);
+        if (!pbd) {
+            client->errorValue = dev->id;
+            return BadDevice;
+        }
 
         if (pbd->barrier_event_id == event_id)
             pbd->release_event_id = event_id;

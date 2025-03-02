@@ -128,8 +128,7 @@ nir_lower_reg_intrinsics_to_ssa_impl(nir_function_impl *impl)
       }
    }
    if (!need_lower_reg) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    nir_metadata_require(impl, nir_metadata_control_flow);
@@ -170,8 +169,7 @@ nir_lower_reg_intrinsics_to_ssa_impl(nir_function_impl *impl)
 
    ralloc_free(dead_ctx);
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
-   return true;
+   return nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 bool

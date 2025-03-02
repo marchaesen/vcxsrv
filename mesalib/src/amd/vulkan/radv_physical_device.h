@@ -61,6 +61,8 @@ struct radv_physical_device_cache_key {
    uint32_t use_llvm : 1;
    uint32_t use_ngg : 1;
    uint32_t use_ngg_culling : 1;
+
+   uint32_t reserved : 11;
 };
 
 enum radv_video_enc_hw_ver {

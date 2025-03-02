@@ -29,17 +29,20 @@
 
 static void
 vk_descriptor_set_layout_init(struct vk_device *device,
-                              struct vk_descriptor_set_layout *layout)
+                              struct vk_descriptor_set_layout *layout,
+                              const VkDescriptorSetLayoutCreateInfo *pCreateInfo)
 {
    vk_object_base_init(device, &layout->base,
                        VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT);
 
    layout->ref_cnt = 1;
+   layout->flags = pCreateInfo->flags;
    layout->destroy = vk_descriptor_set_layout_destroy;
 }
 
 void *
-vk_descriptor_set_layout_zalloc(struct vk_device *device, size_t size)
+vk_descriptor_set_layout_zalloc(struct vk_device *device, size_t size,
+                                const VkDescriptorSetLayoutCreateInfo *pCreateInfo)
 {
    /* Because we're reference counting and lifetimes may not be what the
     * client expects, these have to be allocated off the device and not as
@@ -50,14 +53,15 @@ vk_descriptor_set_layout_zalloc(struct vk_device *device, size_t size)
    if (!layout)
       return NULL;
 
-   vk_descriptor_set_layout_init(device, layout);
+   vk_descriptor_set_layout_init(device, layout, pCreateInfo);
 
    return layout;
 }
 
 void *
 vk_descriptor_set_layout_multizalloc(struct vk_device *device,
-                                     struct vk_multialloc *ma)
+                                     struct vk_multialloc *ma,
+                                     const VkDescriptorSetLayoutCreateInfo *pCreateInfo)
 {
    /* Because we're reference counting and lifetimes may not be what the
     * client expects, these have to be allocated off the device and not as
@@ -69,7 +73,7 @@ vk_descriptor_set_layout_multizalloc(struct vk_device *device,
    if (!layout)
       return NULL;
 
-   vk_descriptor_set_layout_init(device, layout);
+   vk_descriptor_set_layout_init(device, layout, pCreateInfo);
 
    return layout;
 }

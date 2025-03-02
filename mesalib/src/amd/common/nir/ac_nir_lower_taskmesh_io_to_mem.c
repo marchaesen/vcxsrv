@@ -306,7 +306,7 @@ ac_nir_lower_task_outputs_to_mem(nir_shader *shader,
        * that are made by lower_task_launch_mesh_workgroups.
        */
       nir_function_impl *impl = nir_shader_get_entrypoint(shader);
-      nir_metadata_preserve(impl, nir_metadata_none);
+      nir_progress(true, impl, nir_metadata_none);
    }
 
    return progress;

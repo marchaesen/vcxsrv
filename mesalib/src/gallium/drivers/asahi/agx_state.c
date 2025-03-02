@@ -715,7 +715,7 @@ agx_pack_texture(void *out, struct agx_resource *rsrc,
       cfg.unk_mipmapped = rsrc->mipmapped;
       cfg.srgb_2_channel = cfg.srgb && util_format_colormask(desc) == 0x3;
 
-      if (ail_is_compressed(&rsrc->layout)) {
+      if (rsrc->layout.compressed) {
          cfg.compressed_1 = true;
          cfg.extended = true;
       }
@@ -725,7 +725,7 @@ agx_pack_texture(void *out, struct agx_resource *rsrc,
       if (state->target == PIPE_BUFFER)
          cfg.address += state->u.buf.offset;
 
-      if (ail_is_compressed(&rsrc->layout)) {
+      if (rsrc->layout.compressed) {
          cfg.acceleration_buffer =
             agx_map_texture_gpu(rsrc, 0) + rsrc->layout.metadata_offset_B +
             (first_layer * rsrc->layout.compression_layer_stride_B);
@@ -763,9 +763,6 @@ agx_pack_texture(void *out, struct agx_resource *rsrc,
       } else if (rsrc->layout.tiling == AIL_TILING_LINEAR) {
          cfg.stride = ail_get_linear_stride_B(&rsrc->layout, 0) - 16;
       } else {
-         assert(rsrc->layout.tiling == AIL_TILING_TWIDDLED ||
-                rsrc->layout.tiling == AIL_TILING_TWIDDLED_COMPRESSED);
-
          cfg.page_aligned_layers = rsrc->layout.page_aligned_layers;
       }
    }
@@ -1295,7 +1292,7 @@ agx_batch_upload_pbe(struct agx_batch *batch, struct agx_pbe_packed *out,
             cfg.samples = agx_translate_sample_count(tex->base.nr_samples);
       }
 
-      if (ail_is_compressed(&tex->layout) && !emrt) {
+      if (tex->layout.compressed && !emrt) {
          cfg.compressed_1 = true;
          cfg.extended = true;
 
@@ -1321,7 +1318,7 @@ agx_batch_upload_pbe(struct agx_batch *batch, struct agx_pbe_packed *out,
 
          cfg.sample_count_log2_sw = util_logbase2(tex->base.nr_samples);
 
-         if (tex->layout.tiling == AIL_TILING_TWIDDLED || emrt) {
+         if (tex->layout.tiling == AIL_TILING_GPU || emrt) {
             struct ail_tile tile_size = tex->layout.tilesize_el[level];
             cfg.tile_width_sw = tile_size.width_el;
             cfg.tile_height_sw = tile_size.height_el;
@@ -4798,7 +4795,7 @@ agx_legalize_feedback_loops(struct agx_context *ctx)
             if (ctx->framebuffer.cbufs[cb] &&
                 agx_resource(ctx->framebuffer.cbufs[cb]->texture) == rsrc) {
 
-               if (rsrc->layout.tiling == AIL_TILING_TWIDDLED_COMPRESSED) {
+               if (rsrc->layout.compressed) {
                   /* Decompress if we can and shadow if we can't. */
                   if (rsrc->base.bind & PIPE_BIND_SHARED) {
                      struct agx_batch *batch = agx_get_batch(ctx);

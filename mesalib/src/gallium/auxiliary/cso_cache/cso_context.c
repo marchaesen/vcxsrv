@@ -1171,9 +1171,9 @@ cso_restore_compute_samplers(struct cso_context_priv *ctx)
 }
 
 
-static void
-cso_set_vertex_elements_direct(struct cso_context_priv *ctx,
-                               const struct cso_velems_state *velems)
+static void *
+cso_get_vertex_elements(struct cso_context_priv *ctx,
+                        const struct cso_velems_state *velems)
 {
    /* Need to include the count into the stored state data too.
     * Otherwise first few count pipe_vertex_elements could be identical
@@ -1186,12 +1186,11 @@ cso_set_vertex_elements_direct(struct cso_context_priv *ctx,
    struct cso_hash_iter iter =
       cso_find_state_template(&ctx->cache, hash_key, CSO_VELEMENTS,
                               velems, key_size);
-   void *handle;
 
    if (cso_hash_iter_is_null(iter)) {
       struct cso_velements *cso = MALLOC(sizeof(struct cso_velements));
       if (!cso)
-         return;
+         return NULL;
 
       memcpy(&cso->state, velems, key_size);
 
@@ -1207,13 +1206,20 @@ cso_set_vertex_elements_direct(struct cso_context_priv *ctx,
       iter = cso_insert_state(&ctx->cache, hash_key, CSO_VELEMENTS, cso);
       if (cso_hash_iter_is_null(iter)) {
          FREE(cso);
-         return;
+         return NULL;
       }
 
-      handle = cso->data;
+      return cso->data;
    } else {
-      handle = ((struct cso_velements *)cso_hash_iter_data(iter))->data;
+      return ((struct cso_velements *)cso_hash_iter_data(iter))->data;
    }
+}
+
+static void
+cso_set_vertex_elements_direct(struct cso_context_priv *ctx,
+                               const struct cso_velems_state *velems)
+{
+   void *handle = cso_get_vertex_elements(ctx, velems);
 
    if (ctx->velements != handle) {
       ctx->velements = handle;
@@ -1221,6 +1227,24 @@ cso_set_vertex_elements_direct(struct cso_context_priv *ctx,
    }
 }
 
+/**
+ * Same as cso_set_vertex_elements_direct, but the caller is responsible for
+ * binding the state if the return value isn't NULL.
+ */
+void *
+cso_get_vertex_elements_for_bind(struct cso_context *cso,
+                                 const struct cso_velems_state *velems)
+{
+   struct cso_context_priv *ctx = (struct cso_context_priv *)cso;
+   void *handle = cso_get_vertex_elements(ctx, velems);
+
+   if (handle && ctx->velements != handle) {
+      ctx->velements = handle;
+      return handle;
+   }
+
+   return NULL;
+}
 
 enum pipe_error
 cso_set_vertex_elements(struct cso_context *cso,

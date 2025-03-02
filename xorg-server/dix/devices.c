@@ -981,6 +981,23 @@ FreeAllDeviceClasses(ClassesPtr classes)
 
 }
 
+static void
+FreePendingFrozenDeviceEvents(DeviceIntPtr dev)
+{
+    QdEventPtr qe, tmp;
+
+    if (!dev->deviceGrab.sync.frozen)
+        return;
+
+    /* Dequeue any frozen pending events */
+    xorg_list_for_each_entry_safe(qe, tmp, &syncEvents.pending, next) {
+        if (qe->device == dev) {
+            xorg_list_del(&qe->next);
+            free(qe);
+        }
+    }
+}
+
 /**
  * Close down a device and free all resources.
  * Once closed down, the driver will probably not expect you that you'll ever
@@ -1044,6 +1061,7 @@ CloseDevice(DeviceIntPtr dev)
         valuator_mask_free(&dev->last.touches[j].valuators);
     free(dev->last.touches);
     dev->config_info = NULL;
+    FreePendingFrozenDeviceEvents(dev);
     dixFreePrivates(dev->devPrivates, PRIVATE_DEVICE);
     free(dev);
 }

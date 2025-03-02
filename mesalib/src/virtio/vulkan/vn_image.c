@@ -472,8 +472,6 @@ vn_image_init(struct vn_device *dev,
    VkImage image = vn_image_to_handle(img);
    VkResult result = VK_SUCCESS;
 
-   img->sharing_mode = create_info->sharingMode;
-
    /* Check if mem reqs in cache. If found, make async call */
    uint8_t key[SHA1_DIGEST_LENGTH] = { 0 };
    const bool cacheable = vn_image_get_image_reqs_key(dev, create_info, key);

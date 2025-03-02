@@ -341,9 +341,8 @@ crocus_fix_edge_flags(nir_shader *nir)
    nir_fixup_deref_modes(nir);
 
    nir_foreach_function_impl(impl, nir) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow |
-                            nir_metadata_live_defs |
-                            nir_metadata_loop_analysis);
+      nir_progress(true, impl,
+                   nir_metadata_control_flow | nir_metadata_live_defs | nir_metadata_loop_analysis);
    }
 
    return true;

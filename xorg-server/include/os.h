@@ -86,8 +86,6 @@ typedef struct _NewClientRec *NewClientPtr;
 
 extern _X_EXPORT int ReadFdFromClient(ClientPtr client);
 
-extern _X_EXPORT void SetCriticalOutputPending(void);
-
 extern _X_EXPORT int WriteToClient(ClientPtr /*who */ , int /*count */ ,
                                    const void * /*buf */ );
 
@@ -129,7 +127,6 @@ extern _X_EXPORT OsTimerPtr TimerSet(OsTimerPtr timer,
                                      OsTimerCallback func,
                                      void *arg);
 
-extern _X_EXPORT void TimerCheck(void);
 extern _X_EXPORT void TimerCancel(OsTimerPtr /* pTimer */ );
 extern _X_EXPORT void TimerFree(OsTimerPtr /* pTimer */ );
 

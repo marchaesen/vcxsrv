@@ -178,6 +178,10 @@ yaml-toml-shell-py-test:
     paths:
       - results/
 
+.test-angle:
+  variables:
+    ANGLE_TAG: ${CONDITIONAL_BUILD_ANGLE_TAG}
+
 .b2c-vkd3d-proton-test:
   variables:
     HWCI_TEST_SCRIPT: install/vkd3d-runner.sh
@@ -337,7 +341,8 @@ yaml-toml-shell-py-test:
   image: registry.freedesktop.org/gfx-ci/ci-tron/mesa-trigger:2024-01-05.1
   timeout: 1h 40m
   variables:
-    # No need by default to pull the whole repo
+    # No need to pull the whole git repo, the artifacts from python-artifacts
+    # contain everything we need.
     GIT_STRATEGY: none
     # boot2container initrd configuration parameters.
     B2C_VERSION: v0.9.14
@@ -354,12 +359,15 @@ yaml-toml-shell-py-test:
     B2C_TIMEOUT_OVERALL_MINUTES: 90
     B2C_TIMEOUT_CONSOLE_ACTIVITY_RETRIES: 0
     B2C_JOB_VOLUME_EXCLUSIONS: "*.shader_cache,install/*,*/install/*,*/vkd3d-proton.cache*,vkd3d-proton.cache*,*.qpa"
+    B2C_MACHINE_REGISTRATION_IMAGE: "registry.freedesktop.org/gfx-ci/ci-tron/machine-registration:latest"
+    B2C_TELEGRAF_IMAGE: "registry.freedesktop.org/gfx-ci/ci-tron/telegraf:latest"
+    B2C_KERNEL_CMDLINE_EXTRAS: ""
 
     # As noted in the top description, we make a distinction between the
     # container used by gitlab-runner to queue the work, and the container
     # used by the DUTs/test machines. To make this distinction quite clear,
-    # we rename the MESA_IMAGE variable into IMAGE_UNDER_TEST.
-    IMAGE_UNDER_TEST: "$MESA_IMAGE"
+    # we rename the variable.
+    B2C_IMAGE_UNDER_TEST: "$MESA_IMAGE"
 
     B2C_INSTALL_TARBALL_URL: "https://${PIPELINE_ARTIFACTS_BASE}/${S3_ARTIFACT_NAME}.tar.zst"
     B2C_CONTAINER_CMD: "./install/common/init-stage2.sh"
@@ -401,6 +409,11 @@ yaml-toml-shell-py-test:
       [ -d "$CI_B2C_ARTIFACTS" ] || exit 1
       [ -d "$CI_COMMON_SCRIPTS" ] || exit 1
 
+      # Pull all our images through our proxy registry
+      B2C_IMAGE_UNDER_TEST=${B2C_IMAGE_UNDER_TEST//registry.freedesktop.org/{{ fdo_proxy_registry \}\}}
+      B2C_MACHINE_REGISTRATION_IMAGE=${B2C_MACHINE_REGISTRATION_IMAGE//registry.freedesktop.org/{{ fdo_proxy_registry \}\}}
+      B2C_TELEGRAF_IMAGE=${B2C_TELEGRAF_IMAGE//registry.freedesktop.org/{{ fdo_proxy_registry \}\}}
+
       # The Valve CI gateway receives jobs in a YAML format. Create a
       # job description from the CI environment.
       python3 "$CI_B2C_ARTIFACTS"/generate_b2c.py
@@ -426,19 +439,24 @@ yaml-toml-shell-py-test:
 
       # Submit the job to Valve's CI gateway service with the CI
       # provisioned job_folder.
-      env PYTHONUNBUFFERED=1 executorctl \
-          run -w b2c.yml.jinja2 -j $(slugify "$CI_JOB_NAME") -s ${JOB_FOLDER} -i "$CI_RUNNER_DESCRIPTION"
+      PYTHONUNBUFFERED=1 \
+      executorctl run \
+          --machine-id "$CI_RUNNER_DESCRIPTION" \
+          --job-id $(slugify "$CI_JOB_NAME") \
+          --share-directory "$JOB_FOLDER" \
+          --wait \
+          b2c.yml.jinja2
 
-  # Anything our job places in results/ will be collected by the
-  # Gitlab coordinator for status presentation. results/junit.xml
-  # will be parsed by the UI for more detailed explanations of
-  # test execution.
   after_script:
     # Keep the results path the same as baremetal and LAVA
     - mkdir -p "${JOB_FOLDER}"/results
     - mv "${JOB_FOLDER}"/results ./
     - !reference [default, after_script]
 
+  # Anything our job places in results/ will be collected by the
+  # Gitlab coordinator for status presentation. results/junit.xml
+  # will be parsed by the UI for more detailed explanations of
+  # test execution.
   artifacts:
     when: always
     name: "${CI_PROJECT_NAME}_${CI_JOB_NAME}"

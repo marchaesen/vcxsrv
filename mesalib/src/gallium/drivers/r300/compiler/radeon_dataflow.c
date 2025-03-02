@@ -649,7 +649,7 @@ get_readers_for_single_write(void *userdata, struct rc_instruction *writer,
             endloop = tmp;
             tmp = rc_match_endloop(tmp);
             if (!tmp) {
-               rc_error(d->C, "Failed to match endloop.\n");
+               rc_error(d->C, "Failed to match endloop");
                d->ReaderData->Abort = 1;
                return;
             }

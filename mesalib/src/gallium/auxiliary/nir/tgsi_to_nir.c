@@ -2511,8 +2511,7 @@ lower_clipdistance_to_array(nir_shader *nir)
             _mesa_set_add(deletes, deref);
          }
       }
-      if (func_progress)
-         nir_metadata_preserve(impl, nir_metadata_none);
+      nir_progress(func_progress, impl, nir_metadata_none);
       /* derefs must be queued for deletion to avoid deleting the same deref repeatedly */
       set_foreach_remove(deletes, he)
          nir_instr_remove((void*)he->key);

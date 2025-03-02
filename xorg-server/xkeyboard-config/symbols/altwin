@@ -68,7 +68,8 @@ partial modifier_keys
 xkb_symbols "hyper_win" {
     key <LWIN> {[  Hyper_L  ]};
     key <RWIN> {[  Hyper_R  ]};
-    modifier_map Mod3 { Hyper_L, Hyper_R };
+    modifier_map None { <LWIN>, <RWIN> };
+    include "hyper(mod3)"
 };
 
 // Menu is mapped to the Menu key.

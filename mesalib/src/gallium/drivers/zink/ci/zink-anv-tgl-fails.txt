@@ -670,6 +670,3 @@ glx@glx_arb_sync_control@swapbuffersmsc-return,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 0,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 1,Fail
-
-# ANV doesn't support 3D dmabufs
-spec@egl 1.4@egl-ext_egl_image_storage,Crash

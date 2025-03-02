@@ -150,7 +150,7 @@ get_reg_valuep(struct schedule_state *s, rc_register_file file, unsigned int ind
       return NULL;
 
    if (index >= RC_REGISTER_MAX_INDEX) {
-      rc_error(s->C, "%s: index %i out of bounds\n", __func__, index);
+      rc_error(s->C, "%s: index %i out of bounds", __func__, index);
       return NULL;
    }
 
@@ -764,7 +764,7 @@ rgb_to_alpha_remap(struct schedule_state *s, struct rc_instruction *inst,
    /* This conversion is not possible, we must have made a mistake in
     * is_rgb_to_alpha_possible. */
    if (new_src_index < 0) {
-      rc_error(s->C, "rgb_to_alpha_remap failed to allocate src.\n");
+      rc_error(s->C, "rgb_to_alpha_remap failed to allocate src");
       return;
    }
 
@@ -1181,7 +1181,7 @@ scan_read(void *data, struct rc_instruction *inst, rc_register_file file, unsign
    (*v)->NumReaders++;
 
    if (s->Current->NumReadValues >= 12) {
-      rc_error(s->C, "%s: NumReadValues overflow\n", __func__);
+      rc_error(s->C, "%s: NumReadValues overflow", __func__);
    } else {
       s->Current->ReadValues[s->Current->NumReadValues++] = *v;
    }
@@ -1216,7 +1216,7 @@ scan_write(void *data, struct rc_instruction *inst, rc_register_file file, unsig
    *pv = newv;
 
    if (s->Current->NumWriteValues >= 4) {
-      rc_error(s->C, "%s: NumWriteValues overflow\n", __func__);
+      rc_error(s->C, "%s: NumWriteValues overflow", __func__);
    } else {
       s->Current->WriteValues[s->Current->NumWriteValues++] = newv;
    }

@@ -26,7 +26,7 @@ ir3_nir_lower_push_consts_to_preamble(nir_shader *nir,
       .range = v->shader_options.push_consts_dwords);
 
    nir_foreach_function_impl(impl, nir) {
-      nir_metadata_preserve(impl, nir_metadata_none);
+      nir_progress(true, impl, nir_metadata_none);
    }
    return true;
 }

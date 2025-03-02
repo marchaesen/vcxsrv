@@ -300,7 +300,9 @@ panvk_get_spirv_options(UNUSED struct vk_physical_device *vk_pdev,
 }
 
 static void
-panvk_preprocess_nir(UNUSED struct vk_physical_device *vk_pdev, nir_shader *nir)
+panvk_preprocess_nir(UNUSED struct vk_physical_device *vk_pdev,
+                     nir_shader *nir,
+                     UNUSED const struct vk_pipeline_robustness_state *rs)
 {
    /* Ensure to regroup output variables at the same location */
    if (nir->info.stage == MESA_SHADER_FRAGMENT)

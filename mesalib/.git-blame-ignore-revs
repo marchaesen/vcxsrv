@@ -68,3 +68,9 @@ c7bf3b69ebc8f2252dbf724a4de638e6bb2ac402
 
 # ir3: reformat after refactoring in previous commit
 8ae5b27ee0331a739d14b42e67586784d6840388
+
+# ir3: don't use deprecated NIR_PASS_V anymore
+2fedc82c0cc9d3fb2e54707b57941b79553b640c
+
+# ir3: reformat after previous commit
+7210054db8cfb445a8ccdeacfdcfecccf44fa266

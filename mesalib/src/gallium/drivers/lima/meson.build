@@ -27,6 +27,8 @@ files_lima = files(
   'ir/pp/codegen.c',
   'ir/pp/node_to_instr.c',
   'ir/pp/disasm.c',
+  'ir/pp/opt.c',
+  'ir/pp/compact.c',
 
   'ir/lima_nir_duplicate_consts.c',
   'ir/lima_nir_duplicate_intrinsic.c',

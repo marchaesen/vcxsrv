@@ -20,6 +20,7 @@
 #endif
 
 #include "drm-uapi/virtgpu_drm.h"
+#include "util/os_file.h"
 #include "util/sparse_array.h"
 #define VIRGL_RENDERER_UNSTABLE_APIS
 #include "virtio-gpu/virglrenderer_hw.h"
@@ -345,7 +346,7 @@ sim_syncobj_submit(struct virtgpu *gpu,
    if (!syncobj)
       return -1;
 
-   int pending_fd = dup(sync_fd);
+   int pending_fd = os_dupfd_cloexec(sync_fd);
    if (pending_fd < 0) {
       vn_log(gpu->instance, "failed to dup sync fd");
       return -1;
@@ -440,9 +441,9 @@ sim_syncobj_export(struct virtgpu *gpu, uint32_t syncobj_handle)
    int fd = -1;
    mtx_lock(&syncobj->mutex);
    if (syncobj->pending_fd >= 0)
-      fd = dup(syncobj->pending_fd);
+      fd = os_dupfd_cloexec(syncobj->pending_fd);
    else
-      fd = dup(sim.signaled_fd);
+      fd = os_dupfd_cloexec(sim.signaled_fd);
    mtx_unlock(&syncobj->mutex);
 
    return fd;

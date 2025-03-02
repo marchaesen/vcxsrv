@@ -30,8 +30,15 @@ variables:
   # The tag should be updated each time the list of packages is updated.
   # Changing a tag forces the associated image to be rebuilt.
   # Note: the tag has no meaning, we use a date format purely for readability
-  FDO_DISTRIBUTION_TAG:  '2022-07-17.0'
-  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake libtool make xorg-util-macros xorgproto libx11 libxext'
+  FDO_DISTRIBUTION_TAG: '2025-02-15.0'
+  # minimal set of packages required to build and install either way
+  BASE_PACKAGES: 'git gcc clang pkgconf xorgproto libx11 libxext'
+  # packages needed to build and install with each set of tools
+  AUTOTOOLS_PACKAGES: 'autoconf automake libtool make xorg-util-macros'
+  MESON_PACKAGES: 'meson ninja'
+  # extra packages we need for comparing autotools & meson builds
+  EXTRA_PACKAGES: 'diffoscope diffutils findutils jq'
+  FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $AUTOTOOLS_PACKAGES $MESON_PACKAGES $EXTRA_PACKAGES
 
 
 #
@@ -81,9 +88,9 @@ container-prep:
 
 
 #
-# The default build, runs on the image built above.
+# The autotools build, runs on the image built above.
 #
-build:
+autotools:
   stage: build
   extends:
     - .fdo.distribution-image@arch
@@ -95,4 +102,81 @@ build:
     - make
     - make check
     - make distcheck
+    - mv libXinerama*.tar.gz ..
     - popd > /dev/null
+  artifacts:
+    paths:
+      - libXinerama*.tar.gz
+
+#
+# The meson build, runs on the image built above.
+#
+.meson_build:
+  stage: build
+  extends:
+    - .fdo.distribution-image@arch
+  script:
+    - CC="${CC}" meson setup _builddir --prefix="$PWD/_install"
+    - meson compile -C _builddir
+    - meson test -C _builddir
+    - meson install -C _builddir
+
+# Run meson build with different compilers
+meson:
+  extends:
+    - .meson_build
+  parallel:
+    matrix:
+      - CC: ["gcc", "clang"]
+
+
+meson from tarball:
+  extends:
+    - .fdo.distribution-image@arch
+  stage: test
+  script:
+    - mkdir -p _tarball_build
+    - tar xf libXinerama-*.tar.gz -C _tarball_build
+    - cd _tarball_build/libXinerama-*
+    - meson setup _builddir
+    - meson compile -C _builddir
+    - meson test -C _builddir
+  needs:
+    - autotools
+
+compare meson and autotools:
+  extends:
+    - .fdo.distribution-image@arch
+  stage: test
+  script:
+    - mkdir -p $PWD/_meson_inst $PWD/_autotools_inst
+    - CFLAGS="-O2"
+      meson setup builddir --prefix=/usr --buildtype=plain
+       -Ddefault_library=shared
+    - meson compile -C builddir -v
+    - DESTDIR=$PWD/_meson_inst meson install -C builddir
+    - ./autogen.sh --prefix=/usr --enable-shared --disable-static
+      CFLAGS="-O2 -D_FILE_OFFSET_BITS=64"
+    - make V=1 && make install DESTDIR=$PWD/_autotools_inst
+    # get rid of expected differences between the two
+    - rm -f $PWD/_autotools_inst/usr/lib/lib*.la
+    - rm -f $PWD/_autotools_inst/usr/lib/libXinerama.so
+    - ln -s libXinerama.so.1 $PWD/_autotools_inst/usr/lib/libXinerama.so
+    - sed -i -e 's/{exec_prefix}/{prefix}/' -e '/exec_prefix/d'
+        -e 's/\( xineramaproto\)/\1 >=  1.1.99.1/'
+        -e 's/\(Requires\.private:\) x11 xext/\1 x11 >=  1.6, xext, xextproto/'
+        _autotools_inst/usr/lib/pkgconfig/xinerama.pc
+    - find $PWD/_meson_inst $PWD/_autotools_inst
+      -exec touch -h -r $PWD/_meson_inst/ {} \+
+    - diffoscope --text-color=always _autotools_inst _meson_inst
+
+check versions are in sync:
+  extends:
+    - .fdo.distribution-image@arch
+  stage: test
+  script:
+    - autoreconf -ivf
+    - ./configure --version | head -n 1 | sed -e 's/libXinerama configure //' > autotools.version
+    - meson introspect meson.build --projectinfo | jq -r '.version' > meson.version
+    - diff -u autotools.version meson.version ||
+      (echo "ERROR - autotools and meson versions not in sync" && false)

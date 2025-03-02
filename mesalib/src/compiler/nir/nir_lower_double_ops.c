@@ -881,17 +881,14 @@ nir_lower_doubles_impl(nir_function_impl *impl,
       /* Indices are completely messed up now */
       nir_index_ssa_defs(impl);
 
-      nir_metadata_preserve(impl, nir_metadata_none);
+      nir_progress(true, impl, nir_metadata_none);
 
       /* And we have deref casts we need to clean up thanks to function
        * inlining.
        */
       nir_opt_deref_impl(impl);
-   } else if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
+   } else
+      nir_progress(progress, impl, nir_metadata_control_flow);
 
    return progress;
 }

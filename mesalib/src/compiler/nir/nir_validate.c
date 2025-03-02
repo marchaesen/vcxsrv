@@ -635,8 +635,8 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       enum glsl_interp_mode mode = nir_intrinsic_interp_mode(instr);
       validate_assert(state,
                       mode == INTERP_MODE_NONE ||
-                      mode == INTERP_MODE_SMOOTH ||
-                      mode == INTERP_MODE_NOPERSPECTIVE);
+                         mode == INTERP_MODE_SMOOTH ||
+                         mode == INTERP_MODE_NOPERSPECTIVE);
       break;
    }
 
@@ -662,7 +662,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
          validate_assert(state, nir_src_bit_size(instr->src[0]) >= 16);
       validate_assert(state,
                       nir_src_bit_size(instr->src[0]) ==
-                      nir_alu_type_get_type_size(nir_intrinsic_src_type(instr)));
+                         nir_alu_type_get_type_size(nir_intrinsic_src_type(instr)));
       break;
 
    case nir_intrinsic_deref_mode_is:
@@ -785,29 +785,29 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       validate_assert(state,
                       (nir_slot_is_sysval_output(sem.location, MESA_SHADER_NONE) &&
                        !sem.no_sysval_output) ||
-                      (nir_slot_is_varying(sem.location, MESA_SHADER_NONE) &&
-                       !sem.no_varying) ||
-                      nir_instr_xfb_write_mask(instr) ||
-                      /* TCS can set no_varying and no_sysval_output, meaning
-                       * that the output is only read by TCS and not TES.
-                       */
-                      state->shader->info.stage == MESA_SHADER_TESS_CTRL);
+                         (nir_slot_is_varying(sem.location, MESA_SHADER_NONE) &&
+                          !sem.no_varying) ||
+                         nir_instr_xfb_write_mask(instr) ||
+                         /* TCS can set no_varying and no_sysval_output, meaning
+                          * that the output is only read by TCS and not TES.
+                          */
+                         state->shader->info.stage == MESA_SHADER_TESS_CTRL);
       validate_assert(state,
                       (!sem.dual_source_blend_index &&
                        !sem.fb_fetch_output &&
                        !sem.fb_fetch_output_coherent) ||
-                      state->shader->info.stage == MESA_SHADER_FRAGMENT);
+                         state->shader->info.stage == MESA_SHADER_FRAGMENT);
       validate_assert(state,
                       !sem.gs_streams ||
-                      state->shader->info.stage == MESA_SHADER_GEOMETRY);
+                         state->shader->info.stage == MESA_SHADER_GEOMETRY);
       validate_assert(state,
                       !sem.high_dvec2 ||
-                      (state->shader->info.stage == MESA_SHADER_VERTEX &&
-                       instr->intrinsic == nir_intrinsic_load_input));
+                         (state->shader->info.stage == MESA_SHADER_VERTEX &&
+                          instr->intrinsic == nir_intrinsic_load_input));
       validate_assert(state,
                       !sem.interp_explicit_strict ||
-                      (state->shader->info.stage == MESA_SHADER_FRAGMENT &&
-                       instr->intrinsic == nir_intrinsic_load_input_vertex));
+                         (state->shader->info.stage == MESA_SHADER_FRAGMENT &&
+                          instr->intrinsic == nir_intrinsic_load_input_vertex));
    }
 }
 
@@ -842,14 +842,14 @@ validate_tex_src_texture_deref(nir_tex_instr *instr, validate_state *state,
    case nir_texop_fragment_mask_fetch_amd:
    case nir_texop_txf_ms_mcs_intel:
       validate_assert(state, nir_alu_type_get_base_type(instr->dest_type) == nir_type_int ||
-                             nir_alu_type_get_base_type(instr->dest_type) == nir_type_uint);
+                                nir_alu_type_get_base_type(instr->dest_type) == nir_type_uint);
       break;
    default:
       validate_assert(state,
                       glsl_get_sampler_result_type(deref->type) == GLSL_TYPE_VOID ||
-                      glsl_base_type_is_integer(glsl_get_sampler_result_type(deref->type)) ==
-                         (nir_alu_type_get_base_type(instr->dest_type) == nir_type_int ||
-                          nir_alu_type_get_base_type(instr->dest_type) == nir_type_uint));
+                         glsl_base_type_is_integer(glsl_get_sampler_result_type(deref->type)) ==
+                            (nir_alu_type_get_base_type(instr->dest_type) == nir_type_int ||
+                             nir_alu_type_get_base_type(instr->dest_type) == nir_type_uint));
    }
 }
 

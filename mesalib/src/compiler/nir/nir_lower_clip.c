@@ -145,7 +145,7 @@ load_clipdist_input(nir_builder *b, nir_variable *in, int location_offset,
 static nir_def *
 find_output(nir_builder *b, unsigned location)
 {
-   nir_def *comp[4] = {NULL};
+   nir_def *comp[4] = { NULL };
 
    nir_foreach_function_impl(impl, b->shader) {
       nir_foreach_block(block, impl) {
@@ -268,7 +268,7 @@ struct lower_clip_state {
 static void
 lower_clip_vertex_var(nir_builder *b, const struct lower_clip_state *state)
 {
-   nir_def *clipdist[MAX_CLIP_PLANES] = {NULL};
+   nir_def *clipdist[MAX_CLIP_PLANES] = { NULL };
    nir_def *cv = nir_load_var(b, state->clipvertex ? state->clipvertex
                                                    : state->position);
 
@@ -309,15 +309,16 @@ lower_clip_vertex_var(nir_builder *b, const struct lower_clip_state *state)
 static void
 lower_clip_vertex_intrin(nir_builder *b, const struct lower_clip_state *state)
 {
-   nir_def *clipdist[MAX_CLIP_PLANES] = {NULL};
+   nir_def *clipdist[MAX_CLIP_PLANES] = { NULL };
    nir_def *cv;
 
    if (state->clipvertex_gs_temp) {
       cv = nir_load_deref(b, nir_build_deref_var(b, state->clipvertex_gs_temp));
    } else {
       cv = find_output(b, b->shader->info.outputs_written &
-                       VARYING_BIT_CLIP_VERTEX ?
-                          VARYING_SLOT_CLIP_VERTEX : VARYING_SLOT_POS);
+                                VARYING_BIT_CLIP_VERTEX
+                             ? VARYING_SLOT_CLIP_VERTEX
+                             : VARYING_SLOT_POS);
    }
 
    for (int plane = 0; plane < MAX_CLIP_PLANES; plane++) {
@@ -388,7 +389,7 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables, bool use_vars,
    assert(impl->end_block->predecessors->entries == 1);
    b.cursor = nir_after_impl(impl);
 
-   struct lower_clip_state state = {NULL};
+   struct lower_clip_state state = { NULL };
    state.ucp_enables = ucp_enables;
    state.use_clipdist_array = use_clipdist_array;
    state.clipplane_state_tokens = clipplane_state_tokens;
@@ -416,9 +417,7 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables, bool use_vars,
       lower_clip_vertex_var(&b, &state);
    }
 
-   nir_metadata_preserve(impl, nir_metadata_dominance);
-
-   return true;
+   return nir_progress(true, impl, nir_metadata_dominance);
 }
 
 /*
@@ -455,8 +454,7 @@ save_clipvertex_to_temp_gs(nir_builder *b, nir_intrinsic_instr *intr,
    const struct lower_clip_state *state =
       (const struct lower_clip_state *)opaque;
    gl_varying_slot clip_output_slot =
-      b->shader->info.outputs_written & VARYING_BIT_CLIP_VERTEX ?
-            VARYING_SLOT_CLIP_VERTEX : VARYING_SLOT_POS;
+      b->shader->info.outputs_written & VARYING_BIT_CLIP_VERTEX ? VARYING_SLOT_CLIP_VERTEX : VARYING_SLOT_POS;
 
    if (intr->intrinsic != nir_intrinsic_store_output ||
        nir_intrinsic_io_semantics(intr).location != clip_output_slot)
@@ -470,7 +468,7 @@ save_clipvertex_to_temp_gs(nir_builder *b, nir_intrinsic_instr *intr,
 
    /* Shift vector elements to the right by component. */
    if (component) {
-      unsigned swizzle[4] = {0};
+      unsigned swizzle[4] = { 0 };
 
       for (unsigned i = 1; i < value->num_components; i++)
          swizzle[component + i] = i;
@@ -497,7 +495,7 @@ nir_lower_clip_gs(nir_shader *shader, unsigned ucp_enables,
    if (!ucp_enables)
       return false;
 
-   struct lower_clip_state state = {NULL};
+   struct lower_clip_state state = { NULL };
    state.ucp_enables = ucp_enables;
    state.use_clipdist_array = use_clipdist_array;
    state.clipplane_state_tokens = clipplane_state_tokens;
@@ -568,7 +566,7 @@ lower_clip_fs(nir_function_impl *impl, unsigned ucp_enables,
       b.shader->info.fs.uses_discard = true;
    }
 
-   nir_metadata_preserve(impl, nir_metadata_dominance);
+   nir_progress(true, impl, nir_metadata_dominance);
 }
 
 static bool

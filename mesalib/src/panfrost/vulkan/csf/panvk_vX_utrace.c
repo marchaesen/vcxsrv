@@ -149,8 +149,8 @@ panvk_per_arch(utrace_clone_init_builder)(struct cs_builder *b,
                                           struct panvk_pool *pool)
 {
    const struct cs_builder_conf builder_conf = {
-      .nr_registers = 96,
-      .nr_kernel_registers = 4,
+      .nr_registers = b->conf.nr_registers,
+      .nr_kernel_registers = b->conf.nr_kernel_registers,
       .alloc_buffer = alloc_clone_buffer,
       .cookie = pool,
    };
@@ -163,8 +163,9 @@ panvk_per_arch(utrace_clone_finish_builder)(struct cs_builder *b)
    const struct cs_index flush_id = cs_scratch_reg32(b, 0);
 
    cs_move32_to(b, flush_id, 0);
-   cs_flush_caches(b, MALI_CS_FLUSH_MODE_CLEAN, MALI_CS_FLUSH_MODE_NONE, false,
-                   flush_id, cs_defer(SB_IMM_MASK, SB_ID(IMM_FLUSH)));
+   cs_flush_caches(b, MALI_CS_FLUSH_MODE_CLEAN, MALI_CS_FLUSH_MODE_NONE,
+                   MALI_CS_OTHER_FLUSH_MODE_NONE, flush_id,
+                   cs_defer(SB_IMM_MASK, SB_ID(IMM_FLUSH)));
    cs_wait_slot(b, SB_ID(IMM_FLUSH), false);
 
    cs_finish(b);

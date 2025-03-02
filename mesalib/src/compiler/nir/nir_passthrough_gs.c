@@ -160,7 +160,7 @@ nir_create_passthrough_gs(const nir_shader_compiler_options *options,
    nir_foreach_shader_out_variable(var, prev_stage) {
       assert(!var->data.patch);
       assert(var->data.location != VARYING_SLOT_PRIMITIVE_ID &&
-            "not a VS output");
+             "not a VS output");
 
       /* input vars can't be created for those */
       if (var->data.location == VARYING_SLOT_LAYER ||
@@ -215,10 +215,10 @@ nir_create_passthrough_gs(const nir_shader_compiler_options *options,
        * shader will expect.
        */
       in_vars[num_inputs++] = nir_create_variable_with_location(
-            nir, nir_var_shader_in, VARYING_SLOT_PRIMITIVE_ID, glsl_int_type());
+         nir, nir_var_shader_in, VARYING_SLOT_PRIMITIVE_ID, glsl_int_type());
 
       out_vars[num_outputs++] = nir_create_variable_with_location(
-            nir, nir_var_shader_out, VARYING_SLOT_PRIMITIVE_ID, glsl_int_type());
+         nir, nir_var_shader_out, VARYING_SLOT_PRIMITIVE_ID, glsl_int_type());
    }
 
    unsigned int start_vert = 0;
@@ -283,7 +283,6 @@ nir_create_passthrough_gs(const nir_shader_compiler_options *options,
             nir_def *edge_value = nir_channel(&b, nir_load_array_var_imm(&b, edge_var, idx), 0);
             nir_push_if(&b, nir_fneu_imm(&b, edge_value, 1.0));
             nir_end_primitive(&b, 0);
-            
          }
          nir_pop_if(&b, NULL);
       }

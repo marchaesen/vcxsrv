@@ -89,69 +89,66 @@ can_rematerialize_phi_src(nir_block *imm_dom, nir_def *def)
  */
 
 static bool
-remove_phis_block(nir_block *block, nir_builder *b)
+remove_phis_instr(nir_builder *b, nir_phi_instr *phi, void *unused)
 {
-   bool progress = false;
+   nir_block *block = phi->instr.block;
+   nir_def *def = NULL;
+   bool needs_remat = false;
 
-   nir_foreach_phi_safe(phi, block) {
-      nir_def *def = NULL;
-      bool srcs_same = true;
-      bool needs_remat = false;
-
-      nir_foreach_phi_src(src, phi) {
-         /* For phi nodes at the beginning of loops, we may encounter some
-          * sources from backedges that point back to the destination of the
-          * same phi, i.e. something like:
-          *
-          * a = phi(a, b, ...)
-          *
-          * We can safely ignore these sources, since if all of the normal
-          * sources point to the same definition, then that definition must
-          * still dominate the phi node, and the phi will still always take
-          * the value of that definition.
-          */
-         if (src->src.ssa == &phi->def)
-            continue;
-
-         /* Ignore undef sources. */
-         if (nir_src_is_undef(src->src))
-            continue;
-
-         if (def == NULL) {
-            def = src->src.ssa;
-            if (!nir_block_dominates(def->parent_instr->block, block->imm_dom)) {
-               if (!can_rematerialize_phi_src(block->imm_dom, def)) {
-                  srcs_same = false;
-                  break;
-               }
-               needs_remat = true;
-            }
-         } else if (!phi_srcs_equal(src->src.ssa, def)) {
-            srcs_same = false;
-            break;
-         }
-      }
-
-      if (!srcs_same)
+   nir_foreach_phi_src(src, phi) {
+      /* For phi nodes at the beginning of loops, we may encounter some
+       * sources from backedges that point back to the destination of the
+       * same phi, i.e. something like:
+       *
+       * a = phi(a, b, ...)
+       *
+       * We can safely ignore these sources, since if all of the normal
+       * sources point to the same definition, then that definition must
+       * still dominate the phi node, and the phi will still always take
+       * the value of that definition.
+       */
+      if (src->src.ssa == &phi->def)
          continue;
 
-      if (!def) {
-         /* In this case, the phi had no non undef sources. So turn it into an undef. */
-         b->cursor = nir_after_phis(block);
-         def = nir_undef(b, phi->def.num_components, phi->def.bit_size);
-      } else if (needs_remat) {
-         b->cursor = nir_after_block_before_jump(block->imm_dom);
-         nir_instr *remat = nir_instr_clone(b->shader, def->parent_instr);
-         nir_builder_instr_insert(b, remat);
-         def = nir_instr_def(remat);
+      /* Ignore undef sources. */
+      if (nir_src_is_undef(src->src))
+         continue;
+
+      if (def == NULL) {
+         def = src->src.ssa;
+         if (!nir_block_dominates(def->parent_instr->block, block->imm_dom)) {
+            if (!can_rematerialize_phi_src(block->imm_dom, def))
+               return false;
+            needs_remat = true;
+         }
+      } else if (!phi_srcs_equal(src->src.ssa, def)) {
+         return false;
       }
-
-      nir_def_replace(&phi->def, def);
-
-      progress = true;
    }
 
-   return progress;
+   if (!def) {
+      /* In this case, the phi had no non undef sources. So turn it into an undef. */
+      b->cursor = nir_after_phis(block);
+      def = nir_undef(b, phi->def.num_components, phi->def.bit_size);
+   } else if (needs_remat) {
+      b->cursor = nir_after_block_before_jump(block->imm_dom);
+      nir_instr *remat = nir_instr_clone(b->shader, def->parent_instr);
+      nir_builder_instr_insert(b, remat);
+      def = nir_instr_def(remat);
+   }
+
+   nir_def_replace(&phi->def, def);
+   return true;
+}
+
+bool
+nir_opt_remove_phis(nir_shader *shader)
+{
+   nir_foreach_function_impl(impl, shader)
+      nir_metadata_require(impl, nir_metadata_dominance);
+
+   return nir_shader_phi_pass(shader, remove_phis_instr,
+                              nir_metadata_control_flow, NULL);
 }
 
 bool
@@ -175,37 +172,5 @@ nir_remove_single_src_phis_block(nir_block *block)
       nir_def_replace(&phi->def, def);
       progress = true;
    }
-   return progress;
-}
-
-static bool
-nir_opt_remove_phis_impl(nir_function_impl *impl)
-{
-   bool progress = false;
-   nir_builder bld = nir_builder_create(impl);
-
-   nir_metadata_require(impl, nir_metadata_dominance);
-
-   nir_foreach_block(block, impl) {
-      progress |= remove_phis_block(block, &bld);
-   }
-
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
-}
-
-bool
-nir_opt_remove_phis(nir_shader *shader)
-{
-   bool progress = false;
-
-   nir_foreach_function_impl(impl, shader)
-      progress = nir_opt_remove_phis_impl(impl) || progress;
-
    return progress;
 }

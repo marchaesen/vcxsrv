@@ -1170,10 +1170,10 @@ nir_opt_loop_unroll_impl(nir_function_impl *impl,
                                       &has_nested_loop);
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_none);
+      nir_progress(true, impl, nir_metadata_none);
       nir_lower_reg_intrinsics_to_ssa_impl(impl);
    } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
+      nir_no_progress(impl);
    }
 
    return progress;

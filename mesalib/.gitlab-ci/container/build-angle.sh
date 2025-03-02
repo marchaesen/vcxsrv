@@ -9,6 +9,10 @@ set -uex
 
 uncollapsed_section_start angle "Building ANGLE"
 
+# Do a very early check to make sure the tag is correct without the need of
+# setting up the environment variables locally
+ci_tag_build_time_check "ANGLE_TAG"
+
 ANGLE_REV="6abdc11741c4932e8e64ec055e67f556a7cbb5b1"
 
 # Set ANGLE_ARCH based on DEBIAN_ARCH if it hasn't been explicitly defined

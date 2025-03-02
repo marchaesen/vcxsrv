@@ -735,21 +735,36 @@ hk_can_compress_create_info(struct hk_device *dev, unsigned plane,
 
 static enum ail_tiling
 hk_map_tiling(struct hk_device *dev, const VkImageCreateInfo *info,
-              unsigned plane, uint64_t modifier)
+              uint64_t modifier)
 {
    switch (info->tiling) {
    case VK_IMAGE_TILING_LINEAR:
       return AIL_TILING_LINEAR;
 
    case VK_IMAGE_TILING_OPTIMAL:
-      if (hk_can_compress_create_info(dev, plane, info)) {
-         return AIL_TILING_TWIDDLED_COMPRESSED;
-      } else {
-         return AIL_TILING_TWIDDLED;
-      }
+      return AIL_TILING_GPU;
 
    case VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT:
       return ail_drm_modifier_to_tiling(modifier);
+
+   default:
+      unreachable("invalid tiling");
+   }
+}
+
+static enum ail_tiling
+hk_map_compression(struct hk_device *dev, const VkImageCreateInfo *info,
+                   unsigned plane, uint64_t modifier)
+{
+   switch (info->tiling) {
+   case VK_IMAGE_TILING_LINEAR:
+      return false;
+
+   case VK_IMAGE_TILING_OPTIMAL:
+      return hk_can_compress_create_info(dev, plane, info);
+
+   case VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT:
+      return ail_is_drm_modifier_compressed(modifier);
 
    default:
       unreachable("invalid tiling");
@@ -760,10 +775,10 @@ static uint32_t
 modifier_get_score(uint64_t mod)
 {
    switch (mod) {
-   case DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED:
+   case DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED:
       return 10;
 
-   case DRM_FORMAT_MOD_APPLE_TWIDDLED:
+   case DRM_FORMAT_MOD_APPLE_GPU_TILED:
       return 5;
 
    case DRM_FORMAT_MOD_LINEAR:
@@ -790,7 +805,7 @@ choose_drm_format_mod(struct hk_device *dev, uint8_t plane_count,
 
    for (uint32_t i = 0; i < modifier_count; ++i) {
       if (!can_compress &&
-          modifiers[i] == DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED)
+          modifiers[i] == DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED)
          continue;
 
       uint32_t score = modifier_get_score(modifiers[i]);
@@ -886,16 +901,17 @@ hk_image_init(struct hk_device *dev, struct hk_image *image,
       const uint8_t height_scale =
          ycbcr_info ? ycbcr_info->planes[plane].denominator_scales[1] : 1;
 
-      enum ail_tiling tiling =
-         hk_map_tiling(dev, pCreateInfo, plane, image->vk.drm_format_mod);
-
       uint32_t linear_stride_B = 0;
       if (mod_explicit_info &&
           image->vk.drm_format_mod == DRM_FORMAT_MOD_LINEAR)
          linear_stride_B = mod_explicit_info->pPlaneLayouts[plane].rowPitch;
 
+      bool compressed =
+         hk_map_compression(dev, pCreateInfo, plane, image->vk.drm_format_mod);
+
       image->planes[plane].layout = (struct ail_layout){
-         .tiling = tiling,
+         .tiling = hk_map_tiling(dev, pCreateInfo, image->vk.drm_format_mod),
+         .compressed = compressed,
          .mipmapped_z = pCreateInfo->imageType == VK_IMAGE_TYPE_3D,
          .format = hk_format_to_pipe_format(format),
 
@@ -907,7 +923,7 @@ hk_image_init(struct hk_device *dev, struct hk_image *image,
 
          .levels = pCreateInfo->mipLevels,
          .sample_count_sa = pCreateInfo->samples,
-         .writeable_image = tiling != AIL_TILING_TWIDDLED_COMPRESSED,
+         .writeable_image = !compressed,
 
          /* TODO: Maybe optimize this, our GL driver doesn't bother though */
          .renderable = true,

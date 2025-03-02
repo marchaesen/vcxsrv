@@ -383,9 +383,7 @@ ir3_nir_lower_64b_regs(nir_shader *shader)
       }
 
       if (impl_progress) {
-         nir_metadata_preserve(
-            impl, nir_metadata_control_flow);
-         progress = true;
+         progress = nir_progress(true, impl, nir_metadata_control_flow);
       }
    }
 

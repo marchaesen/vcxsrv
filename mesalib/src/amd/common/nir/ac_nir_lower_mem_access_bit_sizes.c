@@ -74,6 +74,12 @@ lower_mem_access_cb(nir_intrinsic_op intrin, uint8_t bytes, uint8_t bit_size, ui
    res.align = MIN2(bit_size / 8, 4); /* 64-bit access only requires 4 byte alignment. */
    res.shift = nir_mem_access_shift_method_shift64;
 
+   if ((intrin == nir_intrinsic_load_shared || intrin == nir_intrinsic_store_shared)) {
+      /* Split unaligned shared access to create more read2/write2. */
+      if (combined_align < 16 && bytes < 16)
+         res.num_components = MIN2(res.num_components, 64 / bit_size);
+   }
+
    if (!is_load)
       return res;
 

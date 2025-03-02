@@ -489,8 +489,7 @@ gl_nir_lower_blend_equation_advanced(nir_shader *sh, bool coherent)
    nir_function_impl *impl = nir_shader_get_entrypoint(sh);
 
    if (sh->info.fs.advanced_blend_modes == 0) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    sh->info.fs.uses_sample_shading = true;
@@ -575,7 +574,7 @@ gl_nir_lower_blend_equation_advanced(nir_shader *sh, bool coherent)
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    /* Remove any dead writes before assigning location to __blend_fb_fetch
     * otherwise they will be unable to be removed.

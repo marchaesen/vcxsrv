@@ -240,12 +240,8 @@ nir_lower_memory_model(nir_shader *shader)
       modes = 0;
       foreach_list_typed_reverse(nir_cf_node, cf_node, node, cf_list)
          impl_progress |= lower_make_available(cf_node, &modes);
-
-      if (impl_progress)
-         nir_metadata_preserve(impl, nir_metadata_control_flow);
-      else
-         nir_metadata_preserve(impl, nir_metadata_all);
-      progress |= impl_progress;
+      progress |= nir_progress(impl_progress, impl,
+                               nir_metadata_control_flow);
    }
 
    return progress;

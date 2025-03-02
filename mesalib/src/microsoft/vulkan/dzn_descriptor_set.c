@@ -239,7 +239,7 @@ dzn_descriptor_set_layout_create(struct dzn_device *device,
    VK_MULTIALLOC_DECL(&ma, struct dzn_descriptor_set_layout_binding, binfos,
                       binding_count);
 
-   if (!vk_descriptor_set_layout_multizalloc(&device->vk, &ma))
+   if (!vk_descriptor_set_layout_multizalloc(&device->vk, &ma, pCreateInfo))
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    set_layout->static_samplers = static_samplers;

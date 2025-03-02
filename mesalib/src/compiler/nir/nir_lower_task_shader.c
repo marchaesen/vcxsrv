@@ -143,9 +143,7 @@ nir_lower_nv_task_count(nir_shader *shader)
    nir_builder builder = nir_builder_create(impl);
 
    append_launch_mesh_workgroups_to_nv_task(&builder, &state);
-   nir_metadata_preserve(impl, nir_metadata_none);
-
-   return true;
+   return nir_progress(true, impl, nir_metadata_none);
 }
 
 static nir_intrinsic_op
@@ -446,7 +444,7 @@ nir_lower_task_shader(nir_shader *shader,
       nir_block *last_block = nir_impl_last_block(impl);
       builder.cursor = nir_after_block_before_jump(last_block);
       nir_launch_mesh_workgroups(&builder, nir_imm_zero(&builder, 3, 32));
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    bool atomics = options.payload_to_shared_for_atomics;

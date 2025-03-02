@@ -166,8 +166,7 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
          }
       }
 
-      if (func_progress)
-         nir_metadata_preserve(impl, nir_metadata_none);
+      nir_progress(func_progress, impl, nir_metadata_none);
 
       progress |= func_progress;
    }
@@ -235,10 +234,7 @@ etna_lower_alu_impl(nir_function_impl *impl, bool has_new_transcendentals)
       }
    }
 
-   if (progress)
-      nir_metadata_preserve(impl, nir_metadata_none);
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_none);
 }
 
 bool

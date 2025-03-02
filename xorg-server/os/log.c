@@ -499,6 +499,7 @@ vpnprintf(char *string, int size_in, const char *f, va_list args)
             break;
 
         case 'x':
+        case 'X': // not actually upper case, but at least accepting '%X'
             if (length_modifier & LMOD_LONGLONG)
                 ui = va_arg(args, unsigned long long);
             else if (length_modifier & LMOD_LONG)

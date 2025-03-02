@@ -19,35 +19,19 @@
  * that nir_assign_var_locations() will give the LAYER varying the correct
  * driver_location.
  */
+static bool
+pass(nir_builder *b, nir_intrinsic_instr *intr, void *_)
+{
+   if (intr->intrinsic != nir_intrinsic_load_view_index)
+      return false;
+
+   b->cursor = nir_before_instr(&intr->instr);
+   nir_def_replace(&intr->def, nir_load_layer_id(b));
+   return true;
+}
+
 bool
 radv_nir_lower_view_index(nir_shader *nir)
 {
-   bool progress = false;
-   nir_function_impl *entry = nir_shader_get_entrypoint(nir);
-   nir_builder b = nir_builder_create(entry);
-
-   nir_foreach_block (block, entry) {
-      nir_foreach_instr_safe (instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
-
-         nir_intrinsic_instr *load = nir_instr_as_intrinsic(instr);
-         if (load->intrinsic != nir_intrinsic_load_view_index)
-            continue;
-
-         b.cursor = nir_before_instr(instr);
-         nir_def *def = nir_load_layer_id(&b);
-         nir_def_rewrite_uses(&load->def, def);
-
-         nir_instr_remove(instr);
-         progress = true;
-      }
-   }
-
-   if (progress)
-      nir_metadata_preserve(entry, nir_metadata_control_flow);
-   else
-      nir_metadata_preserve(entry, nir_metadata_all);
-
-   return progress;
+   return nir_shader_intrinsics_pass(nir, pass, nir_metadata_control_flow, NULL);
 }

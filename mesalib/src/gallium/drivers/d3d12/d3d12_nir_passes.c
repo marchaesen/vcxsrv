@@ -101,7 +101,7 @@ d3d12_lower_yflip(nir_shader *nir)
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 }
 
@@ -154,7 +154,7 @@ d3d12_lower_depth_range(nir_shader *nir)
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 }
 
@@ -247,7 +247,7 @@ d3d12_lower_uint_cast(nir_shader *nir, bool is_signed)
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 }
 
@@ -412,7 +412,7 @@ d3d12_nir_invert_depth(nir_shader *shader, unsigned viewport_mask, bool clip_hal
          invert_depth_impl(&b, &state);
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 }
 
@@ -524,7 +524,7 @@ d3d12_lower_state_vars(nir_shader *nir, struct d3d12_shader *shader)
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    if (progress) {
@@ -592,7 +592,7 @@ d3d12_add_missing_dual_src_target(struct nir_shader *s,
 
       nir_store_var(&b, out, zero, 0xf);
    }
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 void
@@ -622,7 +622,7 @@ d3d12_lower_primitive_id(nir_shader *shader)
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 }
 
 static void
@@ -755,7 +755,7 @@ d3d12_lower_triangle_strip(nir_shader *shader)
    }
 
    _mesa_hash_table_destroy(tmp_vars, NULL);
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
    NIR_PASS_V(shader, nir_lower_var_copies);
 }
 
@@ -1030,6 +1030,6 @@ d3d12_write_0_to_new_varying(nir_shader *s, nir_variable *var)
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 }

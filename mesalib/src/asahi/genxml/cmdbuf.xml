@@ -77,12 +77,9 @@
 
   <enum name="Layout">
     <value name="Linear" value="0"/>
-    <!-- Needs investigation, blob uses this with sparse -->
-    <value name="Tiled" value="1"/>
-    <!-- Morton order -->
-    <value name="Twiddled" value="2"/>
-    <!-- With a metadata buffer -->
-    <value name="Compressed" value="3"/>
+    <value name="Twiddled" value="1"/>
+    <value name="GPU" value="2"/>
+    <value name="Interchange" value="3"/>
   </enum>
 
   <enum name="Channels">

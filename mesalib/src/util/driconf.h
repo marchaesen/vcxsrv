@@ -327,6 +327,15 @@
    DRI_CONF_OPT_B(fake_sparse, def, \
                   "Advertise support for sparse binding of textures regardless of real support")
 
+#define DRI_CONFIG_INTEL_TBIMR(def) \
+   DRI_CONF_OPT_B(intel_tbimr, def, "Enable TBIMR tiled rendering")
+
+#define DRI_CONFIG_INTEL_VF_DISTRIBUTION(def) \
+   DRI_CONF_OPT_B(intel_vf_distribution, def, "Enable geometry distribution")
+
+#define DRI_CONFIG_INTEL_TE_DISTRIBUTION(def) \
+   DRI_CONF_OPT_B(intel_te_distribution, def, "Enable tesselation distribution")
+
 #define DRI_CONF_INTEL_ENABLE_WA_14018912822(def) \
    DRI_CONF_OPT_B(intel_enable_wa_14018912822, def, \
                   "Intel workaround for using zero blend constants")

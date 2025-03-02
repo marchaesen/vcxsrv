@@ -23,8 +23,7 @@ lower_multiview_mask(nir_shader *nir, uint32_t *mask)
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 
    if (util_is_power_of_two_or_zero(*mask + 1)) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    nir_builder b = nir_builder_create(impl);
@@ -61,13 +60,11 @@ lower_multiview_mask(nir_shader *nir, uint32_t *mask)
          nir_def *src = nir_bcsel(&b, cmp, orig_src, nir_imm_float(&b, 0.));
          nir_src_rewrite(&intrin->src[1], src);
 
-         nir_metadata_preserve(impl, nir_metadata_control_flow);
-         return true;
+         return nir_progress(true, impl, nir_metadata_control_flow);
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_all);
-   return false;
+   return nir_no_progress(impl);
 }
 
 bool
@@ -108,7 +105,7 @@ tu_nir_lower_multiview(nir_shader *nir, uint32_t mask, struct tu_device *dev)
        */
       NIR_PASS(progress, nir, lower_multiview_mask, &options.view_mask);
 
-      NIR_PASS_V(nir, nir_lower_multiview, options);
+      NIR_PASS(_, nir, nir_lower_multiview, options);
       progress = true;
    }
 

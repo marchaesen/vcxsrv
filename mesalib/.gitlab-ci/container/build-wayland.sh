@@ -8,6 +8,7 @@ uncollapsed_section_start wayland "Building Wayland"
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
 # ALPINE_X86_64_BUILD_TAG
+# DEBIAN_BASE_TAG
 # DEBIAN_BUILD_TAG
 # DEBIAN_TEST_ANDROID_TAG
 # DEBIAN_TEST_GL_TAG
@@ -16,7 +17,7 @@ uncollapsed_section_start wayland "Building Wayland"
 # KERNEL_ROOTFS_TAG
 
 export LIBWAYLAND_VERSION="1.21.0"
-export WAYLAND_PROTOCOLS_VERSION="1.38"
+export WAYLAND_PROTOCOLS_VERSION="1.41"
 
 git clone https://gitlab.freedesktop.org/wayland/wayland
 cd wayland

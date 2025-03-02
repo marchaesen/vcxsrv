@@ -139,6 +139,8 @@ vlVdpVideoSurfaceDestroy(VdpVideoSurface surface)
    mtx_lock(&p_surf->device->mutex);
    if (p_surf->video_buffer)
       p_surf->video_buffer->destroy(p_surf->video_buffer);
+   if (p_surf->ref_buffer)
+      p_surf->ref_buffer->destroy(p_surf->ref_buffer);
    mtx_unlock(&p_surf->device->mutex);
 
    vlRemoveDataHTAB(surface);

@@ -158,7 +158,7 @@ libradeonsi = static_library(
 driver_radeonsi = declare_dependency(
   compile_args : ['-DGALLIUM_RADEONSI'] + libradeonsi_cflags,
   link_with : radeonsi_gfx_libs + [
-    libradeonsi, libradeonwinsys, libamdgpuwinsys, libamd_common, libamd_common_llvm, libvpe
+    libradeonsi, libradeonwinsys, libamdgpuwinsys, libamd_common, libamd_common_llvm, libvpe, libgm
   ],
   dependencies : idep_nir,
 )

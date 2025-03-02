@@ -43,9 +43,7 @@ load_frag_coord(nir_builder *b, nir_deref_instr *deref,
             frag_coord = nir_bcsel(b, unscaled, unscaled_frag_coord, frag_coord);
          } else {
             assert(deref->deref_type == nir_deref_type_var);
-            bool unscaled = base == NIR_VARIABLE_NO_INDEX ?
-               options->unscaled_depth_stencil_ir3 :
-               ((options->unscaled_input_attachment_ir3 >> base) & 1);
+            bool unscaled = base == NIR_VARIABLE_NO_INDEX ? options->unscaled_depth_stencil_ir3 : ((options->unscaled_input_attachment_ir3 >> base) & 1);
             frag_coord = unscaled ? unscaled_frag_coord : frag_coord;
          }
       }

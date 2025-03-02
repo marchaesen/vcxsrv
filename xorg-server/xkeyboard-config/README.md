@@ -30,7 +30,7 @@ http://xfree86.org/current/XKBproto.pdf
   [docs/README.enhancing](docs/README.enhancing)
 
 - For guidelines to making contributions to this project, see:
-  http://www.freedesktop.org/wiki/Software/XKeyboardConfig/Rules
+  [Contributing](CONTRIBUTING.md)
 
 - To submit bug reports (and patches), please use the issue system in
   freedesktop.org's gitlab instance:
@@ -38,7 +38,10 @@ http://xfree86.org/current/XKBproto.pdf
 
 ## Building
 
-This project is built using [meson]:
+This project is built using [meson]. The following instructions aim at a *minimal*
+build setup; for *contributing* please see the [dedicated instructions](CONTRIBUTING.md).
+
+<!-- [NOTE] Keep the following instructions sync with CONTRIBUTING.md -->
 
   1. [Install meson]:
 
@@ -52,6 +55,7 @@ This project is built using [meson]:
   2. Setup & build:
 
      ```bash
+     # You may choose the install directory with --prefix
      meson setup build --prefix="$PWD/inst"
      meson compile -C build
      ```
@@ -59,22 +63,20 @@ This project is built using [meson]:
   3. Install *locally* for debugging:
 
      ```bash
-     # You may choose the install directory with --prefix at the
-     # setup step.
      meson install -C build
      ```
 
   4. Test:
 
-     - With XOrg tools:
+     - With Xorg tools:
 
        ```bash
        # Compile keymap to a file
-       setxkbmap -print -layout … \
+       setxkbmap -print -rules "$PWD/inst/share/X11/xkb/rules/evdev" -layout … \
            | xkbcomp -I -I"$PWD/inst/share/X11/xkb" \
                      -xkb - /tmp/keymap.xkb
        # Activate keymap
-       setxkbmap -print -layout … \
+       setxkbmap -print -rules "$PWD/inst/share/X11/xkb/rules/evdev" -layout … \
            | xkbcomp -I -I"$PWD/inst/share/X11/xkb" - "$DISPLAY"
        # Interactive debugging
        xev -event keyboard
@@ -94,3 +96,8 @@ This project is built using [meson]:
 [meson]: https://mesonbuild.com
 [Install meson]: https://mesonbuild.com/Getting-meson.html
 [libxkbcommon]: https://github.com/xkbcommon/libxkbcommon
+
+# Contributing
+
+Contributions are much appreciated! See our [contribution guide](CONTRIBUTING.md)
+for further details.

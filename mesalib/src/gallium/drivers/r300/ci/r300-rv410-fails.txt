@@ -58,10 +58,6 @@ dEQP-GLES2.functional.shaders.functions.control_flow.mixed_return_break_continue
 dEQP-GLES2.functional.shaders.functions.control_flow.mixed_return_break_continue_vertex,Fail
 dEQP-GLES2.functional.shaders.functions.control_flow.return_after_continue_fragment,Fail
 dEQP-GLES2.functional.shaders.functions.control_flow.return_after_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.float_const_write_dynamic_read_vertex,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec2_const_write_dynamic_read_vertex,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_const_write_dynamic_read_vertex,Fail
-dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_const_write_dynamic_read_vertex,Fail
 dEQP-GLES2.functional.shaders.loops.for_constant_iterations.101_iterations_fragment,Fail
 dEQP-GLES2.functional.shaders.loops.for_constant_iterations.101_iterations_vertex,Fail
 dEQP-GLES2.functional.shaders.loops.for_constant_iterations.conditional_continue_fragment,Fail
@@ -122,7 +118,24 @@ dEQP-GLES2.functional.texture.specification.teximage2d_align.cube_rgba8888_47_1,
 dEQP-GLES2.functional.texture.specification.teximage2d_align.cube_rgba8888_47_2,Fail
 dEQP-GLES2.functional.texture.specification.teximage2d_align.cube_rgba8888_47_4,Fail
 dEQP-GLES2.functional.texture.specification.teximage2d_align.cube_rgba8888_47_8,Fail
+
+dEQP-GLES2.functional.uniform_api.info_query.array_in_struct.mat4_mat2_both,Fail
+dEQP-GLES2.functional.uniform_api.info_query.array_in_struct.mat4_mat2_fragment,Fail
+dEQP-GLES2.functional.uniform_api.info_query.nested_structs_arrays.mat4_mat2_fragment,Fail
+dEQP-GLES2.functional.uniform_api.info_query.struct_in_array.mat4_mat2_both,Fail
+dEQP-GLES2.functional.uniform_api.info_query.struct_in_array.mat4_mat2_fragment,Fail
+dEQP-GLES2.functional.uniform_api.random.13,Fail
+dEQP-GLES2.functional.uniform_api.random.23,Fail
 dEQP-GLES2.functional.uniform_api.random.81,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.basic_array_assign_full.array_in_struct.mat4_mat2_both,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.basic_array_assign_full.array_in_struct.mat4_mat2_fragment,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.basic_array_assign_partial.array_in_struct.mat4_mat2_both,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.basic_array_assign_partial.array_in_struct.mat4_mat2_fragment,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.get_uniform.array_in_struct.mat4_mat2_both,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.get_uniform.array_in_struct.mat4_mat2_fragment,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.get_uniform.nested_structs_arrays.mat4_mat2_fragment,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.get_uniform.struct_in_array.mat4_mat2_both,Fail
+dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.get_uniform.struct_in_array.mat4_mat2_fragment,Fail
 dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.render.array_in_struct.mat4_mat2_both,Fail
 dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.render.array_in_struct.mat4_mat2_fragment,Fail
 dEQP-GLES2.functional.uniform_api.value.assigned.by_pointer.render.nested_structs_arrays.mat4_mat2_fragment,Fail
@@ -728,6 +741,22 @@ spec@ext_direct_state_access@textures@CopyTextureSubImage1DEXT + display list GL
 
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 
+spec@ext_framebuffer_multisample@accuracy all_samples color depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples color depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples color small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples color small depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_draw depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_draw small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb small depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples stencil_draw depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples stencil_draw small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples stencil_resolve depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples stencil_resolve small depthstencil,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 2,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 4,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 6,Fail
@@ -1037,7 +1066,6 @@ spec@glsl-1.10@execution@glsl-fs-if-nested-loop,Fail
 spec@glsl-1.10@execution@glsl-vs-if-nested-loop,Fail
 spec@glsl-1.10@execution@glsl-vs-vectorize-between-basic-blocks-loop,Fail
 spec@glsl-1.10@execution@loops@glsl-fs-continue-inside-do-while,Fail
-spec@glsl-1.10@execution@loops@glsl-fs-loop-shadow-variables,Fail
 spec@glsl-1.10@execution@loops@glsl-fs-loop-vec4-counter,Fail
 spec@glsl-1.10@execution@loops@glsl-vs-continue-inside-do-while,Fail
 spec@glsl-1.10@execution@loops@glsl-vs-loop-break,Fail
@@ -1254,7 +1282,6 @@ spec@glsl-1.20@execution@built-in-functions@fs-op-sub-mat2x4-mat2x4,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-sub-mat3x2-float,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-outerproduct-vec4-vec4,Fail
 spec@glsl-1.20@execution@fs-underflow-mul-compare-zero,Fail
-spec@glsl-1.20@execution@fs-vec4-const-array-indirect-access-128-elements,Fail
 spec@glsl-1.20@execution@fs-vec4-const-array-indirect-access-256-elements,Fail
 spec@glsl-1.20@execution@glsl-fs-frontfacing,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture() 1dshadow,Fail

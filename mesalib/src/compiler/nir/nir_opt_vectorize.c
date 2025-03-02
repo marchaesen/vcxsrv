@@ -596,11 +596,7 @@ nir_opt_vectorize_impl(nir_function_impl *impl,
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
+   nir_progress(progress, impl, nir_metadata_control_flow);
 
    vec_instr_set_destroy(instr_set);
    return progress;

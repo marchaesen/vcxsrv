@@ -735,6 +735,10 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
       driQueryOptionb(config->options, "intel_enable_wa_14018912822");
    screen->driconf.enable_tbimr =
       driQueryOptionb(config->options, "intel_tbimr");
+   screen->driconf.enable_vf_distribution =
+      driQueryOptionb(config->options, "intel_vf_distribution");
+   screen->driconf.enable_te_distribution =
+      driQueryOptionb(config->options, "intel_te_distribution");
    screen->driconf.generated_indirect_threshold =
       driQueryOptioni(config->options, "generated_indirect_threshold");
 

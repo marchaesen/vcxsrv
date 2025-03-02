@@ -59,7 +59,6 @@ lavapipe-vkd3d:
 
 android-angle-lavapipe:
   variables:
-    USE_ANGLE: 1
     ANDROID_GPU_MODE: mesa_swrast_guest_angle
     DEQP_SUITE: android-angle-lavapipe
     GPU_VERSION: lvp-android-angle
@@ -68,3 +67,4 @@ android-angle-lavapipe:
   extends:
     - .test-android
     - .lavapipe-rules
+    - .test-angle

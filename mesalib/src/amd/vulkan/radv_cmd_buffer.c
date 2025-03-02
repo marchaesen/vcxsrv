@@ -3812,7 +3812,7 @@ radv_update_zrange_precision(struct radv_cmd_buffer *cmd_buffer, struct radv_ds_
    uint32_t db_z_info = ds->ac.db_z_info;
    uint32_t db_z_info_reg;
 
-   if (!pdev->info.has_tc_compat_zrange_bug || !radv_image_is_tc_compat_htile(image))
+   if (!pdev->info.has_tc_compat_zrange_bug || !radv_tc_compat_htile_enabled(image, iview->vk.base_mip_level))
       return;
 
    db_z_info &= C_028040_ZRANGE_PRECISION;
@@ -4166,7 +4166,7 @@ radv_update_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer, const struct r
 
    radv_set_ds_clear_metadata(cmd_buffer, iview->image, &range, ds_clear_value, aspects);
 
-   if (radv_image_is_tc_compat_htile(image) && (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)) {
+   if (radv_tc_compat_htile_enabled(image, iview->vk.base_mip_level) && (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)) {
       radv_update_tc_compat_zrange_metadata(cmd_buffer, iview, ds_clear_value);
    }
 
@@ -4187,7 +4187,7 @@ radv_load_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer, const struct rad
    uint64_t va = radv_get_ds_clear_value_va(image, iview->vk.base_mip_level);
    unsigned reg_offset = 0, reg_count = 0;
 
-   assert(radv_image_has_htile(image));
+   assert(radv_htile_enabled(image, iview->vk.base_mip_level));
 
    if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
       ++reg_count;
@@ -4554,8 +4554,10 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
       radv_cs_add_buffer(device->ws, cmd_buffer->cs, image->bindings[0].bo);
 
       uint32_t qf_mask = radv_image_queue_family_mask(image, cmd_buffer->qf, cmd_buffer->qf);
-      bool depth_compressed = radv_layout_is_htile_compressed(device, image, render->ds_att.layout, qf_mask);
-      bool stencil_compressed = radv_layout_is_htile_compressed(device, image, render->ds_att.stencil_layout, qf_mask);
+      bool depth_compressed =
+         radv_layout_is_htile_compressed(device, image, iview->vk.base_mip_level, render->ds_att.layout, qf_mask);
+      bool stencil_compressed = radv_layout_is_htile_compressed(device, image, iview->vk.base_mip_level,
+                                                                render->ds_att.stencil_layout, qf_mask);
 
       radv_emit_fb_ds_state(cmd_buffer, &render->ds_att.ds, iview, depth_compressed, stencil_compressed);
 
@@ -4600,7 +4602,7 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
       radv_cs_add_buffer(device->ws, cmd_buffer->cs, htile_buffer->bo);
 
       bool depth_compressed = radv_layout_is_htile_compressed(
-         device, image, layout, radv_image_queue_family_mask(image, cmd_buffer->qf, cmd_buffer->qf));
+         device, image, 0, layout, radv_image_queue_family_mask(image, cmd_buffer->qf, cmd_buffer->qf));
       radv_emit_fb_ds_state(cmd_buffer, &ds, &iview, depth_compressed, false);
 
       radv_image_view_finish(&iview);
@@ -6555,7 +6557,7 @@ radv_src_access_flush(struct radv_cmd_buffer *cmd_buffer, VkPipelineStageFlags2 
    if (image) {
       if (!radv_image_has_CB_metadata(image))
          has_CB_meta = false;
-      if (!radv_image_has_htile(image))
+      if (!radv_htile_enabled(image, range ? range->baseMipLevel : 0))
          has_DB_meta = false;
    }
 
@@ -6633,7 +6635,7 @@ radv_dst_access_flush(struct radv_cmd_buffer *cmd_buffer, VkPipelineStageFlags2 
 
       if (!radv_image_has_CB_metadata(image))
          has_CB_meta = false;
-      if (!radv_image_has_htile(image))
+      if (!radv_htile_enabled(image, range ? range->baseMipLevel : 0))
          has_DB_meta = false;
    }
 
@@ -8794,10 +8796,14 @@ radv_handle_color_fbfetch_output(struct radv_cmd_buffer *cmd_buffer, uint32_t in
       radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, 0,
                             att->iview->image, &range);
 
+   radv_describe_barrier_start(cmd_buffer, RGP_BARRIER_UNKNOWN_REASON);
+
    /* Force a transition to FEEDBACK_LOOP_OPTIMAL to decompress DCC. */
    radv_handle_image_transition(cmd_buffer, att->iview->image, att->layout,
                                 VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT, RADV_QUEUE_GENERAL,
                                 RADV_QUEUE_GENERAL, &range, NULL);
+
+   radv_describe_barrier_end(cmd_buffer);
 
    att->layout = VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT;
 
@@ -8824,7 +8830,7 @@ radv_handle_depth_fbfetch_output(struct radv_cmd_buffer *cmd_buffer)
       return;
 
    if (!radv_layout_is_htile_compressed(
-          device, att->iview->image, att->layout,
+          device, att->iview->image, att->iview->vk.base_mip_level, att->layout,
           radv_image_queue_family_mask(att->iview->image, cmd_buffer->qf, cmd_buffer->qf)))
       return;
 
@@ -8838,10 +8844,14 @@ radv_handle_depth_fbfetch_output(struct radv_cmd_buffer *cmd_buffer)
       radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 0, att->iview->image, &range);
 
+   radv_describe_barrier_start(cmd_buffer, RGP_BARRIER_UNKNOWN_REASON);
+
    /* Force a transition to FEEDBACK_LOOP_OPTIMAL to decompress HTILE. */
    radv_handle_image_transition(cmd_buffer, att->iview->image, att->layout,
                                 VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT, RADV_QUEUE_GENERAL,
                                 RADV_QUEUE_GENERAL, &range, NULL);
+
+   radv_describe_barrier_end(cmd_buffer);
 
    att->layout = VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT;
    att->stencil_layout = VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT;
@@ -11714,6 +11724,10 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer, const struct radv
          dispatch_initiator |= S_00B800_USE_THREAD_DIMENSIONS(1);
       }
 
+      /* Indirect CS does not support offsets in the API. Must program this in case there have been
+       * preceding 1D RT dispatch or vkCmdDispatchBase. */
+      dispatch_initiator |= S_00B800_FORCE_START_AT_000(1);
+
       if (grid_size_offset) {
          if (device->load_grid_size_from_user_sgpr) {
             assert(pdev->info.gfx_level >= GFX10_3);
@@ -12400,7 +12414,7 @@ radv_initialize_htile(struct radv_cmd_buffer *cmd_buffer, struct radv_image *ima
 
    radv_set_ds_clear_metadata(cmd_buffer, image, range, value, range->aspectMask);
 
-   if (radv_image_is_tc_compat_htile(image) && (range->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)) {
+   if (radv_tc_compat_htile_enabled(image, range->baseMipLevel) && (range->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)) {
       /* Initialize the TC-compat metada value to 0 because by
        * default DB_Z_INFO.RANGE_PRECISION is set to 1, and we only
        * need have to conditionally update its value when performing
@@ -12423,8 +12437,8 @@ radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffer, struct ra
 
    if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
       radv_initialize_htile(cmd_buffer, image, range);
-   } else if (radv_layout_is_htile_compressed(device, image, src_layout, src_queue_mask) &&
-              !radv_layout_is_htile_compressed(device, image, dst_layout, dst_queue_mask)) {
+   } else if (radv_layout_is_htile_compressed(device, image, range->baseMipLevel, src_layout, src_queue_mask) &&
+              !radv_layout_is_htile_compressed(device, image, range->baseMipLevel, dst_layout, dst_queue_mask)) {
       cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB | RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
 
       radv_expand_depth_stencil(cmd_buffer, image, range, sample_locs);

@@ -23,6 +23,9 @@
 #define VK_STRUCTURE_TYPE_DEVICE_QUEUE_TIMELINE_INFO_MESA ((VkStructureType)1000384005)
 #define VK_STRUCTURE_TYPE_RING_MONITOR_INFO_MESA ((VkStructureType)1000384006)
 #define VK_STRUCTURE_TYPE_RING_PRIORITY_INFO_MESA ((VkStructureType)1000384007)
+#define VK_STRUCTURE_TYPE_COPY_IMAGE_TO_MEMORY_INFO_MESA ((VkStructureType)1000384008)
+#define VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY_MESA ((VkStructureType)1000384009)
+#define VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO_MESA ((VkStructureType)1000384010)
 
 typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkCreateInstance_EXT = 0,
@@ -423,6 +426,8 @@ typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkSubmitVirtqueueSeqnoMESA_EXT = 251,
     VK_COMMAND_TYPE_vkWaitVirtqueueSeqnoMESA_EXT = 252,
     VK_COMMAND_TYPE_vkWaitRingSeqnoMESA_EXT = 253,
+    VK_COMMAND_TYPE_vkCopyImageToMemoryMESA_EXT = 297,
+    VK_COMMAND_TYPE_vkCopyMemoryToImageMESA_EXT = 298,
 } VkCommandTypeEXT;
 
 typedef enum VkCommandFlagBitsEXT {
@@ -480,12 +485,6 @@ typedef struct VkRingMonitorInfoMESA {
     uint32_t maxReportingPeriodMicroseconds;
 } VkRingMonitorInfoMESA;
 
-typedef struct VkRingPriorityInfoMESA {
-    VkStructureType sType;
-    const void* pNext;
-    int32_t priority;
-} VkRingPriorityInfoMESA;
-
 typedef struct VkMemoryResourcePropertiesMESA {
     VkStructureType sType;
     void* pNext;
@@ -516,5 +515,46 @@ typedef struct VkDeviceQueueTimelineInfoMESA {
     const void* pNext;
     uint32_t ringIdx;
 } VkDeviceQueueTimelineInfoMESA;
+
+typedef struct VkRingPriorityInfoMESA {
+    VkStructureType sType;
+    const void* pNext;
+    int32_t priority;
+} VkRingPriorityInfoMESA;
+
+typedef struct VkCopyImageToMemoryInfoMESA {
+    VkStructureType sType;
+    const void* pNext;
+    VkHostImageCopyFlags flags;
+    VkImage srcImage;
+    VkImageLayout srcImageLayout;
+    uint32_t memoryRowLength;
+    uint32_t memoryImageHeight;
+    VkImageSubresourceLayers imageSubresource;
+    VkOffset3D imageOffset;
+    VkExtent3D imageExtent;
+} VkCopyImageToMemoryInfoMESA;
+
+typedef struct VkMemoryToImageCopyMESA {
+    VkStructureType sType;
+    const void* pNext;
+    size_t dataSize;
+    const void* pData;
+    uint32_t memoryRowLength;
+    uint32_t memoryImageHeight;
+    VkImageSubresourceLayers imageSubresource;
+    VkOffset3D imageOffset;
+    VkExtent3D imageExtent;
+} VkMemoryToImageCopyMESA;
+
+typedef struct VkCopyMemoryToImageInfoMESA {
+    VkStructureType sType;
+    const void* pNext;
+    VkHostImageCopyFlags flags;
+    VkImage dstImage;
+    VkImageLayout dstImageLayout;
+    uint32_t regionCount;
+    const VkMemoryToImageCopyMESA* pRegions;
+} VkCopyMemoryToImageInfoMESA;
 
 #endif /* VN_PROTOCOL_DRIVER_DEFINES_H */

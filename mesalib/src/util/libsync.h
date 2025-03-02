@@ -40,6 +40,7 @@
 #include <time.h>
 
 #include "util/detect_os.h"
+#include "util/os_file.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -222,7 +223,7 @@ static inline int sync_accumulate(const char *name, int *fd1, int fd2)
 	assert(fd2 >= 0);
 
 	if (*fd1 < 0) {
-		*fd1 = dup(fd2);
+		*fd1 = os_dupfd_cloexec(fd2);
 		return 0;
 	}
 

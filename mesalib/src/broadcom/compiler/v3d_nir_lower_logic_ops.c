@@ -408,13 +408,7 @@ v3d_nir_lower_logic_ops(nir_shader *s, struct v3d_compile *c)
                 nir_foreach_block(block, impl)
                         progress |= v3d_nir_lower_logic_ops_block(block, c);
 
-                if (progress) {
-                        nir_metadata_preserve(impl,
-                                              nir_metadata_control_flow);
-                } else {
-                        nir_metadata_preserve(impl,
-                                              nir_metadata_all);
-                }
+                nir_progress(progress, impl, nir_metadata_control_flow);
         }
 
         return progress;

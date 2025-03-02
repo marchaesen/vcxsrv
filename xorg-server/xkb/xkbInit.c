@@ -50,6 +50,8 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "scrnintstr.h"
 #include "xkbgeom.h"
 
+#define      _XKB_RF_NAMES_PROP_ATOM         "_XKB_RULES_NAMES"
+
 #define	CREATE_ATOM(s)	MakeAtom(s,sizeof(s)-1,1)
 
 #if defined(__alpha) || defined(__alpha__)

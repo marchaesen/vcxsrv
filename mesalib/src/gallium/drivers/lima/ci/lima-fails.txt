@@ -1076,5 +1076,3 @@ spec@glsl-1.10@execution@variable-indexing@vs-temp-array-mat4-index-col-row-wr,C
 
 # With linux kernel 6.13-rc4 uprev
 dEQP-GLES2.functional.shaders.operator.selection.bool_fragment,Fail
-dEQP-GLES2.functional.shaders.operator.selection.bvec2_fragment,Fail
-dEQP-GLES2.functional.shaders.operator.selection.bvec3_fragment,Fail

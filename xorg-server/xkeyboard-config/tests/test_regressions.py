@@ -12,7 +12,7 @@ from typing import Optional
 
 import pytest
 import xkbcommon
-from xkbcommon import Mod1, Mod4, Mod5, ModifierMask, NoModifier, Shift
+from xkbcommon import Control, Mod1, Mod3, Mod4, Mod5, ModifierMask, NoModifier, Shift
 
 ###############################################################################
 # pytest configuration
@@ -80,6 +80,7 @@ class Keymap:
     Alt: int
     Meta: int
     Super: int
+    Hyper: int
     Level3: int
     Level5: int
 
@@ -99,6 +100,8 @@ class Keymap:
         self.Meta = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
         mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "Super")
         self.Super = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
+        mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "Hyper")
+        self.Hyper = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
         mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "LevelThree")
         self.Level3 = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
         mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "LevelFive")
@@ -425,3 +428,94 @@ class TestIssue383:
             r = keymap.tap_and_check(key, typo_keysym, group=group, level=3)
             Level3 = keymap.Level3 if keymap.has_vmod_queries else NoModifier
             assert r.active_mods == Mod5 | Level3 == r.consumed_mods
+
+
+# https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/issues/500
+@pytest.mark.parametrize("layout,variant", [("us", "3l")])
+class TestIssue500:
+    def test_levels_1_and_3(self, keymap: Keymap):
+        r = keymap.tap_and_check("AD01", "q", level=1)
+        # Level 3
+        with keymap.key_down("AC11"):
+            r = keymap.tap_and_check("AD01", "quotedbl", level=3)
+            Level3 = keymap.Level3 if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Mod5 | Level3 == r.consumed_mods
+
+    def test_no_conflict(self, keymap: Keymap):
+        """LevelFive and Super are independent; no Hyper mapping"""
+        # Level 5
+        with keymap.key_down("AB10"):
+            r = keymap.tap_and_check("AD01", "Prior", level=5)
+            Level5 = keymap.Level5 if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Mod3 | Level5 == r.consumed_mods
+        # Super
+        with keymap.key_down("LWIN"):
+            r = keymap.tap_and_check("AD01", "q", level=1)
+            Super = keymap.Super if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Mod4 | Super
+            assert r.consumed_mods == 0
+        # Hyper is not mapped
+        with keymap.key_down("HYPR"):
+            r = keymap.tap_and_check("AD01", "q", level=1)
+            assert r.active_mods == 0 == r.consumed_mods
+
+    @pytest.mark.parametrize(
+        "options,hyper_key,control_key",
+        (("caps:hyper", "CAPS", "LCTL"), ("ctrl:hyper_capscontrol", "LCTL", "CAPS")),
+    )
+    def test_LevelThree_Hyper_conflict(
+        self, keymap: Keymap, hyper_key: str, control_key: str
+    ):
+        """LevelFive conflicts with Hyper (Mod3)"""
+        self.test_levels_1_and_3(keymap)
+        # Level 5 and Hyper
+        Level5 = keymap.Level5 if keymap.has_vmod_queries else NoModifier
+        Hyper = keymap.Hyper if keymap.has_vmod_queries else NoModifier
+        level5_key = "AB10"
+        for mod_key in (level5_key, hyper_key):
+            with keymap.key_down(mod_key):
+                r = keymap.tap_and_check("AD01", "Prior", level=5)
+                assert r.active_mods == Mod3 | Level5 | Hyper == r.consumed_mods
+        # Control
+        with keymap.key_down(control_key):
+            r = keymap.tap_and_check("AD01", "q", level=1)
+            assert r.active_mods == Control
+            assert r.consumed_mods == 0
+        # Super
+        with keymap.key_down("LWIN"):
+            r = keymap.tap_and_check("AD01", "q", level=1)
+            Super = keymap.Super if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Mod4 | Super
+            assert r.consumed_mods == 0
+
+    @pytest.mark.parametrize(
+        "options,hyper_key,control_key",
+        (
+            ("caps:hyper,hyper:mod4", "CAPS", "LCTL"),
+            ("ctrl:hyper_capscontrol,hyper:mod4", "LCTL", "CAPS"),
+        ),
+    )
+    def test_Super_Hyper_conflict(
+        self, keymap: Keymap, hyper_key: str, control_key: str
+    ):
+        """Super conflicts with Hyper (Mod4)"""
+        self.test_levels_1_and_3(keymap)
+        # Level 5
+        with keymap.key_down("AB10"):
+            r = keymap.tap_and_check("AD01", "Prior", level=5)
+            Level5 = keymap.Level5 if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Mod3 | Level5 == r.consumed_mods
+        # Control
+        with keymap.key_down(control_key):
+            r = keymap.tap_and_check("AD01", "q", level=1)
+            assert r.active_mods == Control
+            assert r.consumed_mods == 0
+        # Super and Hyper
+        super_key = "LWIN"
+        for mod_key in (super_key, hyper_key):
+            with keymap.key_down(mod_key):
+                r = keymap.tap_and_check("AD01", "q", level=1)
+                Super = keymap.Super if keymap.has_vmod_queries else NoModifier
+                Hyper = keymap.Hyper if keymap.has_vmod_queries else NoModifier
+                assert r.active_mods == Mod4 | Super | Hyper
+                assert r.consumed_mods == 0

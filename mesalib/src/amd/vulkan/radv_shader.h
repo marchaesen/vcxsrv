@@ -89,6 +89,8 @@ struct radv_shader_stage_key {
 
    /* Whether the shader is used with indirect pipeline binds. */
    uint8_t indirect_bindable : 1;
+
+   uint32_t reserved : 18;
 };
 
 struct radv_ps_epilog_key {
@@ -108,6 +110,8 @@ struct radv_ps_epilog_key {
    bool export_sample_mask;
    bool alpha_to_coverage_via_mrtz;
    bool alpha_to_one;
+
+   uint16_t reserved;
 };
 
 struct radv_spirv_to_nir_options {
@@ -125,6 +129,7 @@ struct radv_graphics_state_key {
    uint32_t dynamic_line_rast_mode : 1;
    uint32_t enable_remove_point_size : 1;
    uint32_t unknown_rast_prim : 1;
+   uint32_t reserved : 13;
 
    struct {
       uint8_t topology;

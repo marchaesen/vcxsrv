@@ -23,8 +23,8 @@
 
 #include "nir_instr_set.h"
 #include "util/half_float.h"
-#include "nir_vla.h"
 #include "nir.h"
+#include "nir_vla.h"
 
 #define XXH_INLINE_ALL
 #include "util/xxhash.h"

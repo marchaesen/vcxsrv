@@ -5249,13 +5249,6 @@ iris_store_tes_state(const struct intel_device_info *devinfo,
       te.MaximumTessellationFactorNotOdd = 64.0;
 #if GFX_VERx10 >= 125
       STATIC_ASSERT(TEDMODE_OFF == 0);
-      if (intel_needs_workaround(devinfo, 14015055625)) {
-         te.TessellationDistributionMode = TEDMODE_OFF;
-      } else if (intel_needs_workaround(devinfo, 22012699309)) {
-         te.TessellationDistributionMode = TEDMODE_RR_STRICT;
-      } else {
-         te.TessellationDistributionMode = TEDMODE_RR_FREE;
-      }
 
    #if GFX_VER >= 20
       te.TessellationDistributionLevel = TEDLEVEL_REGION;
@@ -5294,7 +5287,6 @@ iris_store_gs_state(const struct intel_device_info *devinfo,
 #endif
       gs.IncludePrimitiveID = gs_data->include_primitive_id;
       gs.ControlDataFormat = gs_data->control_data_format;
-      gs.ReorderMode = TRAILING;
       gs.ExpectedVertexCount = gs_data->vertices_in;
       gs.MaximumNumberofThreads =
          GFX_VER == 8 ? (devinfo->max_gs_threads / 2 - 1)
@@ -6817,7 +6809,8 @@ emit_wa_18020335297_dummy_draw(struct iris_batch *batch)
       vfg.DistributionMode = RR_STRICT;
    }
    iris_emit_cmd(batch, GENX(3DSTATE_VF), vf) {
-      vf.GeometryDistributionEnable = true;
+      vf.GeometryDistributionEnable =
+         batch->screen->driconf.enable_vf_distribution;
    }
 #endif
 
@@ -7486,6 +7479,9 @@ iris_upload_dirty_render_state(struct iris_context *ice,
                   te.TessellationDistributionMode = TEDMODE_RR_STRICT;
                else
                   te.TessellationDistributionMode = TEDMODE_RR_FREE;
+
+               if (!screen->driconf.enable_te_distribution)
+                  te.TessellationDistributionMode = TEDMODE_OFF;
             }
 
             uint32_t ds_state[GENX(3DSTATE_DS_length)] = { 0 };
@@ -7503,6 +7499,26 @@ iris_upload_dirty_render_state(struct iris_context *ice,
             iris_emit_merge(batch, shader_te, te_state,
                             GENX(3DSTATE_TE_length));
 #endif
+         } else if (stage == MESA_SHADER_GEOMETRY) {
+            const struct iris_rasterizer_state *cso_rast = ice->state.cso_rast;
+
+            uint32_t gs_state[GENX(3DSTATE_GS_length)] = { 0 };
+            iris_pack_command(GENX(3DSTATE_GS), gs_state, gs) {
+               gs.ReorderMode = cso_rast->flatshade_first ? LEADING : TRAILING;
+
+               if (scratch_addr)
+#if GFX_VERx10 >= 125
+                  gs.ScratchSpaceBuffer =
+                     scratch_addr >> SCRATCH_SPACE_BUFFER_SHIFT;
+#else
+                  gs.ScratchSpaceBasePointer =
+                     rw_bo(NULL, scratch_addr, IRIS_DOMAIN_NONE);
+#endif
+            }
+
+            uint32_t *shader_gs = (uint32_t *) shader->derived_data;
+            iris_emit_merge(batch, shader_gs, gs_state,
+                            GENX(3DSTATE_GS_length));
          } else if (scratch_addr) {
             uint32_t *pkt = (uint32_t *) shader->derived_data;
             switch (stage) {
@@ -8256,7 +8272,7 @@ iris_upload_dirty_render_state(struct iris_context *ice,
 
       iris_emit_cmd(batch, GENX(3DSTATE_VF), vf) {
 #if GFX_VERx10 >= 125
-         vf.GeometryDistributionEnable = true;
+         vf.GeometryDistributionEnable = screen->driconf.enable_vf_distribution;
 #endif
          if (draw->primitive_restart) {
             vf.IndexedDrawCutIndexEnable = true;

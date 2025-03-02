@@ -168,7 +168,7 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
     * they are reference counted and may not be destroyed when vkDestroyDescriptorSetLayout is
     * called.
     */
-   set_layout = vk_descriptor_set_layout_zalloc(&device->vk, size);
+   set_layout = vk_descriptor_set_layout_zalloc(&device->vk, size, pCreateInfo);
    if (!set_layout)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 

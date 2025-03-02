@@ -1666,7 +1666,7 @@ void si_rebind_buffer(struct si_context *sctx, struct pipe_resource *buf)
       sctx->vertex_buffers_dirty = num_elems > 0;
 
       /* We don't know which buffer was invalidated, so we have to add all of them. */
-      unsigned num_vb = sctx->num_vertex_buffers;
+      unsigned num_vb = sctx->vertex_elements ? sctx->vertex_elements->num_vertex_buffers : 0;
       for (unsigned i = 0; i < num_vb; i++) {
          struct si_resource *buf = si_resource(sctx->vertex_buffer[i].buffer.resource);
          if (buf) {
@@ -1676,7 +1676,7 @@ void si_rebind_buffer(struct si_context *sctx, struct pipe_resource *buf)
          }
       }
    } else if (buffer->bind_history & SI_BIND_VERTEX_BUFFER) {
-      unsigned num_vb = sctx->num_vertex_buffers;
+      unsigned num_vb = sctx->vertex_elements ? sctx->vertex_elements->num_vertex_buffers : 0;
 
       for (i = 0; i < num_elems; i++) {
          int vb = sctx->vertex_elements->vertex_buffer_index[i];
@@ -2042,7 +2042,12 @@ void si_shader_pointers_mark_dirty(struct si_context *sctx)
 {
    sctx->shader_pointers_dirty =
       u_bit_consecutive(SI_DESCS_FIRST_SHADER, SI_NUM_DESCS - SI_DESCS_FIRST_SHADER);
-   sctx->vertex_buffers_dirty = sctx->num_vertex_elements > 0;
+   sctx->vertex_buffers_dirty = sctx->num_vertex_elements > 0 &&
+                                /* si_draw_rectangle doesn't bind vertex elements, so we shouldn't
+                                 * mark vertex buffers as dirty. We can get here due to
+                                 * si_need_gfx_cs_space. */
+                                (!sctx->shader.vs.cso ||
+                                 !sctx->shader.vs.cso->info.base.vs.blit_sgprs_amd);
    si_mark_atom_dirty(sctx, &sctx->atoms.s.gfx_shader_pointers);
    sctx->graphics_internal_bindings_pointer_dirty = sctx->descriptors[SI_DESCS_INTERNAL].buffer != NULL;
    sctx->compute_internal_bindings_pointer_dirty = sctx->descriptors[SI_DESCS_INTERNAL].buffer != NULL;
@@ -3086,7 +3091,7 @@ static void si_emit_gfx_resources_add_all_to_bo_list(struct si_context *sctx, un
    }
    si_buffer_resources_begin_new_cs(sctx, &sctx->internal_bindings);
 
-   unsigned num_vb = sctx->num_vertex_buffers;
+   unsigned num_vb = sctx->vertex_elements ? sctx->vertex_elements->num_vertex_buffers : 0;
    for (unsigned i = 0; i < num_vb; i++) {
       struct si_resource *buf = si_resource(sctx->vertex_buffer[i].buffer.resource);
       if (buf) {

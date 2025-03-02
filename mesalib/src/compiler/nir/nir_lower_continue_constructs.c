@@ -139,7 +139,7 @@ lower_continue_constructs_impl(nir_function_impl *impl)
    bool progress = visit_cf_list(&b, &impl->body, &repair_ssa);
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_none);
+      nir_progress(true, impl, nir_metadata_none);
 
       /* Merge the Phis from Header and Continue Target */
       nir_lower_reg_intrinsics_to_ssa_impl(impl);
@@ -151,7 +151,7 @@ lower_continue_constructs_impl(nir_function_impl *impl)
       if (repair_ssa)
          nir_repair_ssa_impl(impl);
    } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
+      nir_no_progress(impl);
    }
 
    return progress;

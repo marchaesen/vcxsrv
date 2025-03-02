@@ -899,8 +899,7 @@ nir_algebraic_impl(nir_function_impl *impl,
     */
    struct util_dynarray states = { 0 };
    if (!util_dynarray_resize(&states, uint16_t, impl->ssa_alloc)) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
    memset(states.data, 0, states.size);
 
@@ -950,11 +949,5 @@ nir_algebraic_impl(nir_function_impl *impl,
    ralloc_free(range_ht);
    util_dynarray_fini(&states);
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }

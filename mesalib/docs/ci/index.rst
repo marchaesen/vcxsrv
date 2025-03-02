@@ -334,6 +334,17 @@ instructions on how to uprev Linux Kernel in the GitLab CI ecosystem.
 
   kernel
 
+Structured tagging
+------------------
+
+Some build scripts can be tagged with a deterministic tag to allow for
+testing and validation of the build output. This section lists the
+documentation pages for the structured tagging feature.
+
+.. toctree::
+  :maxdepth: 1
+
+  structured-tagging
 
 Reusing CI scripts for other projects
 --------------------------------------

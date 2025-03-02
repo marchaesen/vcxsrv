@@ -1666,15 +1666,12 @@ lower_fbfetch(nir_shader *shader, nir_variable **fbfetch, bool ms)
  * -    res = (0, 0, 0, 1)
  */
 static bool
-lower_txf_lod_robustness_instr(nir_builder *b, nir_instr *in, void *data)
+lower_txf_lod_robustness_instr(nir_builder *b, nir_tex_instr *txf, void *data)
 {
-   if (in->type != nir_instr_type_tex)
-      return false;
-   nir_tex_instr *txf = nir_instr_as_tex(in);
    if (txf->op != nir_texop_txf)
       return false;
 
-   b->cursor = nir_before_instr(in);
+   b->cursor = nir_before_instr(&txf->instr);
    int lod_idx = nir_tex_instr_src_index(txf, nir_tex_src_lod);
    assert(lod_idx >= 0);
    nir_src lod_src = txf->src[lod_idx].src;
@@ -1708,7 +1705,7 @@ lower_txf_lod_robustness_instr(nir_builder *b, nir_instr *in, void *data)
    nir_builder_instr_insert(b, &levels->instr);
 
    nir_if *lod_oob_if = nir_push_if(b, nir_ilt(b, lod, &levels->def));
-   nir_tex_instr *new_txf = nir_instr_as_tex(nir_instr_clone(b->shader, in));
+   nir_tex_instr *new_txf = nir_instr_as_tex(nir_instr_clone(b->shader, &txf->instr));
    nir_builder_instr_insert(b, &new_txf->instr);
 
    nir_if *lod_oob_else = nir_push_else(b, lod_oob_if);
@@ -1722,7 +1719,7 @@ lower_txf_lod_robustness_instr(nir_builder *b, nir_instr *in, void *data)
    nir_def *robust_txf = nir_if_phi(b, &new_txf->def, oob_val);
 
    nir_def_rewrite_uses(&txf->def, robust_txf);
-   nir_instr_remove_v(in);
+   nir_instr_remove_v(&txf->instr);
    return true;
 }
 
@@ -1732,7 +1729,8 @@ lower_txf_lod_robustness_instr(nir_builder *b, nir_instr *in, void *data)
 static bool
 lower_txf_lod_robustness(nir_shader *shader)
 {
-   return nir_shader_instructions_pass(shader, lower_txf_lod_robustness_instr, nir_metadata_none, NULL);
+   return nir_shader_tex_pass(shader, lower_txf_lod_robustness_instr,
+                              nir_metadata_none, NULL);
 }
 
 /* check for a genuine gl_PointSize output vs one from nir_lower_point_size_mov */
@@ -2573,7 +2571,7 @@ clamp_layer_output(nir_shader *vs, nir_shader *fs, unsigned *next_location)
       b = nir_builder_at(nir_after_impl(impl));
       assert(impl->end_block->predecessors->entries == 1);
       clamp_layer_output_emit(&b, &state);
-      nir_metadata_preserve(impl, nir_metadata_dominance);
+      nir_progress(true, impl, nir_metadata_dominance);
    }
    optimize_nir(vs, NULL, true);
    NIR_PASS_V(vs, nir_remove_dead_variables, nir_var_shader_temp, NULL);
@@ -3253,8 +3251,7 @@ lower_64bit_vars_function(nir_shader *shader, nir_function_impl *impl, nir_varia
          }
       }
    }
-   if (func_progress)
-      nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(func_progress, impl, nir_metadata_none);
    /* derefs must be queued for deletion to avoid deleting the same deref repeatedly */
    set_foreach_remove(deletes, he)
       nir_instr_remove((void*)he->key);
@@ -4784,11 +4781,9 @@ scan_nir(struct zink_screen *screen, nir_shader *shader, struct zink_shader *zs)
 }
 
 static bool
-match_tex_dests_instr(nir_builder *b, nir_instr *in, void *data, bool pre)
+match_tex_dests_instr(nir_builder *b, nir_tex_instr *tex, void *data,
+                      bool pre)
 {
-   if (in->type != nir_instr_type_tex)
-      return false;
-   nir_tex_instr *tex = nir_instr_as_tex(in);
    if (tex->op == nir_texop_txs || tex->op == nir_texop_lod)
       return false;
    int handle = nir_tex_instr_src_index(tex, nir_tex_src_texture_handle);
@@ -4808,13 +4803,13 @@ match_tex_dests_instr(nir_builder *b, nir_instr *in, void *data, bool pre)
 }
 
 static bool
-match_tex_dests_instr_pre(nir_builder *b, nir_instr *in, void *data)
+match_tex_dests_instr_pre(nir_builder *b, nir_tex_instr *in, void *data)
 {
    return match_tex_dests_instr(b, in, data, true);
 }
 
 static bool
-match_tex_dests_instr_post(nir_builder *b, nir_instr *in, void *data)
+match_tex_dests_instr_post(nir_builder *b, nir_tex_instr *in, void *data)
 {
    return match_tex_dests_instr(b, in, data, false);
 }
@@ -4822,7 +4817,7 @@ match_tex_dests_instr_post(nir_builder *b, nir_instr *in, void *data)
 static bool
 match_tex_dests(nir_shader *shader, struct zink_shader *zs, bool pre_mangle)
 {
-   return nir_shader_instructions_pass(shader, pre_mangle ? match_tex_dests_instr_pre : match_tex_dests_instr_post, nir_metadata_dominance, zs);
+   return nir_shader_tex_pass(shader, pre_mangle ? match_tex_dests_instr_pre : match_tex_dests_instr_post, nir_metadata_dominance, zs);
 }
 
 static bool

@@ -88,7 +88,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
                  num_bindings * sizeof(set_layout->binding[0]) +
                  immutable_sampler_count * sizeof(struct lvp_sampler *);
 
-   set_layout = vk_descriptor_set_layout_zalloc(&device->vk, size);
+   set_layout = vk_descriptor_set_layout_zalloc(&device->vk, size, pCreateInfo);
    if (!set_layout)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 

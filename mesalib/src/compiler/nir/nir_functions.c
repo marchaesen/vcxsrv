@@ -21,11 +21,11 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/u_printf.h"
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_control_flow.h"
 #include "nir_vla.h"
-#include "util/u_printf.h"
 
 /*
  * TODO: write a proper inliner for GPUs.
@@ -206,9 +206,10 @@ nir_inline_function_impl(struct nir_builder *b,
 
 static bool inline_function_impl(nir_function_impl *impl, struct set *inlined);
 
-static bool inline_functions_pass(nir_builder *b,
-                                  nir_instr *instr,
-                                  void *cb_data)
+static bool
+inline_functions_pass(nir_builder *b,
+                      nir_instr *instr,
+                      void *cb_data)
 {
    struct set *inlined = cb_data;
    if (instr->type != nir_instr_type_call)
@@ -412,7 +413,7 @@ lower_calls_vars_instr(struct nir_builder *b,
       b->cursor = nir_before_instr(instr);
       nir_src_rewrite(&intrin->src[0],
                       nir_iadd_imm(b, intrin->src[0].ssa,
-                                      state->printf_index_offset));
+                                   state->printf_index_offset));
       break;
    }
    default:
@@ -497,9 +498,9 @@ nir_link_shader_functions(nir_shader *shader,
       shader->printf_info = reralloc(shader, shader->printf_info,
                                      u_printf_info,
                                      shader->printf_info_count +
-                                     link_shader->printf_info_count);
+                                        link_shader->printf_info_count);
 
-      for (unsigned i = 0; i < link_shader->printf_info_count; i++){
+      for (unsigned i = 0; i < link_shader->printf_info_count; i++) {
          const u_printf_info *src_info = &link_shader->printf_info[i];
          u_printf_info *dst_info = &shader->printf_info[shader->printf_info_count++];
 
@@ -522,8 +523,9 @@ nir_link_shader_functions(nir_shader *shader,
 static void
 nir_mark_used_functions(struct nir_function *func, struct set *used_funcs);
 
-static bool mark_used_pass_cb(struct nir_builder *b,
-                              nir_instr *instr, void *data)
+static bool
+mark_used_pass_cb(struct nir_builder *b,
+                  nir_instr *instr, void *data)
 {
    struct set *used_funcs = data;
    if (instr->type != nir_instr_type_call)

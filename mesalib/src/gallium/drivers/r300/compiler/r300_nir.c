@@ -239,7 +239,7 @@ r300_optimize_nir(struct nir_shader *s, struct pipe_screen *screen)
    NIR_PASS(progress, s, nir_remove_dead_variables, nir_var_function_temp, NULL);
 }
 
-static char *
+char *
 r300_check_control_flow(nir_shader *s)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(s);
@@ -283,13 +283,6 @@ r300_finalize_nir(struct pipe_screen *pscreen, struct nir_shader *s)
    nir_validate_shader(s, "after uniform var removal");
 
    nir_sweep(s);
-
-   if (!r300_screen(pscreen)->caps.is_r500 &&
-       (r300_screen(pscreen)->caps.has_tcl || s->info.stage == MESA_SHADER_FRAGMENT)) {
-      char *msg = r300_check_control_flow(s);
-      if (msg)
-         return strdup(msg);
-   }
 
    return NULL;
 }

@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/u_printf.h"
 #include "nir.h"
 #include "nir_control_flow.h"
 #include "nir_xfb_info.h"
-#include "util/u_printf.h"
 
 /* Secret Decoder Ring:
  *   clone_foo():
@@ -787,7 +787,6 @@ clone_printf_info(void *mem_ctx, const nir_shader *s)
       infos[i].num_args = src_info->num_args;
       infos[i].arg_sizes = ralloc_memdup(mem_ctx, src_info->arg_sizes,
                                          sizeof(infos[i].arg_sizes[0]) * src_info->num_args);
-
 
       infos[i].string_size = src_info->string_size;
       infos[i].strings = ralloc_memdup(mem_ctx, src_info->strings,

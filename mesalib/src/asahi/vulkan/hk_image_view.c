@@ -323,12 +323,12 @@ pack_texture(struct hk_image_view *view, unsigned view_plane,
       cfg.unk_mipmapped = layout->levels > 1;
       cfg.srgb_2_channel = cfg.srgb && util_format_colormask(desc) == 0x3;
 
-      if (ail_is_compressed(layout)) {
+      if (layout->compressed) {
          cfg.compressed_1 = true;
          cfg.extended = true;
       }
 
-      if (ail_is_compressed(layout)) {
+      if (layout->compressed) {
          cfg.acceleration_buffer = base_addr + layout->metadata_offset_B +
                                    (layer * layout->compression_layer_stride_B);
       }
@@ -351,9 +351,6 @@ pack_texture(struct hk_image_view *view, unsigned view_plane,
       if (layout->tiling == AIL_TILING_LINEAR) {
          cfg.stride = ail_get_linear_stride_B(layout, 0) - 16;
       } else {
-         assert(layout->tiling == AIL_TILING_TWIDDLED ||
-                layout->tiling == AIL_TILING_TWIDDLED_COMPRESSED);
-
          cfg.page_aligned_layers = layout->page_aligned_layers;
       }
    }
@@ -480,7 +477,7 @@ pack_pbe(struct hk_device *dev, struct hk_image_view *view, unsigned view_plane,
             cfg.samples = agx_translate_sample_count(image->vk.samples);
       }
 
-      if (ail_is_compressed(layout) && usage != HK_DESC_USAGE_EMRT) {
+      if (layout->compressed && usage != HK_DESC_USAGE_EMRT) {
          cfg.compressed_1 = true;
          cfg.extended = true;
 

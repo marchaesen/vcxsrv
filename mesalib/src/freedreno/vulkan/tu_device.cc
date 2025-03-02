@@ -274,6 +274,7 @@ get_device_extensions(const struct tu_physical_device *device,
       .EXT_global_priority = true,
       .EXT_global_priority_query = true,
       .EXT_graphics_pipeline_library = true,
+      .EXT_hdr_metadata = true,
       .EXT_host_image_copy = true,
       .EXT_host_query_reset = true,
       .EXT_image_2d_view_of_3d = true,
@@ -1947,7 +1948,8 @@ tu_trace_record_ts(struct u_trace *ut, void *cs, void *timestamps,
 
 static uint64_t
 tu_trace_read_ts(struct u_trace_context *utctx,
-                 void *timestamps, uint64_t offset_B, void *flush_data)
+                 void *timestamps, uint64_t offset_B,
+                 uint32_t flags, void *flush_data)
 {
    struct tu_device *device =
       container_of(utctx, struct tu_device, trace_context);
@@ -2474,6 +2476,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
    mtx_init(&device->pipeline_mutex, mtx_plain);
    mtx_init(&device->autotune_mutex, mtx_plain);
    mtx_init(&device->kgsl_profiling_mutex, mtx_plain);
+   mtx_init(&device->event_mutex, mtx_plain);
    u_rwlock_init(&device->dma_bo_lock);
    pthread_mutex_init(&device->submit_mutex, NULL);
 
@@ -2589,6 +2592,10 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
                               128 * 1024, TU_BO_ALLOC_INTERNAL_RESOURCE,
                               "kgsl_profiling_suballoc");
    }
+
+   tu_bo_suballocator_init(&device->event_suballoc, device,
+      getpagesize(), TU_BO_ALLOC_INTERNAL_RESOURCE,
+      "event_suballoc");
 
    result = tu_bo_init_new(
       device, NULL, &device->global_bo, global_size,
@@ -2899,6 +2906,7 @@ tu_DestroyDevice(VkDevice _device, const VkAllocationCallbacks *pAllocator)
    tu_bo_suballocator_finish(&device->pipeline_suballoc);
    tu_bo_suballocator_finish(&device->autotune_suballoc);
    tu_bo_suballocator_finish(&device->kgsl_profiling_suballoc);
+   tu_bo_suballocator_finish(&device->event_suballoc);
 
    tu_bo_finish(device, device->global_bo);
 

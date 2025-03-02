@@ -566,13 +566,7 @@ nir_opt_peephole_select_impl(nir_function_impl *impl,
       progress |= nir_opt_peephole_select_block(block, shader, options);
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_none);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_none);
 }
 
 bool

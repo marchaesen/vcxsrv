@@ -678,9 +678,14 @@ update_descriptor_state_ubo_db(struct zink_context *ctx, gl_shader_stage shader,
    ctx->di.descriptor_res[ZINK_DESCRIPTOR_TYPE_UBO][shader][slot] = res;
    if (res) {
       ctx->di.db.ubos[shader][slot].address = res->obj->bda + ctx->ubos[shader][slot].buffer_offset;
-      ctx->di.db.ubos[shader][slot].range = ctx->ubos[shader][slot].buffer_size;
-      assert(ctx->di.db.ubos[shader][slot].range == VK_WHOLE_SIZE ||
-               ctx->di.db.ubos[shader][slot].range <= screen->info.props.limits.maxUniformBufferRange);
+      ctx->di.db.ubos[shader][slot].range = MIN2(ctx->ubos[shader][slot].buffer_size, screen->info.props.limits.maxUniformBufferRange);
+#ifndef NDEBUG
+      static bool warned = false;
+      if (!warned && ctx->ubos[shader][slot].buffer_size > screen->info.props.limits.maxUniformBufferRange) {
+         mesa_loge("ZINK: app is binding too-big UBO! Clamping!");
+         warned = true;
+      }
+#endif
    } else {
       ctx->di.db.ubos[shader][slot].address = 0;
       ctx->di.db.ubos[shader][slot].range = VK_WHOLE_SIZE;
@@ -696,10 +701,15 @@ update_descriptor_state_ubo_lazy(struct zink_context *ctx, gl_shader_stage shade
    ctx->di.descriptor_res[ZINK_DESCRIPTOR_TYPE_UBO][shader][slot] = res;
    if (res) {
       ctx->di.t.ubos[shader][slot].buffer = res->obj->buffer;
-      ctx->di.t.ubos[shader][slot].range = ctx->ubos[shader][slot].buffer_size;
-      assert(ctx->di.t.ubos[shader][slot].range <= screen->info.props.limits.maxUniformBufferRange);
-   }
-   else {
+      ctx->di.t.ubos[shader][slot].range = MIN2(ctx->ubos[shader][slot].buffer_size, screen->info.props.limits.maxUniformBufferRange);
+#ifndef NDEBUG
+      static bool warned = false;
+      if (!warned && ctx->ubos[shader][slot].buffer_size > screen->info.props.limits.maxUniformBufferRange) {
+         mesa_loge("ZINK: app is binding too-big UBO! Clamping!");
+         warned = true;
+      }
+#endif
+   } else {
       bool have_null_descriptors = screen->info.rb2_feats.nullDescriptor;
       VkBuffer null_buffer = zink_resource(ctx->dummy_vertex_buffer)->obj->buffer;
       ctx->di.t.ubos[shader][slot].buffer = have_null_descriptors ? VK_NULL_HANDLE : null_buffer;
@@ -5619,11 +5629,10 @@ fail:
 }
 
 struct zink_context *
-zink_tc_context_unwrap(struct pipe_context *pctx, bool threaded)
+zink_tc_context_unwrap(struct pipe_context *pctx)
 {
    /* need to get the actual zink_context, not the threaded context */
-   if (threaded)
-      pctx = threaded_context_unwrap_sync(pctx);
+   pctx = threaded_context_unwrap_sync(pctx);
    pctx = trace_get_possibly_threaded_context(pctx);
    return zink_context(pctx);
 }

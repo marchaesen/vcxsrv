@@ -41,8 +41,8 @@ venus-lavapipe-full:
   extends:
     - .test-android
     - .venus-manual-rules
+    - .test-angle
   variables:
-    USE_ANGLE: 1
     ANDROID_GPU_MODE: venus_guest_angle
     GPU_VERSION: venus
     DEQP_SUITE: android-venus-angle

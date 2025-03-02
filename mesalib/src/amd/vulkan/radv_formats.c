@@ -1407,9 +1407,8 @@ radv_GetDeviceImageSparseMemoryRequirements(VkDevice device, const VkDeviceImage
    UNUSED VkResult result;
    VkImage image;
 
-   /* Determining the image size/alignment require to create a surface, which is complicated without
-    * creating an image.
-    * TODO: Avoid creating an image.
+   /* Determining the image size/alignment require to create a surface, which isn't really possible
+    * without creating an image.
     */
    result =
       radv_image_create(device, &(struct radv_image_create_info){.vk_info = pInfo->pCreateInfo}, NULL, &image, true);

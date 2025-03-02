@@ -43,7 +43,10 @@
 #define VPE_STREAM_MAX_NUM   1
 
 #define VPE_BUFFERS_NUM      6
-#define VPE_EMBBUF_SIZE      20000
+#define VPE_EMBBUF_SIZE      50000
+#define VPE_LUT_DIM          17
+
+#define VPE_MAX_GEOMETRIC_DOWNSCALE 4.f
 
 /* For Hooking VPE as a decoder instance */
 struct vpe_video_processor {
@@ -70,6 +73,16 @@ struct vpe_video_processor {
 
     struct pipe_surface **src_surfaces;
     struct pipe_surface **dst_surfaces;
+
+    /* For HDR content display */
+    void *gm_handle;
+    uint16_t *lut_data;
+
+    /* For Geometric scaling */
+    float scaling_ratios[2];
+    float *geometric_scaling_ratios;
+    uint8_t geometric_passes;
+    struct pipe_video_buffer *geometric_buf[2];
 };
 
 struct pipe_video_codec*

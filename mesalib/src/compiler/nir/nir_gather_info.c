@@ -88,7 +88,7 @@ get_deref_info(nir_shader *shader, nir_variable *var, nir_deref_instr *deref,
             *indirect |= !nir_src_is_const((*p)->arr.index);
          } else if ((*p)->deref_type == nir_deref_type_struct) {
             /* Struct indices are always constant. */
-         }  else if ((*p)->deref_type == nir_deref_type_array_wildcard) {
+         } else if ((*p)->deref_type == nir_deref_type_array_wildcard) {
             /* Wilcards ref the whole array dimension and should get lowered
              * to direct deref at a later point.
              */
@@ -459,7 +459,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
             case VARYING_SLOT_TESS_LEVEL_OUTER:
                num_slots = DIV_ROUND_UP(num_slots, 4);
                break;
-            default: break;
+            default:
+               break;
             }
          }
          slot_mask = BITFIELD64_RANGE(semantics.location, num_slots);

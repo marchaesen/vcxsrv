@@ -120,12 +120,8 @@ store_instr_depends_on_tex(nir_builder *b, nir_intrinsic_instr *intrin,
 
 
 static bool
-replace_tex_by_imm(nir_builder *b, nir_instr *instr, void *state)
+replace_tex_by_imm(nir_builder *b, nir_tex_instr *tex, void *state)
 {
-   if (instr->type != nir_instr_type_tex)
-      return false;
-
-   nir_tex_instr *tex = nir_instr_as_tex(instr);
    struct replace_param *p = (struct replace_param*) state;
 
    if (get_tex_unit(tex) != *(p->texunit))
@@ -161,8 +157,8 @@ si_nir_is_output_const_if_tex_is_const(nir_shader *shader, float *in, float *out
       assert(*p.texunit != -1);
 
       /* Replace nir_tex_instr using texunit by vec4(v) */
-      nir_shader_instructions_pass(shader, replace_tex_by_imm,
-                                   nir_metadata_control_flow, &p);
+      nir_shader_tex_pass(shader, replace_tex_by_imm,
+                          nir_metadata_control_flow, &p);
 
       /* Optimize the cloned shader */
       bool progress;

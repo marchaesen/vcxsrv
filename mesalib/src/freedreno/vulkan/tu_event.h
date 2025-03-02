@@ -11,11 +11,12 @@
 #define TU_EVENT_H
 
 #include "tu_common.h"
+#include "tu_suballoc.h"
 
 struct tu_event
 {
    struct vk_object_base base;
-   struct tu_bo *bo;
+   struct tu_suballoc_bo bo;
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(tu_event, base, VkEvent, VK_OBJECT_TYPE_EVENT)

@@ -123,7 +123,7 @@ disk_cache_type_create(const char *gpu_name,
       goto path_fail;
 
    char *path = disk_cache_generate_cache_dir(local, gpu_name, driver_id,
-                                              cache_dir_name, cache_type);
+                                              cache_dir_name, cache_type, true);
    if (!path)
       goto path_fail;
 

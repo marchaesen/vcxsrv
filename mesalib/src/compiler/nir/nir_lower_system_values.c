@@ -527,9 +527,9 @@ lower_compute_system_value_instr(nir_builder *b,
              * this way we don't leave behind extra ALU instrs.
              */
 
-            uint32_t wg_size[3] = {b->shader->info.workgroup_size[0],
-                                   b->shader->info.workgroup_size[1],
-                                   b->shader->info.workgroup_size[2]};
+            uint32_t wg_size[3] = { b->shader->info.workgroup_size[0],
+                                    b->shader->info.workgroup_size[1],
+                                    b->shader->info.workgroup_size[2] };
             nir_def *val = try_lower_id_to_index_1d(b, local_index, wg_size);
             if (val)
                return val;
@@ -689,9 +689,7 @@ lower_compute_system_value_instr(nir_builder *b,
          nir_def *base_group_id = nir_load_base_workgroup_id(b, bit_size);
          nir_def *local_id = nir_load_local_invocation_id(b);
 
-         return nir_iadd(b, nir_imul(b, nir_iadd(b, nir_u2uN(b, group_id, bit_size),
-                                                 base_group_id),
-                                     nir_u2uN(b, group_size, bit_size)),
+         return nir_iadd(b, nir_imul(b, nir_iadd(b, nir_u2uN(b, group_id, bit_size), base_group_id), nir_u2uN(b, group_size, bit_size)),
                          nir_u2uN(b, local_id, bit_size));
       } else if (options && options->global_id_is_32bit && bit_size > 32) {
          return nir_u2uN(b, nir_load_global_invocation_id(b, 32), bit_size);

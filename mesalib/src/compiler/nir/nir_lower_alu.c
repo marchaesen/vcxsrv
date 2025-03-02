@@ -110,7 +110,6 @@ lower_alu_instr(nir_builder *b, nir_alu_instr *instr, UNUSED void *cb_data)
          nir_def *c0f0f0f0f = nir_imm_intN_t(b, 0x0f0f0f0f, bit_size);
          nir_def *c01010101 = nir_imm_intN_t(b, 0x01010101, bit_size);
 
-
          lowered = nir_isub(b, lowered,
                             nir_iand(b, nir_ushr(b, lowered, c1), c55555555));
 

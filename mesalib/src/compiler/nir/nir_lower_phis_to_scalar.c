@@ -22,6 +22,7 @@
  */
 
 #include "nir.h"
+#include "nir_builder.h"
 
 /*
  * Implements a pass that lowers vector phi nodes to scalar phi nodes when
@@ -30,7 +31,7 @@
 
 struct lower_phis_to_scalar_state {
    nir_shader *shader;
-   void *mem_ctx;
+   nir_builder builder;
    struct exec_list dead_instrs;
 
    bool lower_all;
@@ -193,49 +194,44 @@ lower_phis_to_scalar_block(nir_block *block,
       if (!should_lower_phi(phi, state))
          continue;
 
-      unsigned bit_size = phi->def.bit_size;
-
       /* Create a vecN operation to combine the results.  Most of these
        * will be redundant, but copy propagation should clean them up for
        * us.  No need to add the complexity here.
        */
-      nir_op vec_op = nir_op_vec(phi->def.num_components);
-
-      nir_alu_instr *vec = nir_alu_instr_create(state->shader, vec_op);
-      nir_def_init(&vec->instr, &vec->def,
-                   phi->def.num_components, bit_size);
+      nir_def *vec_srcs[NIR_MAX_VEC_COMPONENTS];
 
       for (unsigned i = 0; i < phi->def.num_components; i++) {
          nir_phi_instr *new_phi = nir_phi_instr_create(state->shader);
          nir_def_init(&new_phi->instr, &new_phi->def, 1,
                       phi->def.bit_size);
 
-         vec->src[i].src = nir_src_for_ssa(&new_phi->def);
+         vec_srcs[i] = &new_phi->def;
 
          nir_foreach_phi_src(src, phi) {
-            /* We need to insert a mov to grab the i'th component of src */
-            nir_alu_instr *mov = nir_alu_instr_create(state->shader,
-                                                      nir_op_mov);
-            nir_def_init(&mov->instr, &mov->def, 1, bit_size);
-            mov->src[0].src = nir_src_for_ssa(src->src.ssa);
-            mov->src[0].swizzle[0] = i;
+            nir_def *def;
+            state->builder.cursor = nir_after_block_before_jump(src->pred);
 
-            /* Insert at the end of the predecessor but before the jump */
-            nir_instr *pred_last_instr = nir_block_last_instr(src->pred);
-            if (pred_last_instr && pred_last_instr->type == nir_instr_type_jump)
-               nir_instr_insert_before(pred_last_instr, &mov->instr);
-            else
-               nir_instr_insert_after_block(src->pred, &mov->instr);
+            if (nir_src_is_undef(src->src)) {
+               /* Just create a 1-component undef instead of moving out of the
+                * original one. This makes it easier for other passes to
+                * detect undefs without having to chase moves.
+                */
+               def = nir_undef(&state->builder, 1, phi->def.bit_size);
+            } else {
+               /* We need to insert a mov to grab the i'th component of src */
+               def = nir_channel(&state->builder, src->src.ssa, i);
+            }
 
-            nir_phi_instr_add_src(new_phi, src->pred, &mov->def);
+            nir_phi_instr_add_src(new_phi, src->pred, def);
          }
 
          nir_instr_insert_before(&phi->instr, &new_phi->instr);
       }
 
-      nir_instr_insert_after(&last_phi->instr, &vec->instr);
+      state->builder.cursor = nir_after_phis(block);
+      nir_def *vec = nir_vec(&state->builder, vec_srcs, phi->def.num_components);
 
-      nir_def_replace(&phi->def, &vec->def);
+      nir_def_replace(&phi->def, vec);
       exec_list_push_tail(&state->dead_instrs, &phi->instr.node);
 
       progress = true;
@@ -260,7 +256,7 @@ lower_phis_to_scalar_impl(nir_function_impl *impl, bool lower_all)
    bool progress = false;
 
    state.shader = impl->function->shader;
-   state.mem_ctx = ralloc_parent(impl);
+   state.builder = nir_builder_create(impl);
    exec_list_make_empty(&state.dead_instrs);
    state.phi_table = _mesa_pointer_hash_table_create(NULL);
    state.lower_all = lower_all;
@@ -269,7 +265,7 @@ lower_phis_to_scalar_impl(nir_function_impl *impl, bool lower_all)
       progress = lower_phis_to_scalar_block(block, &state) || progress;
    }
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 
    nir_instr_free_list(&state.dead_instrs);
 

@@ -514,10 +514,8 @@ tu_rmv_log_event_create(struct tu_device *device,
    vk_rmv_emit_token(&device->vk.memory_trace_data,
                      VK_RMV_TOKEN_TYPE_RESOURCE_CREATE, &token);
 
-   if (event->bo) {
-      tu_rmv_emit_resource_bind_locked(device, token.resource_id,
-                                       event->bo->iova, event->bo->size);
-   }
+   tu_rmv_emit_resource_bind_locked(device, token.resource_id,
+                                    event->bo.iova, event->bo.size);
 
    simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
 }

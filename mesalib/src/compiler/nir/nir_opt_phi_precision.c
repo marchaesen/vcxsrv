@@ -427,7 +427,7 @@ try_move_widening_src(nir_builder *b, nir_phi_instr *phi)
 }
 
 static bool
-lower_phi(nir_builder *b, nir_phi_instr *phi)
+opt_phi_precision(nir_builder *b, nir_phi_instr *phi, void *unused)
 {
    bool progress = try_move_narrowing_dst(b, phi);
    if (!progress)
@@ -438,8 +438,6 @@ lower_phi(nir_builder *b, nir_phi_instr *phi)
 bool
 nir_opt_phi_precision(nir_shader *shader)
 {
-   bool progress = false;
-
    /* If 8b or 16b bit_sizes are not used, no point to run this pass: */
    unsigned bit_sizes_used = shader->info.bit_sizes_float |
                              shader->info.bit_sizes_int;
@@ -450,21 +448,6 @@ nir_opt_phi_precision(nir_shader *shader)
    if (bit_sizes_used && !(bit_sizes_used & (8 | 16)))
       return false;
 
-   nir_foreach_function_impl(impl, shader) {
-      nir_builder b = nir_builder_create(impl);
-
-      nir_foreach_block(block, impl) {
-         nir_foreach_phi_safe(phi, block)
-            progress |= lower_phi(&b, phi);
-      }
-
-      if (progress) {
-         nir_metadata_preserve(impl,
-                               nir_metadata_control_flow);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
-   }
-
-   return progress;
+   return nir_shader_phi_pass(shader, opt_phi_precision,
+                              nir_metadata_control_flow, NULL);
 }

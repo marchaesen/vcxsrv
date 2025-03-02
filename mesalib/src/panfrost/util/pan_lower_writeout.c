@@ -229,9 +229,7 @@ pan_nir_lower_zs_store(nir_shader *nir)
             nir_instr_remove(&stores[i]->instr);
       }
 
-      nir_metadata_preserve(impl,
-                            nir_metadata_control_flow);
-      progress = true;
+      progress = nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    return progress;

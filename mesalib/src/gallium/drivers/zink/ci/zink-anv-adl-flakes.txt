@@ -844,3 +844,13 @@ spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-index-wr
 
 # Fails in the pre-merge job and passes in the nightly
 KHR-GL46.shader_viewport_layer_array.ShaderViewportIndexTestCase
+
+# Discovered after decreasing the fraction
+spec@arb_timer_query@timestamp-get
+
+# These can fail after a GuC engine reset request failure
+https://gitlab.freedesktop.org/mesa/mesa/-/jobs/71634375#L3564
+glx@glx-fbconfig-bad
+glx@glx-query-drawable-glxpixmap-glx_width
+glx@glx_arb_create_context@invalid opengl version
+glx@glx_arb_create_context_profile@invalid profile

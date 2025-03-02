@@ -293,6 +293,7 @@ static bool ppir_emit_discard_block(ppir_compiler *comp)
 
    comp->discard_block = block;
    block->comp  = comp;
+   block->index = INT_MAX;
 
    discard = ppir_node_create(block, ppir_op_discard, -1, 0);
    if (discard)
@@ -449,15 +450,17 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
          switch (node->op) {
          case ppir_op_load_uniform:
          case ppir_op_load_texture:
-         case ppir_op_dummy:
          case ppir_op_const:
+         case ppir_op_dummy:
             break;
          default: {
             ppir_dest *dest = ppir_node_get_dest(node);
             dest->ssa.out_type = out_type;
+            dest->ssa.out_reg = true;
             dest->ssa.num_components = 4;
             dest->write_mask = u_bit_consecutive(0, 4);
             node->is_out = 1;
+            block->stop = true;
             return true;
             }
          }
@@ -473,6 +476,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
       dest->ssa.index = 0;
       dest->write_mask = u_bit_consecutive(0, 4);
       dest->ssa.out_type = out_type;
+      dest->ssa.out_reg = true;
 
       alu_node->num_src = 1;
 
@@ -483,6 +487,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
                         u_bit_consecutive(0, 4));
 
       alu_node->node.is_out = 1;
+      block->stop = true;
 
       list_addtail(&alu_node->node.list, &block->node_list);
       return true;
@@ -797,7 +802,7 @@ static bool ppir_emit_if(ppir_compiler *comp, nir_if *if_stmt)
       nir_block *nblock = nir_if_last_else_block(if_stmt);
       assert(nblock->successors[0]);
       assert(!nblock->successors[1]);
-      else_branch->target = ppir_get_block(comp, nblock->successors[0]);
+      else_branch->target = ppir_get_block(comp, nblock);
       /* Add empty else block to the list */
       list_addtail(&block->successors[1]->list, &comp->block_list);
       return true;
@@ -1062,13 +1067,19 @@ bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *n
 
    ppir_node_print_prog(comp);
 
+   ppir_debug("ppir_lower_prog()\n");
    if (!ppir_lower_prog(comp))
       goto err_out0;
 
+   ppir_debug("ppir_add_order_deps()\n");
    ppir_add_ordering_deps(comp);
+   ppir_debug("ppir_add_write_after_read_deps()\n");
    ppir_add_write_after_read_deps(comp);
+   ppir_debug("ppir_opt_prog()\n");
+   ppir_opt_prog(comp);
 
    ppir_node_print_prog(comp);
+   fflush(stdout);
 
    if (!ppir_node_to_instr(comp))
       goto err_out0;
@@ -1077,6 +1088,10 @@ bool ppir_compile_nir(struct lima_fs_compiled_shader *prog, struct nir_shader *n
       goto err_out0;
 
    if (!ppir_regalloc_prog(comp))
+      goto err_out0;
+
+   /* all the deps are invalid after compacting */
+   if (!ppir_compact_prog(comp))
       goto err_out0;
 
    if (!ppir_codegen_prog(comp))

@@ -326,12 +326,7 @@ lower_io_offsets_func(nir_function_impl *impl)
       progress |= lower_io_offsets_block(block, &b, mem_ctx);
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl,
-                            nir_metadata_control_flow);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 bool

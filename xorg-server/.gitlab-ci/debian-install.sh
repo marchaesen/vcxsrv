@@ -65,6 +65,7 @@ apt-get install -y \
 	libx11-xcb-dev \
 	libxau-dev \
 	libxaw7-dev \
+	libxcb-damage0-dev \
 	libxcb-dri2-0-dev \
 	libxcb-dri3-dev \
 	libxcb-glx0-dev \
@@ -76,8 +77,10 @@ apt-get install -y \
 	libxcb-render0-dev \
 	libxcb-shape0-dev \
 	libxcb-shm0-dev \
+	libxcb-sync-dev \
 	libxcb-util0-dev \
 	libxcb-xf86dri0-dev \
+	libxcb-xinput-dev \
 	libxcb-xkb-dev \
 	libxcb-xv0-dev \
 	libxcb1-dev \

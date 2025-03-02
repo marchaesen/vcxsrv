@@ -354,6 +354,14 @@ enum pipe_video_vpp_matrix_coefficients {
     PIPE_VIDEO_VPP_MCF_COUNT,
 };
 
+/* To be used for VPP state*/
+enum pipe_video_vpp_filter_flag {
+   PIPE_VIDEO_VPP_FILTER_FLAG_DEFAULT               = 0x00000000,
+   PIPE_VIDEO_VPP_FILTER_FLAG_SCALING_FAST          = 0x00000100,
+   PIPE_VIDEO_VPP_FILTER_FLAG_SCALING_HQ            = 0x00000200,
+   PIPE_VIDEO_VPP_FILTER_FLAG_SCALING_NL_ANAMORPHIC = 0x00000300
+};
+
 /* To be used with cap PIPE_VIDEO_CAP_ENC_SLICES_STRUCTURE*/
 /**
  * pipe_video_cap_slice_structure

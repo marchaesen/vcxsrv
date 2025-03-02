@@ -591,8 +591,7 @@ ir3_nir_lower_const_global_loads(nir_shader *nir, struct ir3_shader_variant *v)
       nir_foreach_function (function, nir) {
          if (function->impl) {
             if (function->is_preamble) {
-               nir_metadata_preserve(
-                  function->impl, nir_metadata_all);
+               nir_no_progress(function->impl);
                continue;
             }
 
@@ -607,8 +606,7 @@ ir3_nir_lower_const_global_loads(nir_shader *nir, struct ir3_shader_variant *v)
                }
             }
 
-            nir_metadata_preserve(
-               function->impl, nir_metadata_control_flow);
+            nir_progress(true, function->impl, nir_metadata_control_flow);
          }
       }
    }
@@ -697,7 +695,7 @@ ir3_nir_lower_ubo_loads(nir_shader *nir, struct ir3_shader_variant *v)
       if (function->impl) {
          if (function->is_preamble && push_ubos) {
             has_preamble = true;
-            nir_metadata_preserve(function->impl, nir_metadata_all);
+            nir_no_progress(function->impl);
             continue;
          }
          nir_builder builder = nir_builder_create(function->impl);
@@ -711,8 +709,7 @@ ir3_nir_lower_ubo_loads(nir_shader *nir, struct ir3_shader_variant *v)
             }
          }
 
-         nir_metadata_preserve(
-            function->impl, nir_metadata_control_flow);
+         nir_progress(true, function->impl, nir_metadata_control_flow);
       }
    }
    /* Update the num_ubos field for GL (first_ubo_is_default_ubo).  With

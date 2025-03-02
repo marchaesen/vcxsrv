@@ -233,10 +233,10 @@ With these limitations, addressing into a strided linear image is as simple as
 
 In practice, this suffices for window system integration and little else.
 
-Twiddled
-````````
+GPU-tiled
+`````````
 
-The most common uncompressed layout is **twiddled**. The image is divided into
+The most common uncompressed layout is **GPU-tiled**. The image is divided into
 power-of-two sized tiles. The tiles themselves are stored in raster-order.
 Within each tile, elements (pixels/blocks) are stored in Morton (Z) order.
 
@@ -310,6 +310,23 @@ logically. These extra levels pad out layers of 3D images to the size of the
 first layer, simplifying layout calculations for both software and hardware.
 Although the padding is logically unnecessary, it wastes little space compared
 to the sizes of large mipmapped 3D textures.
+
+Twiddled
+````````
+
+In addition to GPU-tiled images, AGX also has a fully **twiddled** layout. The
+image is rounded up to power-of-two dimensions, then all elements are stored in
+Morton (Z) order.
+
+A twiddled image is equivalent to a GPU-tiled image with a single square
+power-of-two tile spanning the entire image. That means GPU-tiled and twiddled
+images may share address calculation code, as long as everything is parametrized
+in terms of the tile size.
+
+In general, twiddled images require more memory than GPU-tiled images due to the
+extra padding required. Because GPU tiles are page-sized, twiddling beyond that
+does not offer any cache locality benefit either. The twiddled layout is
+mostly vestigial at this point, but the PBE requires it for sparse mapping.
 
 Sparse page tables
 ``````````````````

@@ -61,6 +61,8 @@ struct radv_device_cache_key {
    uint32_t mesh_shader_queries : 1;
    uint32_t primitives_generated_query : 1;
    uint32_t trap_excp_flags : 4;
+
+   uint32_t reserved : 23;
 };
 
 enum radv_force_vrs {

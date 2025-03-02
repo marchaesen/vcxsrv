@@ -2852,7 +2852,8 @@ agx_optimize_loop_nir(nir_shader *nir)
          .limit = 64,
          .expensive_alu_ok = true,
       };
-      NIR_PASS(progress, nir, nir_opt_peephole_select, &peephole_select_options);
+      NIR_PASS(progress, nir, nir_opt_peephole_select,
+               &peephole_select_options);
       NIR_PASS(progress, nir, nir_opt_phi_precision);
       NIR_PASS(progress, nir, nir_opt_algebraic);
       NIR_PASS(progress, nir, nir_opt_constant_folding);

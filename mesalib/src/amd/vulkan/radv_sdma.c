@@ -198,7 +198,7 @@ radv_sdma_get_metadata_config(const struct radv_device *const device, const stru
    const struct radv_physical_device *pdev = radv_device_physical(device);
 
    if (!pdev->info.sdma_supports_compression ||
-       !(radv_dcc_enabled(image, subresource.mipLevel) || radv_image_has_htile(image))) {
+       !(radv_dcc_enabled(image, subresource.mipLevel) || radv_htile_enabled(image, subresource.mipLevel))) {
       return 0;
    }
 
@@ -312,7 +312,7 @@ radv_sdma_get_surf(const struct radv_device *const device, const struct radv_ima
       info.header_dword = radv_sdma_get_tiled_header_dword(device, image, subresource);
 
       if (pdev->info.sdma_supports_compression &&
-          (radv_dcc_enabled(image, subresource.mipLevel) || radv_image_has_htile(image))) {
+          (radv_dcc_enabled(image, subresource.mipLevel) || radv_htile_enabled(image, subresource.mipLevel))) {
          info.meta_va = va + surf->meta_offset;
          info.meta_config = radv_sdma_get_metadata_config(device, image, surf, subresource, aspect_mask);
       }

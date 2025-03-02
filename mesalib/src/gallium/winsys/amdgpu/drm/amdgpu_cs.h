@@ -132,15 +132,12 @@ struct amdgpu_cs {
     */
    bool uses_alt_fence;
 
-   /* We flip between these two CS. While one is being consumed
-    * by the kernel in another thread, the other one is being filled
-    * by the pipe driver. */
-   struct amdgpu_cs_context csc1;
-   struct amdgpu_cs_context csc2;
-   /* The currently-used CS. */
-   struct amdgpu_cs_context *csc;
-   /* The CS being currently-owned by the other thread. */
-   struct amdgpu_cs_context *cst;
+   /* Max AMDGPU_FENCE_RING_SIZE jobs can be submitted. Commands are being filled and submitted
+    * between the two csc till AMDGPU_FENCE_RING_SIZE jobs are in queue. current_csc_index will
+    * point to csc that will be filled by commands.
+    */
+   struct amdgpu_cs_context csc[2];
+   int current_csc_index;
    /* buffer_indices_hashlist[hash(bo)] returns -1 if the bo
     * isn't part of any buffer lists or the index where the bo could be found.
     * Since 1) hash collisions of 2 different bo can happen and 2) we use a
@@ -184,6 +181,24 @@ struct amdgpu_fence {
    uint8_t queue_index;       /* for non-imported fences */
    uint_seq_no queue_seq_no;  /* winsys-generated sequence number */
 };
+
+static inline struct amdgpu_cs_context *
+amdgpu_csc_get_current(struct amdgpu_cs *acs)
+{
+   return &acs->csc[acs->current_csc_index];
+}
+
+static inline struct amdgpu_cs_context *
+amdgpu_csc_get_submitted(struct amdgpu_cs *acs)
+{
+   return &acs->csc[!acs->current_csc_index];
+}
+
+static inline void
+amdgpu_csc_swap(struct amdgpu_cs *acs)
+{
+   acs->current_csc_index = !acs->current_csc_index;
+}
 
 void amdgpu_fence_destroy(struct amdgpu_fence *fence);
 
@@ -232,24 +247,24 @@ static inline void amdgpu_fence_drop_reference(struct pipe_fence_handle *dst)
 }
 
 struct amdgpu_cs_buffer *
-amdgpu_lookup_buffer_any_type(struct amdgpu_cs_context *cs, struct amdgpu_winsys_bo *bo);
+amdgpu_lookup_buffer_any_type(struct amdgpu_cs_context *csc, struct amdgpu_winsys_bo *bo);
 
 static inline struct amdgpu_cs *
 amdgpu_cs(struct radeon_cmdbuf *rcs)
 {
-   struct amdgpu_cs *cs = (struct amdgpu_cs*)rcs->priv;
-   assert(cs);
-   return cs;
+   struct amdgpu_cs *acs = (struct amdgpu_cs*)rcs->priv;
+   assert(acs);
+   return acs;
 }
 
 #define get_container(member_ptr, container_type, container_member) \
    (container_type *)((char *)(member_ptr) - offsetof(container_type, container_member))
 
 static inline bool
-amdgpu_bo_is_referenced_by_cs(struct amdgpu_cs *cs,
+amdgpu_bo_is_referenced_by_cs(struct amdgpu_cs *acs,
                               struct amdgpu_winsys_bo *bo)
 {
-   return amdgpu_lookup_buffer_any_type(cs->csc, bo) != NULL;
+   return amdgpu_lookup_buffer_any_type(amdgpu_csc_get_current(acs), bo) != NULL;
 }
 
 static inline unsigned get_buf_list_idx(struct amdgpu_winsys_bo *bo)
@@ -260,11 +275,11 @@ static inline unsigned get_buf_list_idx(struct amdgpu_winsys_bo *bo)
 }
 
 static inline bool
-amdgpu_bo_is_referenced_by_cs_with_usage(struct amdgpu_cs *cs,
+amdgpu_bo_is_referenced_by_cs_with_usage(struct amdgpu_cs *acs,
                                          struct amdgpu_winsys_bo *bo,
                                          unsigned usage)
 {
-   struct amdgpu_cs_buffer *buffer = amdgpu_lookup_buffer_any_type(cs->csc, bo);
+   struct amdgpu_cs_buffer *buffer = amdgpu_lookup_buffer_any_type(amdgpu_csc_get_current(acs), bo);
 
    return buffer && (buffer->usage & usage) != 0;
 }

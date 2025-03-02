@@ -51,7 +51,7 @@ add_variable_name(struct lower_io_state *state, const char *name)
    bool found = false;
    struct set_entry *entry = _mesa_set_search_or_add(&state->variable_names, name, &found);
    if (!found)
-      entry->key = (void*)ralloc_strdup(state->builder.shader, name);
+      entry->key = (void *)ralloc_strdup(state->builder.shader, name);
    return entry->key;
 }
 
@@ -876,7 +876,7 @@ nir_lower_io_impl(nir_function_impl *impl,
 
    ralloc_free(state.dead_ctx);
 
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    return progress;
 }
@@ -2473,13 +2473,7 @@ nir_lower_explicit_io_impl(nir_function_impl *impl, nir_variable_mode modes,
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_none);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_none);
 }
 
 /** Lower explicitly laid out I/O access to byte offset/address intrinsics
@@ -2564,15 +2558,8 @@ nir_lower_vars_to_explicit_types_impl(nir_function_impl *impl,
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow |
-                                     nir_metadata_live_defs |
-                                     nir_metadata_loop_analysis);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl,
+                       nir_metadata_control_flow | nir_metadata_live_defs | nir_metadata_loop_analysis);
 }
 
 static bool
@@ -2887,6 +2874,46 @@ nir_get_io_offset_src(nir_intrinsic_instr *instr)
 }
 
 /**
+ * Return the index or handle source number for a load/store intrinsic or -1
+ * if there's no index or handle.
+ */
+int
+nir_get_io_index_src_number(const nir_intrinsic_instr *instr)
+{
+   switch (instr->intrinsic) {
+   case nir_intrinsic_load_ubo:
+   case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_input_vertex:
+   case nir_intrinsic_load_per_vertex_input:
+   case nir_intrinsic_load_per_vertex_output:
+   case nir_intrinsic_load_per_view_output:
+   case nir_intrinsic_load_per_primitive_output:
+   case nir_intrinsic_load_interpolated_input:
+   case nir_intrinsic_load_smem_amd:
+   case nir_intrinsic_ldc_nv:
+   case nir_intrinsic_ldcx_nv:
+      return 0;
+   case nir_intrinsic_store_ssbo:
+   case nir_intrinsic_store_per_vertex_output:
+   case nir_intrinsic_store_per_view_output:
+   case nir_intrinsic_store_per_primitive_output:
+      return 1;
+   default:
+      return -1;
+   }
+}
+
+/**
+ * Return the offset or handle source for a load/store intrinsic.
+ */
+nir_src *
+nir_get_io_index_src(nir_intrinsic_instr *instr)
+{
+   const int idx = nir_get_io_index_src_number(instr);
+   return idx >= 0 ? &instr->src[idx] : NULL;
+}
+
+/**
  * Return the array index source number for an arrayed load/store intrinsic or -1 if there's no offset.
  */
 int
@@ -3060,7 +3087,7 @@ is_dual_slot(nir_intrinsic_instr *intrin)
    }
 
    return intrin->def.bit_size == 64 &&
-   intrin->def.num_components >= 3;
+          intrin->def.num_components >= 3;
 }
 
 /**
@@ -3131,10 +3158,7 @@ nir_io_add_const_offset_to_base(nir_shader *nir, nir_variable_mode modes)
          impl_progress |= add_const_offset_to_base_block(block, &b, modes);
       }
       progress |= impl_progress;
-      if (impl_progress)
-         nir_metadata_preserve(impl, nir_metadata_control_flow);
-      else
-         nir_metadata_preserve(impl, nir_metadata_all);
+      nir_progress(impl_progress, impl, nir_metadata_control_flow);
    }
 
    return progress;
@@ -3211,12 +3235,7 @@ nir_lower_color_inputs(nir_shader *nir)
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 bool
@@ -3290,7 +3309,7 @@ nir_io_add_intrinsic_xfb_info(nir_shader *nir)
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_all);
+   nir_no_progress(impl);
    return progress;
 }
 
@@ -3340,8 +3359,8 @@ nir_lower_io_passes(nir_shader *nir, bool renumber_vs_inputs)
 
    if (!has_indirect_inputs || !has_indirect_outputs) {
       NIR_PASS(_, nir, nir_lower_io_to_temporaries,
-                 nir_shader_get_entrypoint(nir), !has_indirect_outputs,
-                 !has_indirect_inputs);
+               nir_shader_get_entrypoint(nir), !has_indirect_outputs,
+               !has_indirect_inputs);
 
       /* We need to lower all the copy_deref's introduced by lower_io_to-
        * _temporaries before calling nir_lower_io.
@@ -3356,7 +3375,8 @@ nir_lower_io_passes(nir_shader *nir, bool renumber_vs_inputs)
       if (nir->info.stage == MESA_SHADER_TESS_CTRL) {
          NIR_PASS(_, nir, nir_lower_indirect_derefs,
                   (!has_indirect_inputs ? nir_var_shader_in : 0) |
-                  (!has_indirect_outputs ? nir_var_shader_out : 0), UINT32_MAX);
+                     (!has_indirect_outputs ? nir_var_shader_out : 0),
+                  UINT32_MAX);
       }
    }
 
@@ -3365,10 +3385,9 @@ nir_lower_io_passes(nir_shader *nir, bool renumber_vs_inputs)
     * would break 64-bit vertex attribs for GLSL.
     */
    NIR_PASS(_, nir, nir_lower_io, nir_var_shader_out | nir_var_shader_in,
-              type_size_vec4,
-              (renumber_vs_inputs ? nir_lower_io_lower_64bit_to_32_new :
-                                    nir_lower_io_lower_64bit_to_32) |
-              nir_lower_io_use_interpolated_input_intrinsics);
+            type_size_vec4,
+            (renumber_vs_inputs ? nir_lower_io_lower_64bit_to_32_new : nir_lower_io_lower_64bit_to_32) |
+               nir_lower_io_use_interpolated_input_intrinsics);
 
    /* nir_io_add_const_offset_to_base needs actual constants. */
    NIR_PASS(_, nir, nir_opt_constant_folding);
@@ -3393,8 +3412,7 @@ nir_lower_io_passes(nir_shader *nir, bool renumber_vs_inputs)
     * This must be done after DCE to remove dead load_input intrinsics.
     */
    NIR_PASS(_, nir, nir_recompute_io_bases,
-              (nir->info.stage != MESA_SHADER_VERTEX || renumber_vs_inputs ?
-               nir_var_shader_in : 0) | nir_var_shader_out);
+            (nir->info.stage != MESA_SHADER_VERTEX || renumber_vs_inputs ? nir_var_shader_in : 0) | nir_var_shader_out);
 
    if (nir->xfb_info)
       NIR_PASS(_, nir, nir_io_add_intrinsic_xfb_info);

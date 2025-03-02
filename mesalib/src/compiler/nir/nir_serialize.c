@@ -832,7 +832,7 @@ read_alu(read_ctx *ctx, union packed_instr header)
    return alu;
 }
 
-#define NUM_GENERIC_MODES 4
+#define NUM_GENERIC_MODES    4
 #define MODE_ENC_GENERIC_BIT (1 << 5)
 
 static nir_variable_mode

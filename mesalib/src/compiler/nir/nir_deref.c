@@ -393,13 +393,7 @@ nir_remove_dead_derefs_impl(nir_function_impl *impl)
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 bool
@@ -453,8 +447,8 @@ nir_fixup_deref_modes(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader, nir_fixup_deref_modes_instr,
                                        nir_metadata_control_flow |
-                                       nir_metadata_live_defs |
-                                       nir_metadata_instr_index,
+                                          nir_metadata_live_defs |
+                                          nir_metadata_instr_index,
                                        NULL);
 }
 
@@ -472,7 +466,7 @@ nir_fixup_deref_types_instr(UNUSED struct nir_builder *b, nir_instr *instr, UNUS
               deref->deref_type == nir_deref_type_array_wildcard) {
       nir_deref_instr *parent = nir_src_as_deref(deref->parent);
       parent_derived_type = glsl_get_array_element(parent->type);
-   }  else if (deref->deref_type == nir_deref_type_struct) {
+   } else if (deref->deref_type == nir_deref_type_struct) {
       nir_deref_instr *parent = nir_src_as_deref(deref->parent);
       parent_derived_type = glsl_get_struct_field(parent->type, deref->strct.index);
    } else if (deref->deref_type == nir_deref_type_ptr_as_array) {
@@ -497,8 +491,8 @@ nir_fixup_deref_types(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader, nir_fixup_deref_types_instr,
                                        nir_metadata_control_flow |
-                                       nir_metadata_live_defs |
-                                       nir_metadata_instr_index,
+                                          nir_metadata_live_defs |
+                                          nir_metadata_instr_index,
                                        NULL);
 }
 
@@ -1540,13 +1534,7 @@ nir_opt_deref_impl(nir_function_impl *impl)
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 bool

@@ -155,7 +155,7 @@ tu_CreateDescriptorSetLayout(
 
    set_layout =
       (struct tu_descriptor_set_layout *) vk_descriptor_set_layout_zalloc(
-         &device->vk, size);
+         &device->vk, size, pCreateInfo);
    if (!set_layout)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 

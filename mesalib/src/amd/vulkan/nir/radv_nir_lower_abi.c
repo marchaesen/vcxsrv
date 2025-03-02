@@ -516,7 +516,7 @@ radv_nir_lower_abi(nir_shader *shader, enum amd_gfx_level gfx_level, const struc
          state.gsvs_ring[i] = load_gsvs_ring(&b, &state, i);
 
       progress = true;
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    progress |= nir_shader_intrinsics_pass(shader, lower_abi_instr, nir_metadata_control_flow, &state);

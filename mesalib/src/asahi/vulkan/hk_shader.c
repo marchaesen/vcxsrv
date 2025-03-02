@@ -161,7 +161,7 @@ hk_preprocess_nir_internal(struct vk_physical_device *vk_pdev, nir_shader *nir)
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 
    NIR_PASS(_, nir, nir_lower_io_to_temporaries, nir_shader_get_entrypoint(nir),
-              true, false);
+            true, false);
 
    NIR_PASS(_, nir, nir_lower_global_vars_to_local);
 
@@ -176,7 +176,8 @@ hk_preprocess_nir_internal(struct vk_physical_device *vk_pdev, nir_shader *nir)
 }
 
 static void
-hk_preprocess_nir(struct vk_physical_device *vk_pdev, nir_shader *nir)
+hk_preprocess_nir(struct vk_physical_device *vk_pdev, nir_shader *nir,
+                  UNUSED const struct vk_pipeline_robustness_state *rs)
 {
    hk_preprocess_nir_internal(vk_pdev, nir);
    nir_lower_compute_system_values_options csv_options = {
@@ -431,8 +432,7 @@ hk_nir_insert_psiz_write(nir_shader *nir)
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 
    if (nir->info.outputs_written & VARYING_BIT_PSIZ) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    nir_builder b = nir_builder_at(nir_after_impl(impl));
@@ -443,8 +443,7 @@ hk_nir_insert_psiz_write(nir_shader *nir)
                     .io_semantics.num_slots = 1, .src_type = nir_type_float32);
 
    nir->info.outputs_written |= VARYING_BIT_PSIZ;
-   nir_metadata_preserve(b.impl, nir_metadata_control_flow);
-   return true;
+   return nir_progress(true, b.impl, nir_metadata_control_flow);
 }
 
 static nir_def *
@@ -462,12 +461,8 @@ has_custom_border(nir_builder *b, nir_tex_instr *tex)
 }
 
 static bool
-lower(nir_builder *b, nir_instr *instr, UNUSED void *_data)
+lower(nir_builder *b, nir_tex_instr *tex, UNUSED void *_data)
 {
-   if (instr->type != nir_instr_type_tex)
-      return false;
-
-   nir_tex_instr *tex = nir_instr_as_tex(instr);
    if (!nir_tex_instr_need_sampler(tex) || nir_tex_instr_is_query(tex))
       return false;
 
@@ -533,7 +528,7 @@ lower(nir_builder *b, nir_instr *instr, UNUSED void *_data)
 static bool
 agx_nir_lower_custom_border(nir_shader *nir)
 {
-   return nir_shader_instructions_pass(nir, lower, nir_metadata_none, NULL);
+   return nir_shader_tex_pass(nir, lower, nir_metadata_none, NULL);
 }
 
 static nir_def *
@@ -545,12 +540,8 @@ query_min_lod(nir_builder *b, nir_tex_instr *tex, bool int_coords)
 }
 
 static bool
-lower_min_lod(nir_builder *b, nir_instr *instr, UNUSED void *_data)
+lower_min_lod(nir_builder *b, nir_tex_instr *tex, UNUSED void *_data)
 {
-   if (instr->type != nir_instr_type_tex)
-      return false;
-
-   nir_tex_instr *tex = nir_instr_as_tex(instr);
    if (nir_tex_instr_is_query(tex))
       return false;
 
@@ -608,8 +599,7 @@ lower_min_lod(nir_builder *b, nir_instr *instr, UNUSED void *_data)
 static bool
 agx_nir_lower_image_view_min_lod(nir_shader *nir)
 {
-   return nir_shader_instructions_pass(nir, lower_min_lod, nir_metadata_none,
-                                       NULL);
+   return nir_shader_tex_pass(nir, lower_min_lod, nir_metadata_none, NULL);
 }
 
 /*
@@ -639,12 +629,8 @@ lower_viewport_fs(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *data)
 }
 
 static bool
-lower_subpass_dim(nir_builder *b, nir_instr *instr, UNUSED void *_data)
+lower_subpass_dim(nir_builder *b, nir_tex_instr *tex, UNUSED void *_data)
 {
-   if (instr->type != nir_instr_type_tex)
-      return false;
-
-   nir_tex_instr *tex = nir_instr_as_tex(instr);
    if (tex->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS)
       tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    else if (tex->sampler_dim == GLSL_SAMPLER_DIM_SUBPASS_MS)
@@ -689,8 +675,8 @@ hk_lower_nir(struct hk_device *dev, nir_shader *nir,
                   .use_view_id_for_layer = is_multiview,
                });
 
-      NIR_PASS(_, nir, nir_shader_instructions_pass, lower_subpass_dim,
-               nir_metadata_all, NULL);
+      NIR_PASS(_, nir, nir_shader_tex_pass, lower_subpass_dim, nir_metadata_all,
+               NULL);
       NIR_PASS(_, nir, nir_lower_wpos_center);
    }
 
@@ -1433,13 +1419,6 @@ hk_api_shader_serialize(struct vk_device *vk_dev,
    return !blob->out_of_memory;
 }
 
-#define WRITE_STR(field, ...)                                                  \
-   ({                                                                          \
-      memset(field, 0, sizeof(field));                                         \
-      UNUSED int i = snprintf(field, sizeof(field), __VA_ARGS__);              \
-      assert(i > 0 && i < sizeof(field));                                      \
-   })
-
 static VkResult
 hk_shader_get_executable_properties(
    UNUSED struct vk_device *device, const struct vk_shader *vk_shader,
@@ -1455,9 +1434,9 @@ hk_shader_get_executable_properties(
    {
       props->stages = mesa_to_vk_shader_stage(obj->vk.stage);
       props->subgroupSize = 32;
-      WRITE_STR(props->name, "%s", _mesa_shader_stage_to_string(obj->vk.stage));
-      WRITE_STR(props->description, "%s shader",
-                _mesa_shader_stage_to_string(obj->vk.stage));
+      VK_COPY_STR(props->name, _mesa_shader_stage_to_string(obj->vk.stage));
+      VK_PRINT_STR(props->description, "%s shader",
+                   _mesa_shader_stage_to_string(obj->vk.stage));
    }
 
    return vk_outarray_status(&out);
@@ -1484,17 +1463,17 @@ hk_shader_get_executable_statistics(
 
    vk_outarray_append_typed(VkPipelineExecutableStatisticKHR, &out, stat)
    {
-      WRITE_STR(stat->name, "Code Size");
-      WRITE_STR(stat->description,
-                "Size of the compiled shader binary, in bytes");
+      VK_COPY_STR(stat->name, "Code Size");
+      VK_COPY_STR(stat->description,
+                  "Size of the compiled shader binary, in bytes");
       stat->format = VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR;
       stat->value.u64 = shader->code_size;
    }
 
    vk_outarray_append_typed(VkPipelineExecutableStatisticKHR, &out, stat)
    {
-      WRITE_STR(stat->name, "Number of GPRs");
-      WRITE_STR(stat->description, "Number of GPRs used by this pipeline");
+      VK_COPY_STR(stat->name, "Number of GPRs");
+      VK_COPY_STR(stat->description, "Number of GPRs used by this pipeline");
       stat->format = VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR;
       stat->value.u64 = shader->b.info.nr_gprs;
    }
@@ -1539,8 +1518,8 @@ hk_shader_get_executable_internal_representations(
    /* TODO */
 #if 0
    vk_outarray_append_typed(VkPipelineExecutableInternalRepresentationKHR, &out, ir) {
-      WRITE_STR(ir->name, "AGX assembly");
-      WRITE_STR(ir->description, "AGX assembly");
+      VK_COPY_STR(ir->name, "AGX assembly");
+      VK_COPY_STR(ir->description, "AGX assembly");
       if (!write_ir_text(ir, TODO))
          incomplete_text = true;
    }

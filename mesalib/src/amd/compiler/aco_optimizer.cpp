@@ -3230,46 +3230,6 @@ apply_ds_extract(opt_ctx& ctx, aco_ptr<Instruction>& extract)
    return true;
 }
 
-/* v_and(a, v_subbrev_co(0, 0, vcc)) -> v_cndmask(0, a, vcc) */
-bool
-combine_and_subbrev(opt_ctx& ctx, aco_ptr<Instruction>& instr)
-{
-   if (instr->usesModifiers())
-      return false;
-
-   for (unsigned i = 0; i < 2; i++) {
-      Instruction* op_instr = follow_operand(ctx, instr->operands[i], true);
-      if (op_instr && op_instr->opcode == aco_opcode::v_subbrev_co_u32 &&
-          op_instr->operands[0].constantEquals(0) && op_instr->operands[1].constantEquals(0) &&
-          !op_instr->usesModifiers()) {
-
-         aco_ptr<Instruction> new_instr;
-         if (instr->operands[!i].isTemp() &&
-             instr->operands[!i].getTemp().type() == RegType::vgpr) {
-            new_instr.reset(create_instruction(aco_opcode::v_cndmask_b32, Format::VOP2, 3, 1));
-         } else if (ctx.program->gfx_level >= GFX10 ||
-                    (instr->operands[!i].isConstant() && !instr->operands[!i].isLiteral())) {
-            new_instr.reset(
-               create_instruction(aco_opcode::v_cndmask_b32, asVOP3(Format::VOP2), 3, 1));
-         } else {
-            return false;
-         }
-
-         new_instr->operands[0] = Operand::zero();
-         new_instr->operands[1] = instr->operands[!i];
-         new_instr->operands[2] = copy_operand(ctx, op_instr->operands[2]);
-         new_instr->definitions[0] = instr->definitions[0];
-         new_instr->pass_flags = instr->pass_flags;
-         instr = std::move(new_instr);
-         decrease_uses(ctx, op_instr);
-         ctx.info[instr->definitions[0].tempId()].label = 0;
-         return true;
-      }
-   }
-
-   return false;
-}
-
 /* v_and(a, not(b)) -> v_bfi_b32(b, 0, a)
  * v_or(a, not(b)) -> v_bfi_b32(b, a, -1)
  */
@@ -4197,9 +4157,7 @@ combine_instruction(opt_ctx& ctx, aco_ptr<Instruction>& instr)
    } else if (instr->opcode == aco_opcode::s_abs_i32) {
       combine_sabsdiff(ctx, instr);
    } else if (instr->opcode == aco_opcode::v_and_b32) {
-      if (combine_and_subbrev(ctx, instr)) {
-      } else if (combine_v_andor_not(ctx, instr)) {
-      }
+      combine_v_andor_not(ctx, instr);
    } else if (instr->opcode == aco_opcode::v_fma_f32 || instr->opcode == aco_opcode::v_fma_f16) {
       /* set existing v_fma_f32 with label_mad so we can create v_fmamk_f32/v_fmaak_f32.
        * since ctx.uses[mad_info::mul_temp_id] is always 0, we don't have to worry about

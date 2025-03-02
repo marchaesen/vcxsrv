@@ -326,6 +326,5 @@ nir_lower_multiview(nir_shader *shader, nir_lower_multiview_options options)
 
    _mesa_hash_table_destroy(out_derefs, NULL);
 
-   nir_metadata_preserve(entrypoint, nir_metadata_none);
-   return true;
+   return nir_progress(true, entrypoint, nir_metadata_none);
 }

@@ -54,7 +54,7 @@ remove_hs_intrinsics(nir_function_impl *impl)
          nir_instr_remove(instr);
       }
    }
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 static void

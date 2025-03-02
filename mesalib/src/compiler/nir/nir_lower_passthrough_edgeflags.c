@@ -49,7 +49,7 @@ lower_impl(nir_function_impl *impl)
                     .base = shader->num_outputs++,
                     .io_semantics.location = VARYING_SLOT_EDGE);
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 bool

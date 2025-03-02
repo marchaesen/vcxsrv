@@ -243,30 +243,6 @@ radv_meta_get_view_type(const struct radv_image *image)
    }
 }
 
-/**
- * When creating a destination VkImageView, this function provides the needed
- * VkImageViewCreateInfo::subresourceRange::baseArrayLayer.
- */
-uint32_t
-radv_meta_get_iview_layer(const struct radv_image *dst_image, const VkImageSubresourceLayers *dst_subresource,
-                          const VkOffset3D *dst_offset)
-{
-   switch (dst_image->vk.image_type) {
-   case VK_IMAGE_TYPE_1D:
-   case VK_IMAGE_TYPE_2D:
-      return dst_subresource->baseArrayLayer;
-   case VK_IMAGE_TYPE_3D:
-      /* HACK: Vulkan does not allow attaching a 3D image to a framebuffer,
-       * but meta does it anyway. When doing so, we translate the
-       * destination's z offset into an array offset.
-       */
-      return dst_offset->z;
-   default:
-      assert(!"bad VkImageType");
-      return 0;
-   }
-}
-
 static VKAPI_ATTR void *VKAPI_CALL
 meta_alloc(void *_device, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
 {

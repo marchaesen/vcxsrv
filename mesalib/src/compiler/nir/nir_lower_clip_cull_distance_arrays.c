@@ -180,8 +180,8 @@ replace_var_declaration(struct lower_distance_state *state, nir_shader *sh,
                   sh->info.stage == MESA_SHADER_TESS_EVAL)) ||
                 sh->info.stage == MESA_SHADER_TESS_CTRL);
 
-         assert (glsl_get_base_type(glsl_get_array_element(glsl_get_array_element(var->type))) ==
-                 GLSL_TYPE_FLOAT);
+         assert(glsl_get_base_type(glsl_get_array_element(glsl_get_array_element(var->type))) ==
+                GLSL_TYPE_FLOAT);
 
          /* And change the properties that we need to change */
          (*new_var)->type =
@@ -306,7 +306,7 @@ replace_with_derefs_to_vec4(nir_builder *b, nir_intrinsic_instr *intr,
                             void *cb_data)
 {
    struct lower_distance_state *state =
-      (struct lower_distance_state *) cb_data;
+      (struct lower_distance_state *)cb_data;
    nir_variable_mode mask = nir_var_shader_in | nir_var_shader_out;
 
    /* Copy deref lowering is expected to happen before we get here */
@@ -335,15 +335,14 @@ replace_with_derefs_to_vec4(nir_builder *b, nir_intrinsic_instr *intr,
       return false;
 
    if (var->data.mode == nir_var_shader_out &&
-      var != state->old_distance_out_var)
+       var != state->old_distance_out_var)
       return false;
 
    if (var->data.mode == nir_var_shader_in &&
        var != state->old_distance_in_var)
       return false;
 
-   nir_variable *new_var = var->data.mode == nir_var_shader_in ?
-      state->new_distance_in_var : state->new_distance_out_var;
+   nir_variable *new_var = var->data.mode == nir_var_shader_in ? state->new_distance_in_var : state->new_distance_out_var;
 
    lower_distance_deref(state, b, intr, deref, new_var);
 
@@ -397,7 +396,6 @@ nir_lower_clip_cull_distance_to_vec4s(nir_shader *shader)
           shader->info.stage == MESA_SHADER_COMPUTE)
          continue;
 
-
       if (var->data.location == VARYING_SLOT_CLIP_DIST0)
          clip_size = MAX2(clip_size, get_unwrapped_array_length(shader, var));
 
@@ -423,7 +421,7 @@ nir_lower_clip_cull_distance_to_vec4s(nir_shader *shader)
 
    state.old_distance_out_var = NULL;
    state.old_distance_in_var = NULL;
-   state.in_name ="gl_CullDistance";
+   state.in_name = "gl_CullDistance";
    state.offset = clip_size;
    lower_distance_to_vec4(shader, &state);
 
@@ -512,14 +510,8 @@ nir_lower_clip_cull_distance_arrays(nir_shader *nir)
    }
 
    nir_foreach_function_impl(impl, nir) {
-      if (progress) {
-         nir_metadata_preserve(impl,
-                               nir_metadata_control_flow |
-                               nir_metadata_live_defs |
-                               nir_metadata_loop_analysis);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
+      nir_progress(progress, impl,
+                   nir_metadata_control_flow | nir_metadata_live_defs | nir_metadata_loop_analysis);
    }
 
    return progress;

@@ -834,6 +834,7 @@ with_driver_using_cl = [
   with_gallium_iris, with_intel_vk,
   with_gallium_asahi, with_asahi_vk,
   with_gallium_panfrost, with_panfrost_vk,
+  with_nouveau_vk,
 ].contains(true)
 
 if get_option('mesa-clc') == 'system'
@@ -2063,7 +2064,7 @@ if with_platform_wayland
   else
     wl_scanner_arg = 'code'
   endif
-  dep_wl_protocols = dependency('wayland-protocols', version : '>= 1.38', default_options: [ 'tests=false' ])
+  dep_wl_protocols = dependency('wayland-protocols', version : '>= 1.41', default_options: [ 'tests=false' ])
   dep_wayland_client = dependency('wayland-client', version : '>=1.18')
   dep_wayland_server = dependency('wayland-server', version : '>=1.18')
   if with_egl

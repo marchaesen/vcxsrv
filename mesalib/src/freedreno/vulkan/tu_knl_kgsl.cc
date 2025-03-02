@@ -786,7 +786,7 @@ kgsl_syncobj_export(struct kgsl_syncobj *s, int *pFd)
       if (s->fd < 0)
          *pFd = -1;
       else
-         *pFd = dup(s->fd);
+         *pFd = os_dupfd_cloexec(s->fd);
       return VK_SUCCESS;
 
    case KGSL_SYNCOBJ_STATE_TS:
@@ -879,7 +879,7 @@ kgsl_syncobj_merge(const struct kgsl_syncobj **syncobjs, uint32_t count)
             assert(ret.fd >= 0);
          } else {
             ret = *sync;
-            ret.fd = dup(ret.fd);
+            ret.fd = os_dupfd_cloexec(ret.fd);
             assert(ret.fd >= 0);
          }
          break;
@@ -994,7 +994,7 @@ vk_kgsl_sync_import_sync_file(struct vk_device *device,
 {
    struct vk_kgsl_syncobj *s = container_of(sync, struct vk_kgsl_syncobj, vk);
    if (fd >= 0) {
-      fd = dup(fd);
+      fd = os_dupfd_cloexec(fd);
       if (fd < 0) {
          mesa_loge("vk_kgsl_sync_import_sync_file: dup failed: %s",
                    strerror(errno));

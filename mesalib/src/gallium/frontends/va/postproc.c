@@ -373,6 +373,9 @@ static VAStatus vlVaVidEngineBlit(vlVaDriver *drv, vlVaContext *context,
    else if (param->output_color_properties.chroma_sample_location & VA_CHROMA_SITING_HORIZONTAL_CENTER)
       context->desc.vidproc.out_chroma_siting |= PIPE_VIDEO_VPP_CHROMA_SITING_HORIZONTAL_CENTER;
 
+   if (param->filter_flags & VA_FILTER_SCALING_FAST)
+      context->desc.vidproc.filter_flags |= PIPE_VIDEO_VPP_FILTER_FLAG_SCALING_FAST;
+
    if (context->needs_begin_frame) {
       context->decoder->begin_frame(context->decoder, dst,
                                     &context->desc.base);

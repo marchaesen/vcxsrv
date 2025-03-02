@@ -1727,16 +1727,27 @@ add_resource_bind(struct zink_context *ctx, struct zink_resource *res, unsigned 
    assert((res->base.b.bind & bind) == 0);
    res->base.b.bind |= bind;
    struct zink_resource_object *old_obj = res->obj;
-   ASSERTED uint64_t mod = DRM_FORMAT_MOD_INVALID;
+   ASSERTED uint64_t check_mod = false;
    if (bind & ZINK_BIND_DMABUF && !res->modifiers_count && !res->obj->is_buffer && screen->info.have_EXT_image_drm_format_modifier) {
-      res->modifiers_count = 1;
+      /* it's improbable that drivers support non-linear modifiers for anything but 2D */
+      bool use_modifiers = res->base.b.target == PIPE_TEXTURE_2D;
+      res->modifiers_count = use_modifiers ? screen->modifier_props[res->base.b.format].drmFormatModifierCount : 1;
       res->modifiers = malloc(res->modifiers_count * sizeof(uint64_t));
       if (!res->modifiers) {
          mesa_loge("ZINK: failed to allocate res->modifiers!");
          return false;
       }
-
-      mod = res->modifiers[0] = DRM_FORMAT_MOD_LINEAR;
+      if (use_modifiers) {
+         int idx = 0;
+         for (unsigned i = 0; i < screen->modifier_props[res->base.b.format].drmFormatModifierCount; i++) {
+            if (screen->modifier_props[res->base.b.format].pDrmFormatModifierProperties[i].drmFormatModifierPlaneCount == 1)
+               res->modifiers[idx++] = screen->modifier_props[res->base.b.format].pDrmFormatModifierProperties[i].drmFormatModifier;
+         }
+         res->modifiers_count = idx;
+      } else {
+         res->modifiers[0] = DRM_FORMAT_MOD_LINEAR;
+      }
+      check_mod = true;
    }
    struct zink_resource_object *new_obj = resource_object_create(screen, &res->base.b, NULL, &res->linear, res->modifiers, res->modifiers_count, NULL, NULL);
    if (!new_obj) {
@@ -1744,7 +1755,7 @@ add_resource_bind(struct zink_context *ctx, struct zink_resource *res, unsigned 
       res->base.b.bind &= ~bind;
       return false;
    }
-   assert(mod == DRM_FORMAT_MOD_INVALID || new_obj->modifier == DRM_FORMAT_MOD_LINEAR);
+   assert(!check_mod || new_obj->modifier != DRM_FORMAT_MOD_INVALID);
    struct zink_resource staging = *res;
    staging.obj = old_obj;
    staging.all_binds = 0;
@@ -2340,14 +2351,17 @@ zink_buffer_map(struct pipe_context *pctx,
    }
 
    unsigned map_offset = box->x;
+   /* ideally never ever read or write to non-cached mem */
+   bool is_cached_mem = (screen->info.mem_props.memoryTypes[res->obj->bo->base.base.placement].propertyFlags & VK_STAGING_RAM) == VK_STAGING_RAM;
+   /* but this is only viable with a certain amount of vram since it may fully duplicate lots of large buffers */
+   bool host_mem_type_check = screen->always_cached_upload ? is_cached_mem : res->obj->host_visible;
    if (usage & PIPE_MAP_DISCARD_RANGE &&
-        (!res->obj->host_visible ||
-        !(usage & (PIPE_MAP_UNSYNCHRONIZED | PIPE_MAP_PERSISTENT)))) {
+       (!host_mem_type_check || !(usage & (PIPE_MAP_UNSYNCHRONIZED | PIPE_MAP_PERSISTENT)))) {
 
       /* Check if mapping this buffer would cause waiting for the GPU.
        */
 
-      if (!res->obj->host_visible || force_discard_range ||
+      if (!host_mem_type_check || force_discard_range ||
           !zink_resource_usage_check_completion(screen, res, ZINK_RESOURCE_ACCESS_RW)) {
          /* Do a wait-free write-only transfer using a temporary buffer. */
          unsigned offset;
@@ -2381,9 +2395,7 @@ zink_buffer_map(struct pipe_context *pctx,
       if (!zink_resource_usage_check_completion(screen, res, ZINK_RESOURCE_ACCESS_WRITE))
          goto success;
       usage |= PIPE_MAP_UNSYNCHRONIZED;
-   } else if (((usage & PIPE_MAP_READ) && !(usage & PIPE_MAP_PERSISTENT) &&
-               ((screen->info.mem_props.memoryTypes[res->obj->bo->base.base.placement].propertyFlags & VK_STAGING_RAM) != VK_STAGING_RAM)) ||
-              !res->obj->host_visible) {
+   } else if ((usage & PIPE_MAP_READ) && !(usage & PIPE_MAP_PERSISTENT) && !host_mem_type_check) {
       /* any read, non-HV write, or unmappable that reaches this point needs staging */
       if ((usage & PIPE_MAP_READ) || !res->obj->host_visible || res->base.b.flags & PIPE_RESOURCE_FLAG_DONT_MAP_DIRECTLY) {
 overwrite:

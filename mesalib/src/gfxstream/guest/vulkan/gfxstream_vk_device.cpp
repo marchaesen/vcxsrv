@@ -71,6 +71,8 @@ static const char* const kGuestOnlyInstanceExtension[] = {
 
 static const char* const kGuestOnlyDeviceExtensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
+    VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME,
 };
 
 static VkResult SetupInstanceForProcess(void) {
@@ -741,5 +743,31 @@ void gfxstream_vk_UpdateDescriptorSets(VkDevice device, uint32_t descriptorWrite
         resources->on_vkUpdateDescriptorSets(
             vkEnc, gfxstream_device->internal_object, descriptorWriteCount,
             internal_pDescriptorWrites.data(), descriptorCopyCount, pDescriptorCopies);
+    }
+}
+
+void gfxstream_vk_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
+                                                     VkFormat format,
+                                                     VkFormatProperties2* pFormatProperties) {
+    MESA_TRACE_SCOPE("vkGetPhysicalDeviceFormatProperties2");
+    VK_FROM_HANDLE(gfxstream_vk_physical_device, gfxstream_physicalDevice, physicalDevice);
+    {
+        auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+        vkEnc->vkGetPhysicalDeviceFormatProperties2(gfxstream_physicalDevice->internal_object,
+                                                    format, pFormatProperties, true /* do lock */);
+    }
+    VkDrmFormatModifierPropertiesListEXT* drmFmtMod =
+        vk_find_struct(pFormatProperties, DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT);
+    if (drmFmtMod) {
+        drmFmtMod->drmFormatModifierCount = 1;
+        if (drmFmtMod->pDrmFormatModifierProperties) {
+            drmFmtMod->pDrmFormatModifierProperties[0] = {
+                .drmFormatModifier = 0,
+                .drmFormatModifierPlaneCount = 1,
+                .drmFormatModifierTilingFeatures =
+                    VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+                    VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT |
+                    VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT};
+        }
     }
 }

@@ -118,7 +118,7 @@ struct panvk_cs_subqueue_context {
 struct panvk_cache_flush_info {
    enum mali_cs_flush_mode l2;
    enum mali_cs_flush_mode lsc;
-   bool others;
+   enum mali_cs_other_flush_mode others;
 };
 
 struct panvk_cs_deps {
@@ -208,26 +208,6 @@ cs_scratch_reg64(struct cs_builder *b, unsigned reg)
 {
    assert(reg % 2 == 0);
    return cs_scratch_reg_tuple(b, reg, 2);
-}
-
-static inline struct cs_index
-cs_sr_reg_tuple(struct cs_builder *b, unsigned start, unsigned count)
-{
-   assert(start + count - 1 < PANVK_CS_REG_SCRATCH_START);
-   return cs_reg_tuple(b, start, count);
-}
-
-static inline struct cs_index
-cs_sr_reg32(struct cs_builder *b, unsigned reg)
-{
-   return cs_sr_reg_tuple(b, reg, 1);
-}
-
-static inline struct cs_index
-cs_sr_reg64(struct cs_builder *b, unsigned reg)
-{
-   assert(reg % 2 == 0);
-   return cs_sr_reg_tuple(b, reg, 2);
 }
 
 static inline struct cs_index

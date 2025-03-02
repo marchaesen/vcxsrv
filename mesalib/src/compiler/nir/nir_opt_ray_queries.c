@@ -233,8 +233,7 @@ nir_opt_ray_query_ranges(nir_shader *shader)
    }
 
    if (ray_query_count <= 1) {
-      nir_metadata_preserve(func->impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(func->impl);
    }
 
    void *mem_ctx = ralloc_context(NULL);
@@ -406,7 +405,7 @@ nir_opt_ray_query_ranges(nir_shader *shader)
       }
    }
 
-   nir_metadata_preserve(func->impl, nir_metadata_all);
+   nir_no_progress(func->impl);
 
    /* Remove dead ray queries. */
    if (progress) {

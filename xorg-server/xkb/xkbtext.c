@@ -70,6 +70,20 @@ tbGetBuffer(unsigned size)
 
 /***====================================================================***/
 
+static inline char *
+tbGetBufferString(const char *str)
+{
+    size_t size = strlen(str) + 1;
+    char *rtrn = tbGetBuffer((unsigned) size);
+
+    if (rtrn != NULL)
+        memcpy(rtrn, str, size);
+
+    return rtrn;
+}
+
+/***====================================================================***/
+
 char *
 XkbAtomText(Atom atm, unsigned format)
 {
@@ -78,11 +92,7 @@ XkbAtomText(Atom atm, unsigned format)
 
     atmstr = NameForAtom(atm);
     if (atmstr != NULL) {
-        int len;
-
-        len = strlen(atmstr) + 1;
-        rtrn = tbGetBuffer(len);
-        strlcpy(rtrn, atmstr, len);
+        rtrn = tbGetBufferString(atmstr);
     }
     else {
         rtrn = tbGetBuffer(1);
@@ -150,11 +160,12 @@ XkbVModMaskText(XkbDescPtr xkb,
     char *str, buf[VMOD_BUFFER_SIZE];
 
     if ((modMask == 0) && (mask == 0)) {
-        rtrn = tbGetBuffer(5);
+        const int rtrnsize = 5;
+        rtrn = tbGetBuffer(rtrnsize);
         if (format == XkbCFile)
-            sprintf(rtrn, "0");
+            snprintf(rtrn, rtrnsize, "0");
         else
-            sprintf(rtrn, "none");
+            snprintf(rtrn, rtrnsize, "none");
         return rtrn;
     }
     if (modMask != 0)
@@ -173,14 +184,14 @@ XkbVModMaskText(XkbDescPtr xkb,
                 len = strlen(tmp) + 1 + (str == buf ? 0 : 1);
                 if (format == XkbCFile)
                     len += 4;
-                if ((str - (buf + len)) <= VMOD_BUFFER_SIZE) {
-                    if (str != buf) {
-                        if (format == XkbCFile)
-                            *str++ = '|';
-                        else
-                            *str++ = '+';
-                        len--;
-                    }
+                if ((str - buf) + len > VMOD_BUFFER_SIZE)
+                    continue; /* Skip */
+                if (str != buf) {
+                    if (format == XkbCFile)
+                        *str++ = '|';
+                    else
+                        *str++ = '+';
+                    len--;
                 }
                 if (format == XkbCFile)
                     sprintf(str, "%sMask", tmp);
@@ -231,7 +242,6 @@ static const char *modNames[XkbNumModifiers] = {
 char *
 XkbModIndexText(unsigned ndx, unsigned format)
 {
-    char *rtrn;
     char buf[100];
 
     if (format == XkbCFile) {
@@ -250,9 +260,7 @@ XkbModIndexText(unsigned ndx, unsigned format)
         else
             snprintf(buf, sizeof(buf), "ILLEGAL_%02x", ndx);
     }
-    rtrn = tbGetBuffer(strlen(buf) + 1);
-    strcpy(rtrn, buf);
-    return rtrn;
+    return tbGetBufferString(buf);
 }
 
 char *
@@ -294,8 +302,7 @@ XkbModMaskText(unsigned mask, unsigned format)
             }
         }
     }
-    rtrn = tbGetBuffer(strlen(buf) + 1);
-    strcpy(rtrn, buf);
+    rtrn = tbGetBufferString(buf);
     return rtrn;
 }
 
@@ -305,8 +312,9 @@ XkbModMaskText(unsigned mask, unsigned format)
 XkbConfigText(unsigned config, unsigned format)
 {
     static char *buf;
+    const int bufsize = 32;
 
-    buf = tbGetBuffer(32);
+    buf = tbGetBuffer(bufsize);
     switch (config) {
     case XkmSemanticsFile:
         strcpy(buf, "Semantics");
@@ -340,7 +348,7 @@ XkbConfigText(unsigned config, unsigned format)
         strcpy(buf, "VirtualMods");
         break;
     default:
-        sprintf(buf, "unknown(%d)", config);
+        snprintf(buf, bufsize, "unknown(%d)", config);
         break;
     }
     return buf;
@@ -439,7 +447,7 @@ static const char *imWhichNames[] = {
 char *
 XkbIMWhichStateMaskText(unsigned use_which, unsigned format)
 {
-    int len;
+    int len, bufsize;
     unsigned i, bit, tmp;
     char *buf;
 
@@ -457,7 +465,8 @@ XkbIMWhichStateMaskText(unsigned use_which, unsigned format)
                 len += 9;
         }
     }
-    buf = tbGetBuffer(len + 1);
+    bufsize = len + 1;
+    buf = tbGetBuffer(bufsize);
     tmp = use_which & XkbIM_UseAnyMods;
     for (len = i = 0, bit = 1; tmp != 0; i++, bit <<= 1) {
         if (tmp & bit) {
@@ -465,13 +474,14 @@ XkbIMWhichStateMaskText(unsigned use_which, unsigned format)
             if (format == XkbCFile) {
                 if (len != 0)
                     buf[len++] = '|';
-                sprintf(&buf[len], "XkbIM_Use%s", imWhichNames[i]);
+                snprintf(&buf[len], bufsize - len,
+                         "XkbIM_Use%s", imWhichNames[i]);
                 buf[len + 9] = toupper((unsigned char)buf[len + 9]);
             }
             else {
                 if (len != 0)
                     buf[len++] = '+';
-                sprintf(&buf[len], "%s", imWhichNames[i]);
+                snprintf(&buf[len], bufsize - len, "%s", imWhichNames[i]);
             }
             len += strlen(&buf[len]);
         }
@@ -618,18 +628,27 @@ XkbGeomFPText(int val, unsigned format)
 {
     int whole, frac;
     char *buf;
+    const int bufsize = 13;
 
-    buf = tbGetBuffer(12);
+    buf = tbGetBuffer(bufsize);
     if (format == XkbCFile) {
-        sprintf(buf, "%d", val);
+        snprintf(buf, bufsize, "%d", val);
     }
     else {
         whole = val / XkbGeomPtsPerMM;
-        frac = val % XkbGeomPtsPerMM;
-        if (frac != 0)
-            sprintf(buf, "%d.%d", whole, frac);
+        frac = abs(val % XkbGeomPtsPerMM);
+        if (frac != 0) {
+            if (val < 0)
+            {
+                int wholeabs;
+                wholeabs = abs(whole);
+                snprintf(buf, bufsize, "-%d.%d", wholeabs, frac);
+            }
+            else
+                snprintf(buf, bufsize, "%d.%d", whole, frac);
+        }
         else
-            sprintf(buf, "%d", whole);
+            snprintf(buf, bufsize, "%d", whole);
     }
     return buf;
 }
@@ -640,7 +659,8 @@ XkbDoodadTypeText(unsigned type, unsigned format)
     char *buf;
 
     if (format == XkbCFile) {
-        buf = tbGetBuffer(24);
+        const int bufsize = 24;
+        buf = tbGetBuffer(bufsize);
         if (type == XkbOutlineDoodad)
             strcpy(buf, "XkbOutlineDoodad");
         else if (type == XkbSolidDoodad)
@@ -652,10 +672,11 @@ XkbDoodadTypeText(unsigned type, unsigned format)
         else if (type == XkbLogoDoodad)
             strcpy(buf, "XkbLogoDoodad");
         else
-            sprintf(buf, "UnknownDoodad%d", type);
+            snprintf(buf, bufsize, "UnknownDoodad%d", type);
     }
     else {
-        buf = tbGetBuffer(12);
+        const int bufsize = 12;
+        buf = tbGetBuffer(bufsize);
         if (type == XkbOutlineDoodad)
             strcpy(buf, "outline");
         else if (type == XkbSolidDoodad)
@@ -667,7 +688,7 @@ XkbDoodadTypeText(unsigned type, unsigned format)
         else if (type == XkbLogoDoodad)
             strcpy(buf, "logo");
         else
-            sprintf(buf, "unknown%d", type);
+            snprintf(buf, bufsize, "unknown%d", type);
     }
     return buf;
 }
@@ -1213,7 +1234,7 @@ static actionCopy copyActionArgs[XkbSA_NumActions] = {
 char *
 XkbActionText(XkbDescPtr xkb, XkbAction *action, unsigned format)
 {
-    char buf[ACTION_SZ], *tmp;
+    char buf[ACTION_SZ];
     int sz;
 
     if (format == XkbCFile) {
@@ -1234,16 +1255,13 @@ XkbActionText(XkbDescPtr xkb, XkbAction *action, unsigned format)
             CopyOtherArgs(xkb, action, buf, &sz);
         TryCopyStr(buf, ")", &sz);
     }
-    tmp = tbGetBuffer(strlen(buf) + 1);
-    if (tmp != NULL)
-        strcpy(tmp, buf);
-    return tmp;
+    return tbGetBufferString(buf);
 }
 
 char *
 XkbBehaviorText(XkbDescPtr xkb, XkbBehavior * behavior, unsigned format)
 {
-    char buf[256], *tmp;
+    char buf[256];
 
     if (format == XkbCFile) {
         if (behavior->type == XkbKB_Default)
@@ -1264,6 +1282,8 @@ XkbBehaviorText(XkbDescPtr xkb, XkbBehavior * behavior, unsigned format)
         }
         else if (type == XkbKB_RadioGroup) {
             int g;
+            char *tmp;
+            size_t tmpsize;
 
             g = ((behavior->data) & (~XkbKB_RGAllowNone)) + 1;
             if (XkbKB_RGAllowNone & behavior->data) {
@@ -1272,10 +1292,11 @@ XkbBehaviorText(XkbDescPtr xkb, XkbBehavior * behavior, unsigned format)
             }
             else
                 tmp = buf;
+            tmpsize = sizeof(buf) - (tmp - buf);
             if (permanent)
-                sprintf(tmp, "permanentRadioGroup= %d", g);
+                snprintf(tmp, tmpsize, "permanentRadioGroup= %d", g);
             else
-                sprintf(tmp, "radioGroup= %d", g);
+                snprintf(tmp, tmpsize, "radioGroup= %d", g);
         }
         else if ((type == XkbKB_Overlay1) || (type == XkbKB_Overlay2)) {
             int ndx, kc;
@@ -1297,10 +1318,7 @@ XkbBehaviorText(XkbDescPtr xkb, XkbBehavior * behavior, unsigned format)
                 snprintf(buf, sizeof(buf), "overlay%d= %s", ndx, kn);
         }
     }
-    tmp = tbGetBuffer(strlen(buf) + 1);
-    if (tmp != NULL)
-        strcpy(tmp, buf);
-    return tmp;
+    return tbGetBufferString(buf);
 }
 
 /***====================================================================***/

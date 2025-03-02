@@ -1737,6 +1737,10 @@ d3d12_video_encoder_create_encoder(struct pipe_context *context, const struct pi
                                     codec->entrypoint,
                                     PIPE_VIDEO_CAP_ENC_QUALITY_LEVEL);
 
+   // Cache texture array requirement for reconstructed frames for d3d12_video_create_dpb_buffer calls
+   if (d3d12_video_encode_requires_texture_array_dpb(pD3D12Enc->m_pD3D12Screen, codec->profile))
+      pD3D12Enc->m_currentEncodeCapabilities.m_SupportFlags |= D3D12_VIDEO_ENCODER_SUPPORT_FLAG_RECONSTRUCTED_FRAMES_REQUIRE_TEXTURE_ARRAYS;
+
    return &pD3D12Enc->base;
 
 failed:

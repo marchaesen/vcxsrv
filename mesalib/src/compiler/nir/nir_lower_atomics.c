@@ -47,7 +47,7 @@ static nir_def *
 build_atomic(nir_builder *b, nir_intrinsic_instr *intr)
 {
    nir_def *load;
-   switch(intr->intrinsic) {
+   switch (intr->intrinsic) {
    case nir_intrinsic_ssbo_atomic:
       load = nir_load_ssbo(b, 1, intr->def.bit_size, intr->src[0].ssa,
                            intr->src[1].ssa,
@@ -69,8 +69,7 @@ build_atomic(nir_builder *b, nir_intrinsic_instr *intr)
       unreachable("unsupported atomic type");
    }
 
-   nir_def *data = intr->intrinsic == nir_intrinsic_ssbo_atomic ?
-                   intr->src[2].ssa : intr->src[1].ssa;
+   nir_def *data = intr->intrinsic == nir_intrinsic_ssbo_atomic ? intr->src[2].ssa : intr->src[1].ssa;
    nir_loop *loop = nir_push_loop(b);
    nir_def *xchg;
    {
@@ -80,10 +79,10 @@ build_atomic(nir_builder *b, nir_intrinsic_instr *intr)
       nir_def *before = &phi->def;
       nir_def *expected = nir_build_alu2(
          b, nir_atomic_op_to_alu(nir_intrinsic_atomic_op(intr)), before, data);
-      nir_alu_instr* op = nir_instr_as_alu(expected->parent_instr);
+      nir_alu_instr *op = nir_instr_as_alu(expected->parent_instr);
       op->exact = true;
       op->fp_fast_math = 0;
-      switch(intr->intrinsic) {
+      switch (intr->intrinsic) {
       case nir_intrinsic_ssbo_atomic:
          xchg = nir_ssbo_atomic_swap(b, intr->def.bit_size,
                                      intr->src[0].ssa,
@@ -92,7 +91,7 @@ build_atomic(nir_builder *b, nir_intrinsic_instr *intr)
                                      .atomic_op = nir_atomic_op_cmpxchg);
          break;
       case nir_intrinsic_shared_atomic:
-         xchg = nir_shared_atomic_swap(b,intr->def.bit_size,
+         xchg = nir_shared_atomic_swap(b, intr->def.bit_size,
                                        intr->src[0].ssa,
                                        before, expected,
                                        .atomic_op = nir_atomic_op_cmpxchg);

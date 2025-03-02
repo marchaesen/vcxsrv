@@ -103,6 +103,6 @@ nir_lower_viewport_transform(nir_shader *shader)
    assert((shader->info.stage == MESA_SHADER_VERTEX) || (shader->info.stage == MESA_SHADER_GEOMETRY) || (shader->info.stage == MESA_SHADER_TESS_EVAL));
 
    return nir_shader_intrinsics_pass(shader, lower_viewport_transform_instr,
-                                       nir_metadata_control_flow,
-                                       NULL);
+                                     nir_metadata_control_flow,
+                                     NULL);
 }

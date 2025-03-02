@@ -94,6 +94,7 @@ radeon_winsys(struct pipe_screen *screen) {
 #define DBG_NO_TCL      (1 << 25)
 #define DBG_IEEEMATH    (1 << 26)
 #define DBG_FFMATH      (1 << 27)
+#define DBG_DUMMYSH     (1 << 28)
 /*@}*/
 static inline bool SCREEN_DBG_ON(struct r300_screen * screen, unsigned flags)
 {

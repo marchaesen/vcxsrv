@@ -102,8 +102,8 @@ emit_wpos_adjustment(lower_wpos_ytransform_state *state,
 
    if (wpos[1]) {
       /* Now the conditional y flip: STATE_FB_WPOS_Y_TRANSFORM.xy/zw will be
-      * inversion/identity, or the other way around if we're drawing to an FBO.
-      */
+       * inversion/identity, or the other way around if we're drawing to an FBO.
+       */
       unsigned base = invert ? 0 : 2;
       /* wpos.y = wpos.y * trans.x/z + trans.y/w */
       wpos[1] = nir_ffma(b, wpos[1], nir_channel(b, wpostrans, base),

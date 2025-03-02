@@ -95,25 +95,25 @@ ProcXIAllowEvents(ClientPtr client)
 
     switch (stuff->mode) {
     case XIReplayDevice:
-        AllowSome(client, time, dev, NOT_GRABBED);
+        AllowSome(client, time, dev, GRAB_STATE_NOT_GRABBED);
         break;
     case XISyncDevice:
-        AllowSome(client, time, dev, FREEZE_NEXT_EVENT);
+        AllowSome(client, time, dev, GRAB_STATE_FREEZE_NEXT_EVENT);
         break;
     case XIAsyncDevice:
-        AllowSome(client, time, dev, THAWED);
+        AllowSome(client, time, dev, GRAB_STATE_THAWED);
         break;
     case XIAsyncPairedDevice:
         if (IsMaster(dev))
-            AllowSome(client, time, dev, THAW_OTHERS);
+            AllowSome(client, time, dev, GRAB_STATE_THAW_OTHERS);
         break;
     case XISyncPair:
         if (IsMaster(dev))
-            AllowSome(client, time, dev, FREEZE_BOTH_NEXT_EVENT);
+            AllowSome(client, time, dev, GRAB_STATE_FREEZE_BOTH_NEXT_EVENT);
         break;
     case XIAsyncPair:
         if (IsMaster(dev))
-            AllowSome(client, time, dev, THAWED_BOTH);
+            AllowSome(client, time, dev, GRAB_STATE_THAWED_BOTH);
         break;
     case XIRejectTouch:
     case XIAcceptTouch:

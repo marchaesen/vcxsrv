@@ -53,7 +53,7 @@ static struct pb_buffer_lean *radeon_jpeg_get_decode_param(struct radeon_decoder
       case ADDR_SW_64KB_D:
       case ADDR_SW_4KB_D_X:
       case ADDR_SW_64KB_D_X:
-      case ADDR_SW_64KB_R_X:
+      case ADDR_SW_256KB_S_X:
       case ADDR_SW_256KB_D_X:
       case ADDR_SW_256KB_R_X:
          dec->jpg.dt_addr_mode = RDECODE_TILE_8X8;
@@ -63,7 +63,7 @@ static struct pb_buffer_lean *radeon_jpeg_get_decode_param(struct radeon_decoder
       case ADDR_SW_64KB_S:
       case ADDR_SW_4KB_S_X:
       case ADDR_SW_64KB_S_X:
-      case ADDR_SW_256KB_S_X:
+      case ADDR_SW_64KB_R_X:
          dec->jpg.dt_addr_mode = RDECODE_TILE_32AS8;
          break;
       case ADDR_SW_LINEAR:
@@ -81,10 +81,12 @@ static struct pb_buffer_lean *radeon_jpeg_get_decode_param(struct radeon_decoder
          dec->jpg.dt_chromav_top_offset = chromav->surface.u.gfx9.surf_offset;
          chroma = (struct si_texture *)((struct vl_video_buffer*)target)->resources[1];
          dec->jpg.dt_chroma_top_offset = chroma->surface.u.gfx9.surf_offset;
+         dec->jpg.dt_uv_pitch = chroma->surface.u.gfx9.surf_pitch * chroma->surface.bpe;
          break;
       case PIPE_FORMAT_NV12:
          chroma = (struct si_texture *)((struct vl_video_buffer*)target)->resources[1];
          dec->jpg.dt_chroma_top_offset = chroma->surface.u.gfx9.surf_offset;
+         dec->jpg.dt_uv_pitch = chroma->surface.u.gfx9.surf_pitch * chroma->surface.bpe;
          break;
       case PIPE_FORMAT_YUYV:
       case PIPE_FORMAT_Y8_400_UNORM:
@@ -96,7 +98,6 @@ static struct pb_buffer_lean *radeon_jpeg_get_decode_param(struct radeon_decoder
          break;
    }
    dec->jpg.dt_pitch = luma->surface.u.gfx9.surf_pitch * luma->surface.blk_w;
-   dec->jpg.dt_uv_pitch = dec->jpg.dt_pitch / 2;
 
    return luma->buffer.buf;
 }
@@ -159,8 +160,7 @@ static void send_cmd_target(struct radeon_decoder *dec, struct pb_buffer_lean *b
    uint64_t addr;
 
    set_reg_jpeg(dec, SOC15_REG_ADDR(mmUVD_JPEG_PITCH), COND0, TYPE0, (dec->jpg.dt_pitch >> 4));
-   set_reg_jpeg(dec, SOC15_REG_ADDR(mmUVD_JPEG_UV_PITCH), COND0, TYPE0,
-                ((dec->jpg.dt_uv_pitch * 2) >> 4));
+   set_reg_jpeg(dec, SOC15_REG_ADDR(mmUVD_JPEG_UV_PITCH), COND0, TYPE0, (dec->jpg.dt_uv_pitch >> 4));
 
    set_reg_jpeg(dec, SOC15_REG_ADDR(mmUVD_JPEG_TILING_CTRL), COND0, TYPE0,
                 dec->jpg.dt_addr_mode | (dec->jpg.dt_swizzle_mode << 3));
@@ -302,10 +302,10 @@ static void send_cmd_target_direct(struct radeon_decoder *dec, struct pb_buffer_
 
    if (dec->jpg_reg.version == RDECODE_JPEG_REG_VER_V3 && format_convert) {
       set_reg_jpeg(dec, dec->jpg_reg.jpeg_pitch, COND0, TYPE0, dec->jpg.dt_pitch);
-      set_reg_jpeg(dec, dec->jpg_reg.jpeg_uv_pitch, COND0, TYPE0, (dec->jpg.dt_uv_pitch * 2));
+      set_reg_jpeg(dec, dec->jpg_reg.jpeg_uv_pitch, COND0, TYPE0, dec->jpg.dt_uv_pitch);
    } else {
       set_reg_jpeg(dec, dec->jpg_reg.jpeg_pitch, COND0, TYPE0, (dec->jpg.dt_pitch >> 4));
-      set_reg_jpeg(dec, dec->jpg_reg.jpeg_uv_pitch, COND0, TYPE0, ((dec->jpg.dt_uv_pitch * 2) >> 4));
+      set_reg_jpeg(dec, dec->jpg_reg.jpeg_uv_pitch, COND0, TYPE0, (dec->jpg.dt_uv_pitch >> 4));
    }
 
    set_reg_jpeg(dec, dec->jpg_reg.dec_addr_mode, COND0, TYPE0,

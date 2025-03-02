@@ -446,6 +446,7 @@ static const struct nir_shader_compiler_options gallivm_nir_options = {
    .lower_pack_unorm_2x16 = true,
    .lower_pack_unorm_4x8 = true,
    .lower_pack_half_2x16 = true,
+   .lower_pack_64_4x16 = true,
    .lower_pack_split = true,
    .lower_unpack_snorm_2x16 = true,
    .lower_unpack_snorm_4x8 = true,

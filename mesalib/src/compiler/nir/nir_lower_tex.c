@@ -1791,7 +1791,7 @@ nir_lower_tex_impl(nir_function_impl *impl,
       progress |= nir_lower_tex_block(block, &builder, options, compiler_options);
    }
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
    return progress;
 }
 

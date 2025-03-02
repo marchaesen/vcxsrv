@@ -79,6 +79,10 @@ typedef bool (*nir_intrinsic_pass_cb)(struct nir_builder *,
                                       nir_intrinsic_instr *, void *);
 typedef bool (*nir_alu_pass_cb)(struct nir_builder *,
                                 nir_alu_instr *, void *);
+typedef bool (*nir_tex_pass_cb)(struct nir_builder *,
+                                nir_tex_instr *, void *);
+typedef bool (*nir_phi_pass_cb)(struct nir_builder *,
+                                nir_phi_instr *, void *);
 
 /**
  * Iterates over all the instructions in a NIR function and calls the given pass
@@ -105,13 +109,7 @@ nir_function_instructions_pass(nir_function_impl *impl,
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, preserved);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, preserved);
 }
 
 /**
@@ -168,13 +166,7 @@ nir_function_intrinsics_pass(nir_function_impl *impl,
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, preserved);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, preserved);
 }
 
 /**
@@ -224,12 +216,58 @@ nir_shader_alu_pass(nir_shader *shader,
          }
       }
 
-      if (func_progress) {
-         nir_metadata_preserve(impl, preserved);
-         progress = true;
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
+      progress |= nir_progress(func_progress, impl, preserved);
+   }
+
+   return progress;
+}
+
+/* As above, but for textures */
+static inline bool
+nir_shader_tex_pass(nir_shader *shader, nir_tex_pass_cb pass,
+                    nir_metadata preserved, void *cb_data)
+{
+   bool progress = false;
+
+   nir_foreach_function_impl(impl, shader) {
+      bool func_progress = false;
+      nir_builder b = nir_builder_create(impl);
+
+      nir_foreach_block_safe(block, impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type == nir_instr_type_tex) {
+               nir_tex_instr *tex = nir_instr_as_tex(instr);
+               func_progress |= pass(&b, tex, cb_data);
+            }
+         }
       }
+
+      progress |= nir_progress(func_progress, impl, preserved);
+   }
+
+   return progress;
+}
+
+/* As above, but for phis */
+static inline bool
+nir_shader_phi_pass(nir_shader *shader,
+                    nir_phi_pass_cb pass,
+                    nir_metadata preserved,
+                    void *cb_data)
+{
+   bool progress = false;
+
+   nir_foreach_function_impl(impl, shader) {
+      bool func_progress = false;
+      nir_builder b = nir_builder_create(impl);
+
+      nir_foreach_block_safe(block, impl) {
+         nir_foreach_phi_safe(phi, block) {
+            func_progress |= pass(&b, phi, cb_data);
+         }
+      }
+
+      progress |= nir_progress(func_progress, impl, preserved);
    }
 
    return progress;

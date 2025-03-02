@@ -452,24 +452,5 @@ KHR-GL31.transform_feedback3.multiple_streams,Fail
 KHR-GL31.transform_feedback3.skip_components,Fail
 KHR-GL31.transform_feedback3.skip_multiple_buffers,Fail
 
-# New fails in 1.4.1.0
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_linear.vk_image_type_3d.multiple.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_linear.vk_image_type_3d.multiple.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_linear.vk_image_type_3d.single.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_optimal.vk_image_type_3d.multiple.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_optimal.vk_image_type_3d.multiple.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_optimal.vk_image_type_3d.single.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_optimal.vk_image_type_3d.single.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_linear.vk_image_type_3d.multiple.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_linear.vk_image_type_3d.multiple.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_linear.vk_image_type_3d.single.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_linear.vk_image_type_3d.single.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_linear.vk_image_type_3d.multiple.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_linear.vk_image_type_3d.single.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_linear.vk_image_type_3d.single.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_optimal.vk_image_type_3d.multiple.random.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_optimal.vk_image_type_3d.single.gradient.device.write,Fail
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_optimal.vk_image_type_3d.single.random.device.write,Fail
-
 # This seems to be working with upstream
 program@execute@vector-conversion,Fail

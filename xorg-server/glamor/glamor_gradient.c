@@ -1110,10 +1110,8 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
     }
 
     if (stops_count > RADIAL_SMALL_STOPS) {
-        if (n_stops)
-            free(n_stops);
-        if (stop_colors)
-            free(stop_colors);
+        free(n_stops);
+        free(stop_colors);
     }
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
@@ -1454,10 +1452,8 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
     }
 
     if (stops_count > LINEAR_SMALL_STOPS) {
-        if (n_stops)
-            free(n_stops);
-        if (stop_colors)
-            free(stop_colors);
+        free(n_stops);
+        free(stop_colors);
     }
 
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);

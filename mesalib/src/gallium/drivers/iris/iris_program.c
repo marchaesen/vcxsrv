@@ -859,9 +859,8 @@ iris_fix_edge_flags(nir_shader *nir)
    nir_fixup_deref_modes(nir);
 
    nir_foreach_function_impl(impl, nir) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow |
-                                  nir_metadata_live_defs |
-                                  nir_metadata_loop_analysis);
+      nir_progress(true, impl,
+                   nir_metadata_control_flow | nir_metadata_live_defs | nir_metadata_loop_analysis);
    }
 
    return true;
@@ -3486,9 +3485,7 @@ iris_create_shader_state(struct pipe_context *ctx,
       break;
 
    case MESA_SHADER_GEOMETRY:
-      /* User clip planes */
-      if (info->clip_distance_array_size == 0)
-         ish->nos |= (1ull << IRIS_NOS_RASTERIZER);
+      ish->nos |= (1ull << IRIS_NOS_RASTERIZER);
 
       key.gs = (struct iris_gs_prog_key) { KEY_INIT(vue.base) };
       key_size = sizeof(key.gs);

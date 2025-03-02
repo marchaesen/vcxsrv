@@ -125,7 +125,7 @@ all_uses_are_compare_with_zero(const nir_alu_instr *instr)
          return false;
 
       if (!all_uses_are_bcsel(alu))
-          return false;
+         return false;
    }
 
    return true;
@@ -202,13 +202,7 @@ nir_opt_rematerialize_compares_impl(nir_shader *shader, nir_function_impl *impl)
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 static bool
@@ -301,13 +295,7 @@ nir_opt_rematerialize_alu_impl(nir_shader *shader, nir_function_impl *impl)
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 bool

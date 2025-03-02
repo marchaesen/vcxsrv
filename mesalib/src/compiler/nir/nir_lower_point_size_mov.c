@@ -86,7 +86,7 @@ nir_lower_point_size_mov(nir_shader *shader,
       lower_point_size_mov_after(&b, in);
       shader->info.outputs_written |= VARYING_BIT_PSIZ;
       progress = true;
-      nir_metadata_preserve(impl, preserved);
+      nir_progress(true, impl, preserved);
    }
    return progress;
 }

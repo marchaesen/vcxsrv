@@ -2110,6 +2110,54 @@ tc_add_set_vertex_buffers_call(struct pipe_context *_pipe, unsigned count)
    return p->slot;
 }
 
+struct tc_vertex_elements_and_buffers {
+   struct tc_call_base base;
+   uint8_t count;
+   void *velems_state;
+   struct pipe_vertex_buffer slot[0]; /* more will be allocated if needed */
+};
+
+static uint16_t
+tc_call_set_vertex_elements_and_buffers(struct pipe_context *pipe, void *call)
+{
+   struct tc_vertex_elements_and_buffers *p =
+      (struct tc_vertex_elements_and_buffers *)call;
+   unsigned count = p->count;
+
+   for (unsigned i = 0; i < count; i++)
+      tc_assert(!p->slot[i].is_user_buffer);
+
+   if (p->velems_state)
+      pipe->bind_vertex_elements_state(pipe, p->velems_state);
+
+   pipe->set_vertex_buffers(pipe, count, p->slot);
+   return p->base.num_slots;
+}
+
+/**
+ * Same as tc_add_set_vertex_buffers_call, but the caller should call
+ * tc_set_vertex_elements_for_call with the return value to set the vertex
+ * elements state. The vertex elements state will be bound before vertex
+ * buffers.
+ */
+struct pipe_vertex_buffer *
+tc_add_set_vertex_elements_and_buffers_call(struct pipe_context *_pipe,
+                                            unsigned count)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   /* We don't need to unbind trailing buffers because we never touch bindings
+    * after num_vertex_buffers.
+    */
+   tc->num_vertex_buffers = count;
+
+   struct tc_vertex_elements_and_buffers *p =
+      tc_add_slot_based_call(tc, TC_CALL_set_vertex_elements_and_buffers,
+                             tc_vertex_elements_and_buffers, count);
+   p->count = count;
+   return p->slot;
+}
+
 struct tc_stream_outputs {
    struct tc_call_base base;
    uint8_t count;

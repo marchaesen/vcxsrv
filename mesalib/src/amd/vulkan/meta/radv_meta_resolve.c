@@ -577,7 +577,7 @@ radv_cmd_buffer_resolve_rendering(struct radv_cmd_buffer *cmd_buffer)
        * after subpass resolves.
        */
       cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB;
-      if (radv_image_has_htile(dst_iview->image))
+      if (radv_htile_enabled(dst_iview->image, dst_iview->vk.base_mip_level))
          cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
    }
 

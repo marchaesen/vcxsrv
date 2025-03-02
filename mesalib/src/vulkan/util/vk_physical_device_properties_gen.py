@@ -116,32 +116,33 @@ class PropertyStruct:
     properties: typing.List[Property]
 
 ARRAY_COPY_TEMPLATE = Template("""
-    if (${dst_ptr} != NULL) {
-        uint32_t count = MIN2(${dst_count}, ${src_count});
-        for (uint32_t i = 0; i < count; i++)
-            ${dst_ptr}[i] = ${src_ptr}[i];
-        ${dst_count} = count;
-    } else {
-        ${dst_count} = ${src_count};
-    }
+         if (${dst_ptr} != NULL) {
+            uint32_t count = MIN2(${dst_count}, ${src_count});
+            for (uint32_t i = 0; i < count; i++)
+               ${dst_ptr}[i] = ${src_ptr}[i];
+            ${dst_count} = count;
+         } else {
+            ${dst_count} = ${src_count};
+         }
 """)
 
-def copy_property(dst_prefix, dst_name, src_prefix, src_name, decl, length="1"):
-    if src_name in OUT_ARRAY_COUNTS:
-        assert dst_name in OUT_ARRAY_COUNTS
-        # Skip these as we'll fill them out along with the data
-        return ""
-    elif src_name in OUT_ARRAYS:
-        assert dst_name in OUT_ARRAYS
+def copy_property(dst_prefix, dst_name, src_prefix, src_name, decl, setter=False):
+    if not setter:
+       if src_name in OUT_ARRAY_COUNTS:
+           assert dst_name in OUT_ARRAY_COUNTS
+           # Skip these as we'll fill them out along with the data
+           return ""
+       elif src_name in OUT_ARRAYS:
+           assert dst_name in OUT_ARRAYS
 
-        return ARRAY_COPY_TEMPLATE.render(
-            dst_ptr=dst_prefix + dst_name,
-            dst_count=dst_prefix + OUT_ARRAYS[dst_name],
-            src_ptr=src_prefix + src_name,
-            src_count=src_prefix + OUT_ARRAYS[src_name]
-        )
+           return ARRAY_COPY_TEMPLATE.render(
+               dst_ptr=dst_prefix + dst_name,
+               dst_count=dst_prefix + OUT_ARRAYS[dst_name],
+               src_ptr=src_prefix + src_name,
+               src_count=src_prefix + OUT_ARRAYS[src_name]
+           )
 
-    assert "*" not in decl
+    assert "*" not in decl or setter
     dst = dst_prefix + dst_name
     src = src_prefix + src_name
 
@@ -215,7 +216,7 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
       case ${property_struct.s_type}: {
          ${property_struct.c_type} *properties = (void *)ext;
 % for prop in property_struct.properties:
-         ${copy_property("properties->", prop.name, "pdevice->properties.", prop.actual_name, prop.decl, "pdevice->properties." + prop.length)}
+         ${copy_property("properties->", prop.name, "pdevice->properties.", prop.actual_name, prop.decl)}
 % endfor
          break;
       }
@@ -241,7 +242,7 @@ vk_set_physical_device_properties_struct(struct vk_properties *all_properties,
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2: {
          const VkPhysicalDeviceProperties *properties = &((const VkPhysicalDeviceProperties2 *)pProperties)->properties;
 % for prop in pdev_properties:
-         ${copy_property("all_properties->", prop.actual_name, "properties->", prop.name, prop.decl)}
+         ${copy_property("all_properties->", prop.actual_name, "properties->", prop.name, prop.decl, True)}
 % endfor
          break;
       }
@@ -254,7 +255,7 @@ vk_set_physical_device_properties_struct(struct vk_properties *all_properties,
       case ${property_struct.s_type}: {
          const ${property_struct.c_type} *properties = (const ${property_struct.c_type} *)pProperties;
 % for prop in property_struct.properties:
-         ${copy_property("all_properties->", prop.actual_name, "properties->", prop.name, prop.decl, "properties." + prop.length)}
+         ${copy_property("all_properties->", prop.actual_name, "properties->", prop.name, prop.decl, True)}
 % endfor
          break;
       }

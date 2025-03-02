@@ -1,12 +1,13 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
-libdir=@libdir@
 includedir=@includedir@
+libdir=@libdir@
 
 Name: Xft
 Description: X FreeType library
+URL: https://gitlab.freedesktop.org/xorg/lib/libxft/
 Version: @VERSION@
 Requires: xproto
 Requires.private: xrender, fontconfig, freetype2
-Cflags: -I${includedir}
 Libs: -L${libdir} -lXft
+Cflags: -I${includedir}

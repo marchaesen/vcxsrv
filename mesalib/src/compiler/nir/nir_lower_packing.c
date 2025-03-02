@@ -100,7 +100,7 @@ lower_pack_32_from_8(nir_builder *b, nir_def *src)
 
       return nir_ior(b,
                      nir_ior(b,
-                                             nir_channel(b, src32, 0)     ,
+                             nir_channel(b, src32, 0),
                              nir_ishl_imm(b, nir_channel(b, src32, 1), 8)),
                      nir_ior(b,
                              nir_ishl_imm(b, nir_channel(b, src32, 2), 16),
@@ -116,15 +116,15 @@ lower_unpack_32_to_8(nir_builder *b, nir_def *src)
     * instructions when the lowering flag is set.
     */
    if (b->shader->options->lower_extract_byte) {
-      return nir_vec4(b, nir_u2u8(b,                 src     ),
-                         nir_u2u8(b, nir_ushr_imm(b, src,  8)),
-                         nir_u2u8(b, nir_ushr_imm(b, src, 16)),
-                         nir_u2u8(b, nir_ushr_imm(b, src, 24)));
+      return nir_vec4(b, nir_u2u8(b, src),
+                      nir_u2u8(b, nir_ushr_imm(b, src, 8)),
+                      nir_u2u8(b, nir_ushr_imm(b, src, 16)),
+                      nir_u2u8(b, nir_ushr_imm(b, src, 24)));
    } else {
       return nir_vec4(b, nir_u2u8(b, nir_extract_u8_imm(b, src, 0)),
-                         nir_u2u8(b, nir_extract_u8_imm(b, src, 1)),
-                         nir_u2u8(b, nir_extract_u8_imm(b, src, 2)),
-                         nir_u2u8(b, nir_extract_u8_imm(b, src, 3)));
+                      nir_u2u8(b, nir_extract_u8_imm(b, src, 1)),
+                      nir_u2u8(b, nir_extract_u8_imm(b, src, 2)),
+                      nir_u2u8(b, nir_extract_u8_imm(b, src, 3)));
    }
 }
 
@@ -168,14 +168,14 @@ lower_pack_instr(nir_builder *b, nir_alu_instr *alu_instr, void *data)
 
    typedef nir_def *(*lower_func_t)(nir_builder *b, nir_def *src);
    static const lower_func_t lower_funcs[nir_lower_packing_num_ops] = {
-      [nir_lower_packing_op_pack_64_2x32]   = lower_pack_64_from_32,
+      [nir_lower_packing_op_pack_64_2x32] = lower_pack_64_from_32,
       [nir_lower_packing_op_unpack_64_2x32] = lower_unpack_64_to_32,
-      [nir_lower_packing_op_pack_64_4x16]   = lower_pack_64_from_16,
+      [nir_lower_packing_op_pack_64_4x16] = lower_pack_64_from_16,
       [nir_lower_packing_op_unpack_64_4x16] = lower_unpack_64_to_16,
-      [nir_lower_packing_op_pack_32_2x16]   = lower_pack_32_from_16,
+      [nir_lower_packing_op_pack_32_2x16] = lower_pack_32_from_16,
       [nir_lower_packing_op_unpack_32_2x16] = lower_unpack_32_to_16,
-      [nir_lower_packing_op_pack_32_4x8]    = lower_pack_32_from_8,
-      [nir_lower_packing_op_unpack_32_4x8]  = lower_unpack_32_to_8,
+      [nir_lower_packing_op_pack_32_4x8] = lower_pack_32_from_8,
+      [nir_lower_packing_op_unpack_32_4x8] = lower_unpack_32_to_8,
    };
 
    nir_def *src = nir_ssa_for_alu_src(b, alu_instr, 0);

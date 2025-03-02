@@ -993,8 +993,9 @@ struct zink_shader_module {
 };
 
 struct zink_program {
-   struct pipe_reference reference;
+   EXCLUSIVE_CACHELINE(struct pipe_reference reference);
    struct zink_context *ctx;
+   void *ralloc_ctx;
    blake3_hash blake3;
    struct util_queue_fence cache_fence;
    struct u_rwlock pipeline_cache_lock;
@@ -1456,6 +1457,7 @@ struct zink_screen {
    uint8_t heap_map[ZINK_HEAP_MAX][VK_MAX_MEMORY_TYPES];  // mapping from zink heaps to memory type indices
    uint8_t heap_count[ZINK_HEAP_MAX];  // number of memory types per zink heap
    bool resizable_bar;
+   bool always_cached_upload;
 
    uint64_t total_video_mem;
    uint64_t clamp_video_mem;

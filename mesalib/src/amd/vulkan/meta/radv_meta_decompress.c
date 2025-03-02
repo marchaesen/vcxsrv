@@ -352,7 +352,7 @@ radv_expand_depth_stencil_compute(struct radv_cmd_buffer *cmd_buffer, struct rad
    VkPipeline pipeline;
    VkResult result;
 
-   assert(radv_image_is_tc_compat_htile(image));
+   assert(radv_tc_compat_htile_enabled(image, subresourceRange->baseMipLevel));
 
    result = get_pipeline_cs(device, &pipeline, &layout);
    if (result != VK_SUCCESS) {

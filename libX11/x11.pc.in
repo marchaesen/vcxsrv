@@ -7,6 +7,7 @@ xthreadlib=@XTHREADLIB@
 
 Name: X11
 Description: X Library
+URL: https://gitlab.freedesktop.org/xorg/lib/libx11/
 Version: @PACKAGE_VERSION@
 Requires: xproto @XKBPROTO_REQUIRES@
 Requires.private: @X11_EXTRA_DEPS@

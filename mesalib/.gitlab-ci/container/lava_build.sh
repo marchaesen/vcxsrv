@@ -409,6 +409,12 @@ rm "$ROOTFS/setup-rootfs.sh"
 rm "$ROOTFS/strip-rootfs.sh"
 cp /etc/wgetrc $ROOTFS/etc/.
 
+# Copy all tags to the rootfs, so test jobs can check if they are using the intended version
+TAG_FILE_DIR="$(get_tag_file)"
+if [ -d "${TAG_FILE_DIR}" ]; then
+    cp --parents -r "${TAG_FILE_DIR}" $ROOTFS/.
+fi
+
 if [ "${DEBIAN_ARCH}" = "arm64" ]; then
     mkdir -p /lava-files/rootfs-arm64/lib/firmware/qcom/sm8350/  # for firmware imported later
 fi

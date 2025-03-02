@@ -36,8 +36,12 @@ if host_machine.system() == 'linux'
         'linux/lnx_video.c',
         'misc/SlowBcopy.c',
         'shared/VTsw_usl.c',
-        'shared/drm_platform.c',
     ]
+    if libdrm_dep.found()
+        srcs_xorg_os_support += 'shared/drm_platform.c'
+    else
+        srcs_xorg_os_support += 'shared/platform_noop.c'
+    endif
     if build_agp
         srcs_xorg_os_support += 'linux/lnx_agp.c'
     else

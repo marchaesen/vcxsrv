@@ -833,8 +833,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    }
 
    if (!progress) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    nir_metadata_require(impl, nir_metadata_dominance);
@@ -882,7 +881,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
 
    nir_phi_builder_finish(state.phi_builder);
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 
    ralloc_free(state.dead_ctx);
 

@@ -1190,7 +1190,7 @@ agx_nir_lower_gs_instancing(nir_shader *gs)
    nir_pop_loop(&b, loop);
 
    /* We've mucked about with control flow */
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    /* Use the loop counter as the invocation ID each iteration */
    nir_shader_intrinsics_pass(gs, rewrite_invocation_id,

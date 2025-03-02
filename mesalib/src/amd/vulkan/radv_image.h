@@ -45,7 +45,6 @@ struct radv_image {
 
    unsigned queue_family_mask;
    bool exclusive;
-   bool shareable;
    bool dcc_sign_reinterpret;
    bool support_comp_to_single;
 
@@ -176,6 +175,15 @@ static inline bool
 radv_image_is_tc_compat_htile(const struct radv_image *image)
 {
    return radv_image_has_htile(image) && (image->planes[0].surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE);
+}
+
+/**
+ * Return whether the image is TC-compatible HTILE for a level.
+ */
+static inline bool
+radv_tc_compat_htile_enabled(const struct radv_image *image, unsigned level)
+{
+   return radv_htile_enabled(image, level) && (image->planes[0].surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE);
 }
 
 /**
@@ -345,7 +353,7 @@ VkFormat radv_get_aspect_format(struct radv_image *image, VkImageAspectFlags mas
  * If this is false reads that don't use the htile should be able to return
  * correct results.
  */
-bool radv_layout_is_htile_compressed(const struct radv_device *device, const struct radv_image *image,
+bool radv_layout_is_htile_compressed(const struct radv_device *device, const struct radv_image *image, unsigned level,
                                      VkImageLayout layout, unsigned queue_mask);
 
 bool radv_layout_can_fast_clear(const struct radv_device *device, const struct radv_image *image, unsigned level,

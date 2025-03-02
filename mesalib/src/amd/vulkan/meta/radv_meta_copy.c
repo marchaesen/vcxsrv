@@ -37,7 +37,7 @@ blit_surf_for_image_level_layer(struct radv_image *image, VkImageLayout layout, 
 {
    VkFormat format = radv_get_aspect_format(image, aspect_mask);
 
-   if (!radv_dcc_enabled(image, subres->mipLevel) && !(radv_image_is_tc_compat_htile(image)))
+   if (!radv_dcc_enabled(image, subres->mipLevel) && !(radv_tc_compat_htile_enabled(image, subres->mipLevel)))
       format = vk_format_for_size(vk_format_get_blocksize(format));
 
    format = vk_format_no_srgb(format);
@@ -461,7 +461,8 @@ copy_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image, VkI
        */
       uint32_t queue_mask = radv_image_queue_family_mask(dst_image, cmd_buffer->qf, cmd_buffer->qf);
 
-      if (radv_layout_is_htile_compressed(device, dst_image, dst_image_layout, queue_mask) &&
+      if (radv_layout_is_htile_compressed(device, dst_image, region->dstSubresource.mipLevel, dst_image_layout,
+                                          queue_mask) &&
           (region->dstOffset.x || region->dstOffset.y || region->dstOffset.z ||
            region->extent.width != dst_image->vk.extent.width || region->extent.height != dst_image->vk.extent.height ||
            region->extent.depth != dst_image->vk.extent.depth)) {
@@ -588,7 +589,8 @@ copy_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image, VkI
       /* Fixup HTILE after a copy on compute. */
       uint32_t queue_mask = radv_image_queue_family_mask(dst_image, cmd_buffer->qf, cmd_buffer->qf);
 
-      if (radv_layout_is_htile_compressed(device, dst_image, dst_image_layout, queue_mask)) {
+      if (radv_layout_is_htile_compressed(device, dst_image, region->dstSubresource.mipLevel, dst_image_layout,
+                                          queue_mask)) {
          cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE;
 
          VkImageSubresourceRange range = {

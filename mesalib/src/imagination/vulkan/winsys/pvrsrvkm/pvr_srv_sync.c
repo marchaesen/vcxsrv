@@ -33,6 +33,7 @@
 #include "pvr_srv_sync.h"
 #include "util/libsync.h"
 #include "util/macros.h"
+#include "util/os_file.h"
 #include "util/timespec.h"
 #include "vk_alloc.h"
 #include "vk_log.h"
@@ -235,7 +236,7 @@ static VkResult pvr_srv_sync_import_sync_file(struct vk_device *device,
    int fd = -1;
 
    if (sync_file >= 0) {
-      fd = dup(sync_file);
+      fd = os_dupfd_cloexec(sync_file);
       if (fd < 0)
          return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
@@ -264,7 +265,7 @@ static VkResult pvr_srv_sync_export_sync_file(struct vk_device *device,
 
    assert(srv_sync->fd >= 0);
 
-   fd = dup(srv_sync->fd);
+   fd = os_dupfd_cloexec(srv_sync->fd);
    if (fd < 0)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 

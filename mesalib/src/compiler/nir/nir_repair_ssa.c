@@ -160,7 +160,7 @@ nir_repair_ssa_impl(nir_function_impl *impl)
    }
 
    if (state.progress)
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
 
    if (state.phi_builder) {
       nir_phi_builder_finish(state.phi_builder);

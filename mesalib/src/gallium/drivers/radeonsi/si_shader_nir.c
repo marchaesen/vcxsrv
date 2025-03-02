@@ -411,12 +411,8 @@ static bool si_mark_divergent_texture_non_uniform(struct nir_shader *nir)
             (tex->texture_non_uniform || tex->sampler_non_uniform);
       }
    }
-
-   if (divergence_changed)
-      nir_metadata_preserve(impl, nir_metadata_all & ~nir_metadata_divergence);
-   else
-      nir_metadata_preserve(impl, nir_metadata_all);
-   return divergence_changed;
+   return nir_progress(divergence_changed, impl,
+                       nir_metadata_all & ~nir_metadata_divergence);
 }
 
 char *si_finalize_nir(struct pipe_screen *screen, struct nir_shader *nir)

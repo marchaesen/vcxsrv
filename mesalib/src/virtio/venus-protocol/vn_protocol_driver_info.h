@@ -10,7 +10,7 @@
 
 #include "vn_protocol_driver_defines.h"
 
-#define VN_INFO_EXTENSION_MAX_NUMBER (546)
+#define VN_INFO_EXTENSION_MAX_NUMBER (605)
 
 struct vn_info_extension {
    const char *name;
@@ -19,8 +19,18 @@ struct vn_info_extension {
 };
 
 /* sorted by extension names for bsearch */
-static const uint32_t _vn_info_extension_count = 137;
-static const struct vn_info_extension _vn_info_extensions[137] = {
+static const uint32_t _vn_info_extension_count = 168;
+static const struct vn_info_extension _vn_info_extensions[168] = {
+   { "VK_AMD_shader_ballot", 38, 1 },
+   { "VK_AMD_shader_core_properties", 186, 2 },
+   { "VK_AMD_shader_core_properties2", 228, 1 },
+   { "VK_AMD_shader_early_and_late_fragment_tests", 322, 1 },
+   { "VK_AMD_shader_explicit_vertex_parameter", 22, 1 },
+   { "VK_AMD_shader_fragment_mask", 138, 1 },
+   { "VK_AMD_shader_image_load_store_lod", 47, 1 },
+   { "VK_AMD_shader_trinary_minmax", 21, 1 },
+   { "VK_AMD_texture_gather_bias_lod", 42, 1 },
+   { "VK_ARM_rasterization_order_attachment_access", 343, 1 },
    { "VK_EXT_4444_formats", 341, 1 },
    { "VK_EXT_attachment_feedback_loop_layout", 340, 2 },
    { "VK_EXT_blend_operation_advanced", 149, 2 },
@@ -31,8 +41,10 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_EXT_conditional_rendering", 82, 2 },
    { "VK_EXT_conservative_rasterization", 102, 1 },
    { "VK_EXT_custom_border_color", 288, 12 },
+   { "VK_EXT_depth_clamp_zero_one", 422, 1 },
    { "VK_EXT_depth_clip_control", 356, 1 },
    { "VK_EXT_depth_clip_enable", 103, 1 },
+   { "VK_EXT_depth_range_unrestricted", 14, 1 },
    { "VK_EXT_descriptor_indexing", 162, 2 },
    { "VK_EXT_dynamic_rendering_unused_attachments", 500, 1 },
    { "VK_EXT_extended_dynamic_state", 268, 1 },
@@ -52,6 +64,7 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_EXT_image_view_min_lod", 392, 1 },
    { "VK_EXT_index_type_uint8", 266, 1 },
    { "VK_EXT_inline_uniform_block", 139, 1 },
+   { "VK_EXT_legacy_vertex_attributes", 496, 1 },
    { "VK_EXT_line_rasterization", 260, 1 },
    { "VK_EXT_load_store_op_none", 401, 1 },
    { "VK_EXT_memory_budget", 238, 1 },
@@ -63,6 +76,7 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_EXT_pipeline_creation_feedback", 193, 1 },
    { "VK_EXT_pipeline_protected_access", 467, 1 },
    { "VK_EXT_pipeline_robustness", 69, 1 },
+   { "VK_EXT_post_depth_coverage", 156, 1 },
    { "VK_EXT_primitive_topology_list_restart", 357, 1 },
    { "VK_EXT_primitives_generated_query", 383, 1 },
    { "VK_EXT_private_data", 296, 1 },
@@ -74,9 +88,14 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_EXT_sampler_filter_minmax", 131, 2 },
    { "VK_EXT_scalar_block_layout", 222, 1 },
    { "VK_EXT_separate_stencil_usage", 247, 1 },
+   { "VK_EXT_shader_atomic_float", 261, 1 },
+   { "VK_EXT_shader_atomic_float2", 274, 1 },
    { "VK_EXT_shader_demote_to_helper_invocation", 277, 1 },
+   { "VK_EXT_shader_image_atomic_int64", 235, 1 },
+   { "VK_EXT_shader_replicated_composites", 565, 1 },
    { "VK_EXT_shader_stencil_export", 141, 1 },
    { "VK_EXT_shader_subgroup_ballot", 65, 1 },
+   { "VK_EXT_shader_subgroup_vote", 66, 1 },
    { "VK_EXT_shader_viewport_index_layer", 163, 1 },
    { "VK_EXT_subgroup_size_control", 226, 2 },
    { "VK_EXT_texel_buffer_alignment", 282, 1 },
@@ -86,14 +105,20 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_EXT_vertex_attribute_divisor", 191, 3 },
    { "VK_EXT_vertex_input_dynamic_state", 353, 2 },
    { "VK_EXT_ycbcr_2plane_444_formats", 331, 1 },
+   { "VK_EXT_ycbcr_image_arrays", 253, 1 },
+   { "VK_GOOGLE_decorate_string", 225, 1 },
+   { "VK_GOOGLE_hlsl_functionality1", 224, 1 },
+   { "VK_GOOGLE_user_type", 290, 1 },
    { "VK_KHR_16bit_storage", 84, 1 },
    { "VK_KHR_8bit_storage", 178, 1 },
    { "VK_KHR_bind_memory2", 158, 1 },
    { "VK_KHR_buffer_device_address", 258, 1 },
    { "VK_KHR_calibrated_timestamps", 544, 1 },
+   { "VK_KHR_compute_shader_derivatives", 512, 1 },
    { "VK_KHR_copy_commands2", 338, 1 },
    { "VK_KHR_create_renderpass2", 110, 1 },
    { "VK_KHR_dedicated_allocation", 128, 3 },
+   { "VK_KHR_depth_clamp_zero_one", 605, 1 },
    { "VK_KHR_depth_stencil_resolve", 200, 1 },
    { "VK_KHR_descriptor_update_template", 86, 1 },
    { "VK_KHR_device_group", 61, 4 },
@@ -112,6 +137,7 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_KHR_external_semaphore_capabilities", 77, 1 },
    { "VK_KHR_external_semaphore_fd", 80, 1 },
    { "VK_KHR_format_feature_flags2", 361, 2 },
+   { "VK_KHR_fragment_shader_barycentric", 323, 1 },
    { "VK_KHR_fragment_shading_rate", 227, 2 },
    { "VK_KHR_get_memory_requirements2", 147, 1 },
    { "VK_KHR_get_physical_device_properties2", 60, 2 },
@@ -143,9 +169,12 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_KHR_shader_float_controls", 198, 4 },
    { "VK_KHR_shader_float_controls2", 529, 1 },
    { "VK_KHR_shader_integer_dot_product", 281, 1 },
+   { "VK_KHR_shader_maximal_reconvergence", 435, 1 },
    { "VK_KHR_shader_non_semantic_info", 294, 1 },
+   { "VK_KHR_shader_quad_control", 236, 1 },
    { "VK_KHR_shader_subgroup_extended_types", 176, 1 },
    { "VK_KHR_shader_subgroup_rotate", 417, 2 },
+   { "VK_KHR_shader_subgroup_uniform_control_flow", 324, 1 },
    { "VK_KHR_shader_terminate_invocation", 216, 1 },
    { "VK_KHR_spirv_1_4", 237, 1 },
    { "VK_KHR_storage_buffer_storage_class", 132, 1 },
@@ -155,8 +184,10 @@ static const struct vn_info_extension _vn_info_extensions[137] = {
    { "VK_KHR_variable_pointers", 121, 1 },
    { "VK_KHR_vertex_attribute_divisor", 526, 1 },
    { "VK_KHR_vulkan_memory_model", 212, 3 },
+   { "VK_KHR_workgroup_memory_explicit_layout", 337, 1 },
    { "VK_KHR_zero_initialize_workgroup_memory", 326, 1 },
-   { "VK_MESA_venus_protocol", 385, 2 },
+   { "VK_MESA_venus_protocol", 385, 3 },
+   { "VK_NV_compute_shader_derivatives", 202, 1 },
    { "VK_VALVE_mutable_descriptor_type", 352, 1 },
 };
 
