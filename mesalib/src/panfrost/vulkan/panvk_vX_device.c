@@ -32,6 +32,7 @@
 
 #include "clc/panfrost_compile.h"
 #include "kmod/pan_kmod.h"
+#include "util/os_file.h"
 #include "util/u_printf.h"
 #include "pan_props.h"
 #include "pan_samples.h"
@@ -282,7 +283,7 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
       .priv = &device->vk.alloc,
    };
    device->kmod.dev =
-      pan_kmod_dev_create(dup(physical_device->kmod.dev->fd),
+      pan_kmod_dev_create(os_dupfd_cloexec(physical_device->kmod.dev->fd),
                           PAN_KMOD_DEV_FLAG_OWNS_FD, &device->kmod.allocator);
 
    if (!device->kmod.dev) {

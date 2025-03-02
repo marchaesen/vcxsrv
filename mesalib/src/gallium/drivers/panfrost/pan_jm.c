@@ -519,15 +519,28 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
        * The hardware does not take primitive type into account when
        * culling, so we need to do that check ourselves.
        */
+#if PAN_ARCH == 9
+      cfg.flags_0.cull_front_face = polygon && (rast->cull_face & PIPE_FACE_FRONT);
+      cfg.flags_0.cull_back_face = polygon && (rast->cull_face & PIPE_FACE_BACK);
+      cfg.flags_0.front_face_ccw = rast->front_ccw;
+#else
       cfg.cull_front_face = polygon && (rast->cull_face & PIPE_FACE_FRONT);
       cfg.cull_back_face = polygon && (rast->cull_face & PIPE_FACE_BACK);
       cfg.front_face_ccw = rast->front_ccw;
+#endif
 
       if (ctx->occlusion_query && ctx->active_queries) {
+#if PAN_ARCH == 9
+         if (ctx->occlusion_query->type == PIPE_QUERY_OCCLUSION_COUNTER)
+            cfg.flags_0.occlusion_query = MALI_OCCLUSION_MODE_COUNTER;
+         else
+            cfg.flags_0.occlusion_query = MALI_OCCLUSION_MODE_PREDICATE;
+#else
          if (ctx->occlusion_query->type == PIPE_QUERY_OCCLUSION_COUNTER)
             cfg.occlusion_query = MALI_OCCLUSION_MODE_COUNTER;
          else
             cfg.occlusion_query = MALI_OCCLUSION_MODE_PREDICATE;
+#endif
 
          struct panfrost_resource *rsrc =
             pan_resource(ctx->occlusion_query->rsrc);
@@ -538,19 +551,19 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
 #if PAN_ARCH >= 9
       struct panfrost_compiled_shader *fs = ctx->prog[PIPE_SHADER_FRAGMENT];
 
-      cfg.multisample_enable = rast->multisample;
-      cfg.sample_mask = rast->multisample ? ctx->sample_mask : 0xFFFF;
+      cfg.flags_0.multisample_enable = rast->multisample;
+      cfg.flags_1.sample_mask = rast->multisample ? ctx->sample_mask : 0xFFFF;
 
       /* Use per-sample shading if required by API Also use it when a
        * blend shader is used with multisampling, as this is handled
        * by a single ST_TILE in the blend shader with the current
        * sample ID, requiring per-sample shading.
        */
-      cfg.evaluate_per_sample =
+      cfg.flags_0.evaluate_per_sample =
          (rast->multisample &&
           ((ctx->min_samples > 1) || ctx->valhall_has_blend_shader));
 
-      cfg.single_sampled_lines = !rast->multisample;
+      cfg.flags_0.aligned_line_ends = !rast->line_rectangular;
 
       cfg.vertex_array.packet = true;
 
@@ -559,10 +572,8 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
 
       cfg.depth_stencil = batch->depth_stencil;
 
-      if (prim == MESA_PRIM_LINES && rast->line_smooth) {
-         cfg.multisample_enable = true;
-         cfg.single_sampled_lines = false;
-      }
+      if (prim == MESA_PRIM_LINES && rast->line_smooth)
+         cfg.flags_0.multisample_enable = true;
 
       if (fs_required) {
          bool has_oq = ctx->occlusion_query && ctx->active_queries;
@@ -572,12 +583,12 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
             ctx->blend->base.alpha_to_coverage,
             ctx->depth_stencil->zs_always_passes);
 
-         cfg.pixel_kill_operation = earlyzs.kill;
-         cfg.zs_update_operation = earlyzs.update;
+         cfg.flags_0.pixel_kill_operation = earlyzs.kill;
+         cfg.flags_0.zs_update_operation = earlyzs.update;
 
-         cfg.allow_forward_pixel_to_kill =
+         cfg.flags_0.allow_forward_pixel_to_kill =
             pan_allow_forward_pixel_to_kill(ctx, fs);
-         cfg.allow_forward_pixel_to_be_killed = !fs->info.writes_global;
+         cfg.flags_0.allow_forward_pixel_to_be_killed = !fs->info.writes_global;
 
          /* Mask of render targets that may be written. A render
           * target may be written if the fragment shader writes
@@ -588,20 +599,20 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
           * Only set when there is a fragment shader, since
           * otherwise no colour updates are possible.
           */
-         cfg.render_target_mask =
+         cfg.flags_1.render_target_mask =
             (fs->info.outputs_written >> FRAG_RESULT_DATA0) & ctx->fb_rt_mask;
 
          /* Also use per-sample shading if required by the shader
           */
-         cfg.evaluate_per_sample |=
+         cfg.flags_0.evaluate_per_sample |=
             (fs->info.fs.sample_shading && rast->multisample);
 
          /* Unlike Bifrost, alpha-to-coverage must be included in
           * this identically-named flag. Confusing, isn't it?
           */
-         cfg.shader_modifies_coverage = fs->info.fs.writes_coverage ||
-                                        fs->info.fs.can_discard ||
-                                        ctx->blend->base.alpha_to_coverage;
+         cfg.flags_0.shader_modifies_coverage =
+            fs->info.fs.writes_coverage || fs->info.fs.can_discard ||
+            ctx->blend->base.alpha_to_coverage;
 
          /* Blend descriptors are only accessed by a BLEND
           * instruction on Valhall. It follows that if the
@@ -610,10 +621,10 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
           */
          cfg.blend = batch->blend;
          cfg.blend_count = MAX2(batch->key.nr_cbufs, 1);
-         cfg.alpha_to_coverage = ctx->blend->base.alpha_to_coverage;
+         cfg.flags_0.alpha_to_coverage = ctx->blend->base.alpha_to_coverage;
 
-         cfg.overdraw_alpha0 = panfrost_overdraw_alpha(ctx, 0);
-         cfg.overdraw_alpha1 = panfrost_overdraw_alpha(ctx, 1);
+         cfg.flags_0.overdraw_alpha0 = panfrost_overdraw_alpha(ctx, 0);
+         cfg.flags_0.overdraw_alpha1 = panfrost_overdraw_alpha(ctx, 1);
 
          jm_emit_shader_env(batch, &cfg.shader, PIPE_SHADER_FRAGMENT,
                             batch->rsd[PIPE_SHADER_FRAGMENT]);
@@ -621,22 +632,22 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
          /* These operations need to be FORCE to benefit from the
           * depth-only pass optimizations.
           */
-         cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
-         cfg.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
+         cfg.flags_0.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
+         cfg.flags_0.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
 
          /* No shader and no blend => no shader or blend
           * reasons to disable FPK. The only FPK-related state
           * not covered is alpha-to-coverage which we don't set
           * without blend.
           */
-         cfg.allow_forward_pixel_to_kill = true;
+         cfg.flags_0.allow_forward_pixel_to_kill = true;
 
          /* No shader => no shader side effects */
-         cfg.allow_forward_pixel_to_be_killed = true;
+         cfg.flags_0.allow_forward_pixel_to_be_killed = true;
 
          /* Alpha isn't written so these are vacuous */
-         cfg.overdraw_alpha0 = true;
-         cfg.overdraw_alpha1 = true;
+         cfg.flags_0.overdraw_alpha0 = true;
+         cfg.flags_0.overdraw_alpha1 = true;
       }
 #else
       cfg.position = batch->varyings.pos;

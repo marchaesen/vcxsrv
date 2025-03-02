@@ -548,7 +548,7 @@ ntt_allocate_regs_unoptimized(struct ntt_compile *c, nir_function_impl *impl)
  * nir_src's first component, returning the constant offset and replacing *src
  * with the non-constant component.
  */
-static const uint32_t
+static uint32_t
 ntt_extract_const_src_offset(nir_src *src)
 {
    nir_scalar s = nir_get_scalar(src->ssa, 0);
@@ -3622,17 +3622,12 @@ nir_to_tgsi_lower_tex_instr_arg(nir_builder *b,
  * manage it on our own, and may lead to more vectorization.
  */
 static bool
-nir_to_tgsi_lower_tex_instr(nir_builder *b, nir_instr *instr, void *data)
+nir_to_tgsi_lower_tex_instr(nir_builder *b, nir_tex_instr *tex, void *data)
 {
-   if (instr->type != nir_instr_type_tex)
-      return false;
-
-   nir_tex_instr *tex = nir_instr_as_tex(instr);
-
    if (nir_tex_instr_src_index(tex, nir_tex_src_coord) < 0)
       return false;
 
-   b->cursor = nir_before_instr(instr);
+   b->cursor = nir_before_instr(&tex->instr);
 
    struct ntt_lower_tex_state s = {0};
 
@@ -3676,10 +3671,8 @@ nir_to_tgsi_lower_tex_instr(nir_builder *b, nir_instr *instr, void *data)
 static bool
 nir_to_tgsi_lower_tex(nir_shader *s)
 {
-   return nir_shader_instructions_pass(s,
-                                       nir_to_tgsi_lower_tex_instr,
-                                       nir_metadata_control_flow,
-                                       NULL);
+   return nir_shader_tex_pass(s, nir_to_tgsi_lower_tex_instr,
+                              nir_metadata_control_flow, NULL);
 }
 
 static void

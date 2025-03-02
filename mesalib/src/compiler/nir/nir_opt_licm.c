@@ -131,13 +131,9 @@ nir_opt_licm(nir_shader *shader)
       nir_metadata_require(impl, nir_metadata_block_index |
                                     nir_metadata_dominance);
 
-      if (visit_cf_list(&impl->body, NULL, NULL)) {
-         progress = true;
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                        nir_metadata_dominance);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
+      bool impl_progress = visit_cf_list(&impl->body, NULL, NULL);
+      progress |= nir_progress(impl_progress, impl,
+                               nir_metadata_block_index | nir_metadata_dominance);
    }
 
    return progress;

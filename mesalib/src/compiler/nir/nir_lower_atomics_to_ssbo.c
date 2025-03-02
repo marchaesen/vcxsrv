@@ -196,7 +196,7 @@ nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned offset_align_state)
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    if (progress) {

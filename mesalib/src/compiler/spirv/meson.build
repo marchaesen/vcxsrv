@@ -62,6 +62,7 @@ libvtn = static_library(
 idep_vtn = declare_dependency(
   dependencies : [dep_spirv_tools, idep_nir, idep_mesautil],
   link_with : libvtn,
+  sources : [spirv_info_h],
 )
 
 spirv2nir = executable(

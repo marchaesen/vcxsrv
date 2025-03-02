@@ -644,7 +644,7 @@ lvp_nir_lower_ray_queries(struct nir_shader *shader)
          }
       }
 
-      nir_metadata_preserve(function->impl, nir_metadata_none);
+      nir_progress(true, function->impl, nir_metadata_none);
    }
 
    ralloc_free(query_ht);

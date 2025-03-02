@@ -914,8 +914,7 @@ static bool
 nir_lower_goto_ifs_impl(nir_function_impl *impl)
 {
    if (impl->structured) {
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
    nir_metadata_require(impl, nir_metadata_dominance);
@@ -961,7 +960,7 @@ nir_lower_goto_ifs_impl(nir_function_impl *impl)
    ralloc_free(mem_ctx);
    nir_cf_delete(&cf_list);
 
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    nir_repair_ssa_impl(impl);
    nir_lower_reg_intrinsics_to_ssa_impl(impl);

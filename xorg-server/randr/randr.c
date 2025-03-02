@@ -50,9 +50,6 @@ static int RRNScreens;
     real->mem = priv->mem; \
 }
 
-static int ProcRRDispatch(ClientPtr pClient);
-static int SProcRRDispatch(ClientPtr pClient);
-
 int RREventBase;
 int RRErrorBase;
 RESTYPE RRClientType, RREventType;      /* resource types for event masks */
@@ -318,7 +315,6 @@ RRScreenInit(ScreenPtr pScreen)
     /*
      * Calling function best set these function vectors
      */
-    pScrPriv->rrGetInfo = 0;
     pScrPriv->maxWidth = pScrPriv->minWidth = pScreen->width;
     pScrPriv->maxHeight = pScrPriv->minHeight = pScreen->height;
 
@@ -326,21 +322,11 @@ RRScreenInit(ScreenPtr pScreen)
     pScrPriv->height = pScreen->height;
     pScrPriv->mmWidth = pScreen->mmWidth;
     pScrPriv->mmHeight = pScreen->mmHeight;
-#if RANDR_12_INTERFACE
-    pScrPriv->rrScreenSetSize = NULL;
-    pScrPriv->rrCrtcSet = NULL;
-    pScrPriv->rrCrtcSetGamma = NULL;
-#endif
 #if RANDR_10_INTERFACE
-    pScrPriv->rrSetConfig = 0;
     pScrPriv->rotations = RR_Rotate_0;
     pScrPriv->reqWidth = pScreen->width;
     pScrPriv->reqHeight = pScreen->height;
-    pScrPriv->nSizes = 0;
-    pScrPriv->pSizes = NULL;
     pScrPriv->rotation = RR_Rotate_0;
-    pScrPriv->rate = 0;
-    pScrPriv->size = 0;
 #endif
 
     /*
@@ -355,10 +341,6 @@ RRScreenInit(ScreenPtr pScreen)
 
     pScreen->ConstrainCursorHarder = RRConstrainCursorHarder;
     pScreen->ReplaceScanoutPixmap = RRReplaceScanoutPixmap;
-    pScrPriv->numOutputs = 0;
-    pScrPriv->outputs = NULL;
-    pScrPriv->numCrtcs = 0;
-    pScrPriv->crtcs = NULL;
 
     xorg_list_init(&pScrPriv->leases);
 
@@ -736,24 +718,4 @@ RRVerticalRefresh(xRRModeInfo * mode)
     if (refresh > 0xffff)
         refresh = 0xffff;
     return (CARD16) refresh;
-}
-
-static int
-ProcRRDispatch(ClientPtr client)
-{
-    REQUEST(xReq);
-    if (stuff->data >= RRNumberRequests || !ProcRandrVector[stuff->data])
-        return BadRequest;
-    UpdateCurrentTimeIf();
-    return (*ProcRandrVector[stuff->data]) (client);
-}
-
-static int _X_COLD
-SProcRRDispatch(ClientPtr client)
-{
-    REQUEST(xReq);
-    if (stuff->data >= RRNumberRequests || !SProcRandrVector[stuff->data])
-        return BadRequest;
-    UpdateCurrentTimeIf();
-    return (*SProcRandrVector[stuff->data]) (client);
 }

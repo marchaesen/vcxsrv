@@ -23,9 +23,9 @@
  * the number of IO instructions within that block.
  */
 
+#include "util/u_dynarray.h"
 #include "nir.h"
 #include "nir_builder.h"
-#include "util/u_dynarray.h"
 
 /* Return 0 if loads/stores are vectorizable. Return 1 or -1 to define
  * an ordering between non-vectorizable instructions. This is used by qsort,
@@ -122,11 +122,9 @@ vectorize_load(nir_intrinsic_instr *chan[8], unsigned start, unsigned count,
     * inserted.
     */
    for (unsigned i = start; i < start + count; i++) {
-      first = !first || chan[i]->instr.index < first->instr.index ?
-                 chan[i] : first;
+      first = !first || chan[i]->instr.index < first->instr.index ? chan[i] : first;
       if (merge_low_high_16_to_32) {
-         first = !first || chan[4 + i]->instr.index < first->instr.index ?
-                    chan[4 + i] : first;
+         first = !first || chan[4 + i]->instr.index < first->instr.index ? chan[4 + i] : first;
       }
    }
 
@@ -183,11 +181,9 @@ vectorize_store(nir_intrinsic_instr *chan[8], unsigned start, unsigned count,
     * inserted.
     */
    for (unsigned i = start; i < start + count; i++) {
-      last = !last || chan[i]->instr.index > last->instr.index ?
-                chan[i] : last;
+      last = !last || chan[i]->instr.index > last->instr.index ? chan[i] : last;
       if (merge_low_high_16_to_32) {
-         last = !last || chan[4 + i]->instr.index > last->instr.index ?
-                   chan[4 + i] : last;
+         last = !last || chan[4 + i]->instr.index > last->instr.index ? chan[4 + i] : last;
       }
    }
 
@@ -200,12 +196,11 @@ vectorize_store(nir_intrinsic_instr *chan[8], unsigned start, unsigned count,
        * 2 = high XY channels
        * 3 = high ZW channels
        */
-      nir_io_xfb xfb[4] = {{{{0}}}};
+      nir_io_xfb xfb[4] = { { { { 0 } } } };
 
       for (unsigned i = start; i < start + count; i++) {
          xfb[i / 2].out[i % 2] =
-            (i < 2 ? nir_intrinsic_io_xfb(chan[i]) :
-                     nir_intrinsic_io_xfb2(chan[i])).out[i % 2];
+            (i < 2 ? nir_intrinsic_io_xfb(chan[i]) : nir_intrinsic_io_xfb2(chan[i])).out[i % 2];
 
          /* Merging low and high 16 bits to 32 bits is not possible
           * with xfb in some cases. (and it's not implemented for
@@ -221,13 +216,12 @@ vectorize_store(nir_intrinsic_instr *chan[8], unsigned start, unsigned count,
           * memory.
           */
          unsigned xfb_comp_size =
-            nir_intrinsic_io_semantics(chan[i]).medium_precision ?
-                  32 : chan[i]->src[0].ssa->bit_size;
+            nir_intrinsic_io_semantics(chan[i]).medium_precision ? 32 : chan[i]->src[0].ssa->bit_size;
 
          for (unsigned j = i + 1; j < start + count; j++) {
             if (xfb[i / 2].out[i % 2].buffer != xfb[j / 2].out[j % 2].buffer ||
                 xfb[i / 2].out[i % 2].offset != xfb[j / 2].out[j % 2].offset +
-                xfb_comp_size * (j - i))
+                                                   xfb_comp_size * (j - i))
                break;
 
             xfb[i / 2].out[i % 2].num_components++;
@@ -242,8 +236,7 @@ vectorize_store(nir_intrinsic_instr *chan[8], unsigned start, unsigned count,
    /* Update gs_streams. */
    unsigned gs_streams = 0;
    for (unsigned i = start; i < start + count; i++) {
-      gs_streams |= (nir_intrinsic_io_semantics(chan[i]).gs_streams & 0x3) <<
-                    ((i - start) * 2);
+      gs_streams |= (nir_intrinsic_io_semantics(chan[i]).gs_streams & 0x3) << ((i - start) * 2);
    }
 
    nir_io_semantics sem = nir_intrinsic_io_semantics(last);
@@ -342,9 +335,13 @@ vectorize_slot(nir_intrinsic_instr *chan[8], unsigned mask)
                   unsigned hi = i + 4;
 
                   if ((i < 2 ? nir_intrinsic_io_xfb(chan[i])
-                             : nir_intrinsic_io_xfb2(chan[i])).out[i % 2].num_components ||
+                             : nir_intrinsic_io_xfb2(chan[i]))
+                         .out[i % 2]
+                         .num_components ||
                       (i < 2 ? nir_intrinsic_io_xfb(chan[hi])
-                             : nir_intrinsic_io_xfb2(chan[hi])).out[i % 2].num_components)
+                             : nir_intrinsic_io_xfb2(chan[hi]))
+                         .out[i % 2]
+                         .num_components)
                      continue;
                }
 
@@ -405,9 +402,9 @@ vectorize_batch(struct util_dynarray *io_instructions)
     *
     * This reorders instructions in the array, but not in the shader.
     */
-   qsort(io_instructions->data, num_instr, sizeof(void*), compare_intr);
+   qsort(io_instructions->data, num_instr, sizeof(void *), compare_intr);
 
-   nir_intrinsic_instr *chan[8] = {0}, *prev = NULL;
+   nir_intrinsic_instr *chan[8] = { 0 }, *prev = NULL;
    unsigned chan_mask = 0;
    bool progress = false;
 
@@ -498,7 +495,7 @@ nir_opt_vectorize_io(nir_shader *shader, nir_variable_mode modes)
             nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
             bool is_load = nir_intrinsic_infos[intr->intrinsic].has_dest;
             bool is_output = false;
-            nir_io_semantics sem = {0};
+            nir_io_semantics sem = { 0 };
             unsigned index = 0;
 
             if (nir_intrinsic_has_io_semantics(intr)) {
@@ -575,9 +572,8 @@ nir_opt_vectorize_io(nir_shader *shader, nir_variable_mode modes)
          progress |= vectorize_batch(&io_instructions);
       }
 
-      nir_metadata_preserve(impl, progress ? (nir_metadata_block_index |
-                                              nir_metadata_dominance) :
-                                             nir_metadata_all);
+      nir_progress(progress, impl,
+                   nir_metadata_block_index | nir_metadata_dominance);
       global_progress |= progress;
    }
    util_dynarray_fini(&io_instructions);

@@ -39,7 +39,7 @@ opt_uniform_subgroup_filter(const nir_instr *instr, const void *_state)
       if (nir_src_is_divergent(&intrin->src[0]))
          return false;
 
-      const nir_op reduction_op = (nir_op) nir_intrinsic_reduction_op(intrin);
+      const nir_op reduction_op = (nir_op)nir_intrinsic_reduction_op(intrin);
 
       switch (reduction_op) {
       case nir_op_iadd:
@@ -87,11 +87,11 @@ count_active_invocations(nir_builder *b, nir_def *value, bool inclusive,
     * count plus one.
     */
    if (has_mbcnt_amd) {
-      return nir_mbcnt_amd(b, value, nir_imm_int(b, (int) inclusive));
+      return nir_mbcnt_amd(b, value, nir_imm_int(b, (int)inclusive));
    } else {
       nir_def *mask = inclusive
-         ? nir_load_subgroup_le_mask(b, 1, 32)
-         : nir_load_subgroup_lt_mask(b, 1, 32);
+                         ? nir_load_subgroup_le_mask(b, 1, 32)
+                         : nir_load_subgroup_lt_mask(b, 1, 32);
 
       return nir_bit_count(b, nir_iand(b, value, mask));
    }
@@ -100,13 +100,13 @@ count_active_invocations(nir_builder *b, nir_def *value, bool inclusive,
 static nir_def *
 opt_uniform_subgroup_instr(nir_builder *b, nir_instr *instr, void *_state)
 {
-   const nir_lower_subgroups_options *options = (nir_lower_subgroups_options *) _state;
+   const nir_lower_subgroups_options *options = (nir_lower_subgroups_options *)_state;
    nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
    if (intrin->intrinsic == nir_intrinsic_reduce ||
        intrin->intrinsic == nir_intrinsic_inclusive_scan ||
        intrin->intrinsic == nir_intrinsic_exclusive_scan) {
-      const nir_op reduction_op = (nir_op) nir_intrinsic_reduction_op(intrin);
+      const nir_op reduction_op = (nir_op)nir_intrinsic_reduction_op(intrin);
 
       if (reduction_op == nir_op_iadd ||
           reduction_op == nir_op_fadd ||
@@ -156,8 +156,7 @@ nir_opt_uniform_subgroup(nir_shader *shader,
    bool progress = nir_shader_lower_instructions(shader,
                                                  opt_uniform_subgroup_filter,
                                                  opt_uniform_subgroup_instr,
-                                                 (void *) options);
+                                                 (void *)options);
 
    return progress;
 }
-

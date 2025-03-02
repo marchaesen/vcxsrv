@@ -4446,6 +4446,7 @@ static void *si_create_vertex_elements(struct pipe_context *ctx, unsigned count,
       v->elem[i].src_offset = elements[i].src_offset;
       v->elem[i].stride = elements[i].src_stride;
       v->vertex_buffer_index[i] = vbo_index;
+      v->num_vertex_buffers = MAX2(v->num_vertex_buffers, vbo_index + 1);
 
       bool always_fix = false;
       union si_vs_fix_fetch fix_fetch;
@@ -4617,14 +4618,13 @@ static void si_bind_vertex_elements(struct pipe_context *ctx, void *state)
    sctx->vertex_elements = v;
    sctx->num_vertex_elements = v->count;
    sctx->vertex_buffers_dirty = sctx->num_vertex_elements > 0;
+   sctx->vertex_buffer_unaligned = 0;
+#ifndef NDEBUG
+   sctx->vertex_elements_but_no_buffers = v->count > 0;
+#endif
 
    if (old->instance_divisor_is_one != v->instance_divisor_is_one ||
        old->instance_divisor_is_fetched != v->instance_divisor_is_fetched ||
-       (old->vb_alignment_check_mask ^ v->vb_alignment_check_mask) &
-       sctx->vertex_buffer_unaligned ||
-       ((v->vb_alignment_check_mask & sctx->vertex_buffer_unaligned) &&
-        memcmp(old->vertex_buffer_index, v->vertex_buffer_index,
-               sizeof(v->vertex_buffer_index[0]) * MAX2(old->count, v->count))) ||
        /* fix_fetch_{always,opencode,unaligned} and hw_load_is_dword are
         * functions of fix_fetch and the src_offset alignment.
         * If they change and fix_fetch doesn't, it must be due to different
@@ -4645,6 +4645,13 @@ static void si_bind_vertex_elements(struct pipe_context *ctx, void *state)
       cb.buffer_size = 0xffffffff;
       si_set_internal_const_buffer(sctx, SI_VS_CONST_INSTANCE_DIVISORS, &cb);
    }
+
+   /* Unbind all vertex buffers. set_vertex_buffers is required to be called after this.
+    * If it's not called, no buffers will be enabled.
+    */
+   unsigned old_num_vertex_buffers = old->num_vertex_buffers;
+   for (unsigned i = 0; i < old_num_vertex_buffers; i++)
+      pipe_resource_reference(&sctx->vertex_buffer[i].buffer.resource, NULL);
 }
 
 static void si_delete_vertex_element(struct pipe_context *ctx, void *state)
@@ -4667,7 +4674,8 @@ static void si_set_vertex_buffers(struct pipe_context *ctx, unsigned count,
    unsigned i;
 
    assert(count <= ARRAY_SIZE(sctx->vertex_buffer));
-   assert(!count || buffers);
+   assert(!count || (buffers && sctx->vertex_elements &&
+                     count == sctx->vertex_elements->num_vertex_buffers));
 
    for (i = 0; i < count; i++) {
       const struct pipe_vertex_buffer *src = buffers + i;
@@ -4690,13 +4698,11 @@ static void si_set_vertex_buffers(struct pipe_context *ctx, unsigned count,
       }
    }
 
-   unsigned last_count = sctx->num_vertex_buffers;
-   for (; i < last_count; i++)
-      pipe_resource_reference(&sctx->vertex_buffer[i].buffer.resource, NULL);
-
-   sctx->num_vertex_buffers = count;
-   sctx->vertex_buffers_dirty = sctx->num_vertex_elements > 0;
+   sctx->vertex_buffers_dirty = count > 0;
    sctx->vertex_buffer_unaligned = unaligned;
+#ifndef NDEBUG
+   sctx->vertex_elements_but_no_buffers = false;
+#endif
 
    /* Check whether alignment may have changed in a way that requires
     * shader changes. This check is conservative: a vertex buffer can only

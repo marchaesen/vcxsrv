@@ -32,6 +32,19 @@
 #include "util/bitset.h"
 #include "util/u_dynarray.h"
 
+/* Before Avalon, RUN_IDVS could use a selector but as we only hardcode the same
+ * configuration, we match v12+ naming here */
+
+#if PAN_ARCH <= 11
+#define MALI_IDVS_SR_VERTEX_SRT      MALI_IDVS_SR_SRT_0
+#define MALI_IDVS_SR_FRAGMENT_SRT    MALI_IDVS_SR_SRT_2
+#define MALI_IDVS_SR_VERTEX_FAU      MALI_IDVS_SR_FAU_0
+#define MALI_IDVS_SR_FRAGMENT_FAU    MALI_IDVS_SR_FAU_2
+#define MALI_IDVS_SR_VERTEX_POS_SPD  MALI_IDVS_SR_SPD_0
+#define MALI_IDVS_SR_VERTEX_VARY_SPD MALI_IDVS_SR_SPD_1
+#define MALI_IDVS_SR_FRAGMENT_SPD    MALI_IDVS_SR_SPD_2
+#endif
+
 /*
  * cs_builder implements a builder for CSF command streams. It manages the
  * allocation and overflow behaviour of queues and provides helpers for emitting
@@ -416,6 +429,13 @@ cs_reg64(struct cs_builder *b, unsigned reg)
    return cs_reg_tuple(b, reg, 2);
 }
 
+#define cs_sr_reg_tuple(__b, __cmd, __name, __size)                            \
+   cs_reg_tuple((__b), MALI_##__cmd##_SR_##__name, (__size))
+#define cs_sr_reg32(__b, __cmd, __name)                                        \
+   cs_reg32((__b), MALI_##__cmd##_SR_##__name)
+#define cs_sr_reg64(__b, __cmd, __name)                                        \
+   cs_reg64((__b), MALI_##__cmd##_SR_##__name)
+
 /*
  * The top of the register file is reserved for cs_builder internal use. We
  * need 3 spare registers for handling command queue overflow. These are
@@ -495,7 +515,7 @@ cs_reserve_instrs(struct cs_builder *b, uint32_t num_instrs)
 
       uint64_t *ptr = b->cur_chunk.buffer.cpu + (b->cur_chunk.pos++);
 
-      pan_cast_and_pack(ptr, CS_MOVE, I) {
+      pan_cast_and_pack(ptr, CS_MOVE48, I) {
          I.destination = cs_overflow_address_reg(b);
          I.immediate = newbuf.gpu;
       }
@@ -771,7 +791,7 @@ cs_move32_to(struct cs_builder *b, struct cs_index dest, unsigned imm)
 static inline void
 cs_move48_to(struct cs_builder *b, struct cs_index dest, uint64_t imm)
 {
-   cs_emit(b, MOVE, I) {
+   cs_emit(b, MOVE48, I) {
       I.destination = cs_dst64(b, dest);
       I.immediate = imm;
    }
@@ -1233,7 +1253,7 @@ static inline void
 cs_add32(struct cs_builder *b, struct cs_index dest, struct cs_index src,
          unsigned imm)
 {
-   cs_emit(b, ADD_IMMEDIATE32, I) {
+   cs_emit(b, ADD_IMM32, I) {
       I.destination = cs_dst32(b, dest);
       I.source = cs_src32(b, src);
       I.immediate = imm;
@@ -1244,7 +1264,7 @@ static inline void
 cs_add64(struct cs_builder *b, struct cs_index dest, struct cs_index src,
          unsigned imm)
 {
-   cs_emit(b, ADD_IMMEDIATE64, I) {
+   cs_emit(b, ADD_IMM64, I) {
       I.destination = cs_dst64(b, dest);
       I.source = cs_src64(b, src);
       I.immediate = imm;
@@ -1414,13 +1434,14 @@ cs_req_res(struct cs_builder *b, uint32_t res_mask)
 
 static inline void
 cs_flush_caches(struct cs_builder *b, enum mali_cs_flush_mode l2,
-                enum mali_cs_flush_mode lsc, bool other_inv,
-                struct cs_index flush_id, struct cs_async_op async)
+                enum mali_cs_flush_mode lsc,
+                enum mali_cs_other_flush_mode others, struct cs_index flush_id,
+                struct cs_async_op async)
 {
    cs_emit(b, FLUSH_CACHE2, I) {
       I.l2_flush_mode = l2;
       I.lsc_flush_mode = lsc;
-      I.other_invalidate = other_inv;
+      I.other_flush_mode = others;
       I.latest_flush_id = cs_src32(b, flush_id);
       cs_apply_async(I, async);
    }

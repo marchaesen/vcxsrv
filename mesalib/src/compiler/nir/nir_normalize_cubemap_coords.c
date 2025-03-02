@@ -29,23 +29,18 @@
  * magnitude component is -1.0 or 1.0.
  */
 static bool
-normalize_cubemap_coords(nir_builder *b, nir_instr *instr, void *data)
+normalize_cubemap_coords(nir_builder *b, nir_tex_instr *tex, void *data)
 {
-   if (instr->type != nir_instr_type_tex)
-      return false;
-
-   nir_tex_instr *tex = nir_instr_as_tex(instr);
    if (tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE)
       return false;
 
-   b->cursor = nir_before_instr(instr);
+   b->cursor = nir_before_instr(&tex->instr);
 
    int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
    if (idx < 0)
       return false;
 
-   nir_def *orig_coord =
-      tex->src[idx].src.ssa;
+   nir_def *orig_coord = tex->src[idx].src.ssa;
    assert(orig_coord->num_components >= 3);
 
    nir_def *orig_xyz = nir_trim_vector(b, orig_coord, 3);
@@ -67,7 +62,6 @@ normalize_cubemap_coords(nir_builder *b, nir_instr *instr, void *data)
 bool
 nir_normalize_cubemap_coords(nir_shader *shader)
 {
-   return nir_shader_instructions_pass(shader, normalize_cubemap_coords,
-                                       nir_metadata_control_flow,
-                                       NULL);
+   return nir_shader_tex_pass(shader, normalize_cubemap_coords,
+                              nir_metadata_control_flow, NULL);
 }

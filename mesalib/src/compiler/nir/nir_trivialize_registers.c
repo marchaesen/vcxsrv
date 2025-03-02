@@ -507,7 +507,7 @@ nir_trivialize_registers(nir_shader *s)
          trivialize_stores(impl, block);
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    return true;

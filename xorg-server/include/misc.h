@@ -99,7 +99,6 @@ static double __inline trunc(double d)
 #endif
 #define MAXCLIENTS	2048
 #define LIMITCLIENTS	1024     /* Must be a power of 2 and <= MAXCLIENTS */
-#define MAXEXTENSIONS   128
 #define MAXFORMATS	8
 #ifndef MAXDEVICES
 #define MAXDEVICES	256      /* input devices */
@@ -293,35 +292,6 @@ bswap_32(uint32_t x)
             ((x & 0x00FF0000) >> 8) |
             ((x & 0x0000FF00) << 8) |
             ((x & 0x000000FF) << 24));
-}
-
-static inline Bool
-checked_int64_add(int64_t *out, int64_t a, int64_t b)
-{
-    /* Do the potentially overflowing math as uint64_t, as signed
-     * integers in C are undefined on overflow (and the compiler may
-     * optimize out our overflow check below, otherwise)
-     */
-    int64_t result = (uint64_t)a + (uint64_t)b;
-    /* signed addition overflows if operands have the same sign, and
-     * the sign of the result doesn't match the sign of the inputs.
-     */
-    Bool overflow = (a < 0) == (b < 0) && (a < 0) != (result < 0);
-
-    *out = result;
-
-    return overflow;
-}
-
-static inline Bool
-checked_int64_subtract(int64_t *out, int64_t a, int64_t b)
-{
-    int64_t result = (uint64_t)a - (uint64_t)b;
-    Bool overflow = (a < 0) != (b < 0) && (a < 0) != (result < 0);
-
-    *out = result;
-
-    return overflow;
 }
 
 #define swapl(x) do { \

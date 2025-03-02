@@ -117,17 +117,6 @@ dEQP-VK.dynamic_rendering.primary_cmd_buff.random.seed32_geometry
 dEQP-VK.dynamic_rendering.primary_cmd_buff.random.seed35
 dEQP-VK.geometry.layered.2d_array.12_36_6.readback
 dEQP-VK.glsl.texture_functions.query.texturequerylevels.isampler1darray_fragment
-dEQP-VK.image.concurrent_copy.vk_format_r32g32_sfloat.vk_image_tiling_linear.vk_image_type_3d.single.random.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_optimal.vk_image_type_3d.multiple.gradient.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_optimal.vk_image_type_3d.multiple.random.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_optimal.vk_image_type_3d.single.gradient.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_optimal.vk_image_type_3d.single.random.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8_unorm.vk_image_tiling_linear.vk_image_type_3d.multiple.random.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_linear.vk_image_type_3d.multiple.gradient.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_optimal.vk_image_type_3d.multiple.gradient.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_linear.vk_image_type_3d.single.random.device.write
-dEQP-VK.image.concurrent_copy.vk_format_r8g8b8a8_unorm.vk_image_tiling_optimal.vk_image_type_3d.single.random.device.write
-dEQP-VK.memory.mapping.dedicated_alloc.image.full.variable.implicit_unmap
 dEQP-VK.memory.mapping.suballocation.random.79
 dEQP-VK.memory_model.message_passing.core11.u32.coherent.fence_fence.atomicwrite.device.payload_local.buffer.guard_local.buffer.vert
 dEQP-VK.memory_model.message_passing.core11.u32.coherent.fence_fence.atomicwrite.subgroup.payload_local.buffer.guard_local.image.frag
@@ -258,7 +247,5 @@ dEQP-VK.tessellation.primitive_discard.isolines_equal_spacing_ccw_point_mode
 dEQP-VK.texture.filtering.3d.combinations.linear.nearest.mirror_clamp_to_edge.clamp_to_edge.mirrored_repeat
 dEQP-VK.texture.filtering.3d.combinations.nearest_mipmap_nearest.linear.clamp_to_edge.mirrored_repeat.repeat
 dEQP-VK.texture.shadow.cube.nearest_mipmap_nearest.not_equal_x8_d24_unorm_pack32
-dEQP-VK.texture.shadow.cube_array.linear_mipmap_linear.never_x8_d24_unorm_pack32
-dEQP-VK.texture.shadow.cube_array.nearest.never_d24_unorm_s8_uint
 dEQP-VK.texture.shadow.cube.nearest_mipmap_linear.not_equal_d24_unorm_s8_uint
 dEQP-VK.texture.shadow.cube.nearest.less_d24_unorm_s8_uint

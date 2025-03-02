@@ -89,7 +89,7 @@ get_used_ptr(struct deadcode_state *s, rc_register_file file, unsigned int index
 {
    if (file == RC_FILE_OUTPUT || file == RC_FILE_TEMPORARY) {
       if (index >= RC_REGISTER_MAX_INDEX) {
-         rc_error(s->C, "%s: index %i is out of bounds for file %i\n", __func__, index, file);
+         rc_error(s->C, "%s: index %i is out of bounds for file %i", __func__, index, file);
          return NULL;
       }
 
@@ -101,7 +101,7 @@ get_used_ptr(struct deadcode_state *s, rc_register_file file, unsigned int index
       return &s->R.Address;
    } else if (file == RC_FILE_SPECIAL) {
       if (index >= RC_NUM_SPECIAL_REGISTERS) {
-         rc_error(s->C, "%s: special file index %i out of bounds\n", __func__, index);
+         rc_error(s->C, "%s: special file index %i out of bounds", __func__, index);
          return NULL;
       }
 
@@ -261,14 +261,14 @@ rc_dataflow_deadcode(struct radeon_compiler *c, void *user)
                s.BranchStackSize--;
             } else if (opcode->Opcode == RC_OPCODE_ELSE) {
                if (branch->HaveElse) {
-                  rc_error(c, "%s: Multiple ELSE for one IF/ENDIF\n", __func__);
+                  rc_error(c, "%s: Multiple ELSE for one IF/ENDIF", __func__);
                } else {
                   memcpy(&branch->StoreElse, &s.R, sizeof(s.R));
                   memcpy(&s.R, &branch->StoreEndif, sizeof(s.R));
                   branch->HaveElse = 1;
                }
             } else {
-               rc_error(c, "%s: Unhandled control flow instruction %s\n", __func__, opcode->Name);
+               rc_error(c, "%s: Unhandled control flow instruction %s", __func__, opcode->Name);
             }
          }
       }

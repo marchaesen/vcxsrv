@@ -89,7 +89,5 @@ ac_nir_lower_legacy_vs(nir_shader *nir,
                                &out);
    }
 
-   nir_metadata_preserve(impl, nir_metadata_none);
-
-   return true;
+   return nir_progress(true, impl, nir_metadata_none);
 }

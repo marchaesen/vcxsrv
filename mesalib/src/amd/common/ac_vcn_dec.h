@@ -41,6 +41,7 @@
 #define RDECODE_IB_PARAM_UMD_COPY_MEMORY                             (0x00000008)
 #define RDECODE_IB_PARAM_UMD_WRITE_MEMORY                            (0x00000009)
 #define RDECODE_IB_PARAM_FEEDBACK_BUFFER                             (0x0000000A)
+#define RDECODE_IB_PARAM_DYNAMIC_REFLIST_BUFFER                      (0x0000000C)
 
 #define RDECODE_CMDBUF_FLAGS_MSG_BUFFER                              (0x00000001)
 #define RDECODE_CMDBUF_FLAGS_DPB_BUFFER                              (0x00000002)
@@ -63,6 +64,7 @@
 #define RDECODE_CMDBUF_FLAGS_RESERVED_SIZE_INFO_BUFFER               (0x00040000)
 #define RDECODE_CMDBUF_FLAGS_LUMA_HIST_BUFFER                        (0x00080000)
 #define RDECODE_CMDBUF_FLAGS_SESSION_CONTEXT_BUFFER                  (0x00100000)
+#define RDECODE_CMDBUF_FLAGS_REF_BUFFER                              (0x00200000)
 
 #define RDECODE_CMD_MSG_BUFFER                              0x00000000
 #define RDECODE_CMD_DPB_BUFFER                              0x00000001
@@ -155,6 +157,7 @@
 #define RDECODE_FLAGS_USE_DYNAMIC_DPB_MASK                  0x00000001
 #define RDECODE_FLAGS_USE_PAL_MASK                          0x00000008
 #define RDECODE_FLAGS_DPB_RESIZE_MASK                       0x00000100
+#define RDECODE_FLAGS_UNIFIED_DT_MASK                       0x00000200
 
 #define mmUVD_JPEG_CNTL                                     0x0200
 #define mmUVD_JPEG_CNTL_BASE_IDX                            1
@@ -592,6 +595,33 @@ typedef struct rvcn_dec_message_dynamic_dpb_t2_s {
     unsigned int dpbAddrLo[16];
     unsigned int dpbAddrHi[16];
 } rvcn_dec_message_dynamic_dpb_t2_t;
+
+typedef struct rvcn_dec_ref_buffer_s
+{
+    unsigned int index;
+    unsigned int y_pitch;
+    unsigned int y_aligned_height;
+    unsigned int y_aligned_size;
+    unsigned int y_ref_buffer_address_hi;
+    unsigned int y_ref_buffer_address_lo;
+    unsigned int uv_pitch;
+    unsigned int uv_aligned_height;
+    unsigned int uv_aligned_size;
+    unsigned int uv_ref_buffer_address_hi;
+    unsigned int uv_ref_buffer_address_lo;
+    unsigned int v_pitch;
+    unsigned int v_aligned_height;
+    unsigned int v_aligned_size;
+    unsigned int v_ref_buffer_address_hi;
+    unsigned int v_ref_buffer_address_lo;
+} rvcn_dec_ref_buffer_t;
+
+typedef struct rvcn_dec_ref_buffers_header_s
+{
+    unsigned int size;
+    unsigned int num_bufs;
+    rvcn_dec_ref_buffer_t pBufs[];
+} rvcn_dec_ref_buffers_header_t;
 
 typedef struct rvcn_dec_message_hevc_direct_ref_list_s {
    unsigned int num_direct_reflist;

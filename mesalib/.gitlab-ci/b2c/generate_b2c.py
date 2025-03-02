@@ -25,35 +25,16 @@ from jinja2 import Environment, FileSystemLoader
 from os import environ, path
 
 
-# Pass all the environment variables prefixed by B2C_
+# Pass through all the CI and B2C environment variables
 values = {
-    key.removeprefix("B2C_").lower(): environ[key]
-    for key in environ if key.startswith("B2C_")
+    key: environ[key]
+    for key in environ if key.startswith("B2C_") or key.startswith("CI_")
 }
 
-env = Environment(loader=FileSystemLoader(path.dirname(values['job_template'])),
+env = Environment(loader=FileSystemLoader(path.dirname(environ['B2C_JOB_TEMPLATE'])),
                   trim_blocks=True, lstrip_blocks=True)
 
-template = env.get_template(path.basename(values['job_template']))
+template = env.get_template(path.basename(environ['B2C_JOB_TEMPLATE']))
 
-values['ci_job_id'] = environ['CI_JOB_ID']
-values['ci_runner_description'] = environ['CI_RUNNER_DESCRIPTION']
-values['job_volume_exclusions'] = [excl for excl in values['job_volume_exclusions'].split(",") if excl]
-values['working_dir'] = environ['CI_PROJECT_DIR']
-
-values['image_under_test'] = environ['IMAGE_UNDER_TEST']
-values['machine_registration_image'] = environ.get('MACHINE_REGISTRATION_IMAGE', "registry.freedesktop.org/gfx-ci/ci-tron/machine-registration:latest")
-values['telegraf_image'] = environ.get('TELEGRAF_IMAGE', "registry.freedesktop.org/gfx-ci/ci-tron/telegraf:latest")
-
-# Pull all our images through our proxy registry
-for image in ['image_under_test', 'machine_registration_image', 'telegraf_image']:
-    values[image] = values[image].replace(
-        'registry.freedesktop.org',
-        '{{ fdo_proxy_registry }}'
-    )
-
-if 'kernel_cmdline_extras' not in values:
-    values['kernel_cmdline_extras'] = ''
-
-with open(path.splitext(path.basename(values['job_template']))[0], "w") as f:
+with open(path.splitext(path.basename(environ['B2C_JOB_TEMPLATE']))[0], "w") as f:
     f.write(template.render(values))

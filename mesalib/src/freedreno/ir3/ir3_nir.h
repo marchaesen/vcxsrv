@@ -33,16 +33,16 @@ bool ir3_nir_lower_layer_id(nir_shader *shader);
 bool ir3_nir_lower_frag_shading_rate(nir_shader *shader);
 bool ir3_nir_lower_primitive_shading_rate(nir_shader *shader);
 
-void ir3_nir_lower_to_explicit_output(nir_shader *shader,
+bool ir3_nir_lower_to_explicit_output(nir_shader *shader,
                                       struct ir3_shader_variant *v,
                                       unsigned topology);
-void ir3_nir_lower_to_explicit_input(nir_shader *shader,
+bool ir3_nir_lower_to_explicit_input(nir_shader *shader,
                                      struct ir3_shader_variant *v);
-void ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v,
+bool ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v,
                              unsigned topology);
-void ir3_nir_lower_tess_eval(nir_shader *shader, struct ir3_shader_variant *v,
+bool ir3_nir_lower_tess_eval(nir_shader *shader, struct ir3_shader_variant *v,
                              unsigned topology);
-void ir3_nir_lower_gs(nir_shader *shader);
+bool ir3_nir_lower_gs(nir_shader *shader);
 
 bool ir3_supports_vectorized_nir_op(nir_op op);
 uint8_t ir3_nir_vectorize_filter(const nir_instr *instr, const void *data);

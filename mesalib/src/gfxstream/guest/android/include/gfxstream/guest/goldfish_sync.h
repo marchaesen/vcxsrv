@@ -14,7 +14,7 @@
 #include <linux/types.h>
 #include <sys/cdefs.h>
 #include <sys/ioctl.h>
-#include <sys/unistd.h>
+#include <unistd.h>
 #include <fcntl.h>
 
 // Make it conflict with ioctls that are not likely to be used

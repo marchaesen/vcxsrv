@@ -18,18 +18,57 @@
 #include "util/u_video.h"
 
 /**
- * creates an video buffer with an UVD compatible memory layout
+ * creates a video buffer with an UVD compatible memory layout
  */
+struct pipe_video_buffer *si_video_buffer_create_with_modifiers(struct pipe_context *pipe,
+                                                                const struct pipe_video_buffer *tmpl,
+                                                                const uint64_t *modifiers,
+                                                                unsigned int modifiers_count)
+{
+   struct si_screen *sscreen = (struct si_screen *)pipe->screen;
+   uint64_t *allowed_modifiers;
+   unsigned int allowed_modifiers_count, i;
+
+   allowed_modifiers = calloc(modifiers_count, sizeof(uint64_t));
+   if (!allowed_modifiers)
+      return NULL;
+
+   allowed_modifiers_count = 0;
+   for (i = 0; i < modifiers_count; i++) {
+      uint64_t mod = modifiers[i];
+
+      if (ac_modifier_has_dcc(mod)) {
+         /* DCC not supported */
+         if (sscreen->info.gfx_level < GFX12)
+            continue;
+
+         /* Filter out non displayable modifiers */
+         if (AMD_FMT_MOD_GET(DCC_MAX_COMPRESSED_BLOCK, mod) == AMD_FMT_MOD_DCC_BLOCK_256B)
+            continue;
+      }
+
+      /* Linear only for UVD/VCE and VCN 1.0 */
+      if (sscreen->info.vcn_ip_version < VCN_2_0_0 && mod != DRM_FORMAT_MOD_LINEAR)
+         continue;
+
+      allowed_modifiers[allowed_modifiers_count++] = mod;
+   }
+
+   struct pipe_video_buffer *buf =
+      vl_video_buffer_create_as_resource(pipe, tmpl, allowed_modifiers, allowed_modifiers_count);
+   free(allowed_modifiers);
+   return buf;
+}
+
 struct pipe_video_buffer *si_video_buffer_create(struct pipe_context *pipe,
                                                  const struct pipe_video_buffer *tmpl)
 {
-   struct si_context *ctx = (struct si_context *)pipe;
+   struct si_screen *sscreen = (struct si_screen *)pipe->screen;
    struct pipe_video_buffer vidbuf = *tmpl;
    uint64_t *modifiers = NULL;
    int modifiers_count = 0;
-   uint64_t mod = DRM_FORMAT_MOD_LINEAR;
 
-   if (tmpl->bind & (PIPE_BIND_VIDEO_DECODE_DPB | PIPE_BIND_VIDEO_ENCODE_DPB))
+   if (vidbuf.bind & (PIPE_BIND_VIDEO_DECODE_DPB | PIPE_BIND_VIDEO_ENCODE_DPB))
       return vl_video_buffer_create_as_resource(pipe, &vidbuf, NULL, 0);
 
    /* Ensure resource_get_handle doesn't need to reallocate the texture
@@ -37,47 +76,33 @@ struct pipe_video_buffer *si_video_buffer_create(struct pipe_context *pipe,
     * This is only needed with AMD_DEBUG=tmz because in this case the frontend
     * is not aware of the buffer being created as protected.
     */
-   if (ctx->screen->debug_flags & DBG(TMZ) && !(vidbuf.bind & PIPE_BIND_PROTECTED))
+   if (sscreen->debug_flags & DBG(TMZ) && !(vidbuf.bind & PIPE_BIND_PROTECTED))
       vidbuf.bind |= PIPE_BIND_SHARED;
 
-   /* To get tiled buffers, users need to explicitly provide a list of
-    * modifiers. */
-   vidbuf.bind |= PIPE_BIND_LINEAR;
+   if (pipe->screen->resource_create_with_modifiers && !(vidbuf.bind & PIPE_BIND_LINEAR)) {
+      pipe->screen->query_dmabuf_modifiers(pipe->screen, vidbuf.buffer_format, 0,
+                                           NULL, NULL, &modifiers_count);
+      modifiers = calloc(modifiers_count, sizeof(uint64_t));
+      if (!modifiers)
+         return NULL;
 
+      pipe->screen->query_dmabuf_modifiers(pipe->screen, vidbuf.buffer_format, modifiers_count,
+                                           modifiers, NULL, &modifiers_count);
+
+      struct pipe_video_buffer *buf =
+         si_video_buffer_create_with_modifiers(pipe, &vidbuf, modifiers, modifiers_count);
+      free(modifiers);
+      return buf;
+   }
+
+   uint64_t mod = DRM_FORMAT_MOD_LINEAR;
    if (pipe->screen->resource_create_with_modifiers) {
       modifiers = &mod;
       modifiers_count = 1;
    }
+   vidbuf.bind |= PIPE_BIND_LINEAR;
 
-   return vl_video_buffer_create_as_resource(pipe, &vidbuf, modifiers,
-                                             modifiers_count);
-}
-
-struct pipe_video_buffer *si_video_buffer_create_with_modifiers(struct pipe_context *pipe,
-                                                                const struct pipe_video_buffer *tmpl,
-                                                                const uint64_t *modifiers,
-                                                                unsigned int modifiers_count)
-{
-   uint64_t *allowed_modifiers;
-   unsigned int allowed_modifiers_count, i;
-
-   /* Filter out DCC modifiers, because we don't support them for video
-    * for now. */
-   allowed_modifiers = calloc(modifiers_count, sizeof(uint64_t));
-   if (!allowed_modifiers)
-      return NULL;
-
-   allowed_modifiers_count = 0;
-   for (i = 0; i < modifiers_count; i++) {
-      if (ac_modifier_has_dcc(modifiers[i]))
-         continue;
-      allowed_modifiers[allowed_modifiers_count++] = modifiers[i];
-   }
-
-   struct pipe_video_buffer *buf =
-      vl_video_buffer_create_as_resource(pipe, tmpl, allowed_modifiers, allowed_modifiers_count);
-   free(allowed_modifiers);
-   return buf;
+   return vl_video_buffer_create_as_resource(pipe, &vidbuf, modifiers, modifiers_count);
 }
 
 /* set the decoding target buffer offsets */

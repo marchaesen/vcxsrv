@@ -106,7 +106,7 @@ agx_nir_wrap_per_sample_loop(nir_shader *shader, uint8_t nr_samples)
    nir_pop_loop(&b, loop);
 
    /* We've mucked about with control flow */
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    /* Use the loop variable for the active sampple mask each iteration */
    nir_shader_intrinsics_pass(shader, lower_active_samples,

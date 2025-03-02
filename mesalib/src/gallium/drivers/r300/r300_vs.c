@@ -223,8 +223,7 @@ void r300_translate_vertex_shader(struct r300_context *r300,
     r300_tgsi_to_rc(&ttr, shader->state.tokens);
 
     if (ttr.error) {
-        fprintf(stderr, "r300 VP: Cannot translate a shader. "
-                "Corresponding draws will be skipped.\n");
+        vs->error = strdup("Cannot translate shader from TGSI");
         vs->dummy = true;
         return;
     }
@@ -243,9 +242,7 @@ void r300_translate_vertex_shader(struct r300_context *r300,
     /* Invoke the compiler */
     r3xx_compile_vertex_program(&compiler);
     if (compiler.Base.Error) {
-        fprintf(stderr, "r300 VP: Compiler error:\n%sCorresponding draws will be"
-                " skipped.\n", compiler.Base.ErrorMsg);
-
+        vs->error = strdup(compiler.Base.ErrorMsg);
         rc_destroy(&compiler.Base);
         vs->dummy = true;
         return;

@@ -247,12 +247,8 @@ clc_lower_printf_base(nir_shader *nir, unsigned uav_id)
          }
       }
 
-      if (progress)
-         nir_metadata_preserve(impl, nir_metadata_loop_analysis |
-                                     nir_metadata_block_index |
-                                     nir_metadata_dominance);
-      else
-         nir_metadata_preserve(impl, nir_metadata_all);
+      nir_progress(progress, impl,
+                   nir_metadata_loop_analysis | nir_metadata_block_index | nir_metadata_dominance);
    }
 
    return printf_var != NULL;

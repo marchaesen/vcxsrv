@@ -608,7 +608,7 @@ impl Device {
 
     fn fill_extensions(&mut self) {
         let mut exts_str: Vec<String> = Vec::new();
-        let mut exts = PLATFORM_EXTENSIONS.to_vec();
+        let mut exts = Vec::new();
         let mut feats = Vec::new();
         let mut spirv_exts = Vec::new();
         let mut add_ext = |major, minor, patch, ext: &str| {
@@ -623,18 +623,26 @@ impl Device {
         };
 
         // add extensions all drivers support for now
+        add_ext(1, 0, 0, "cl_khr_byte_addressable_store");
+        add_ext(1, 0, 0, "cl_khr_create_command_queue");
+        add_ext(1, 0, 0, "cl_khr_expect_assume");
+        add_ext(1, 0, 0, "cl_khr_extended_versioning");
         add_ext(1, 0, 0, "cl_khr_global_int32_base_atomics");
         add_ext(1, 0, 0, "cl_khr_global_int32_extended_atomics");
+        add_ext(1, 0, 0, "cl_khr_il_program");
+        add_ext(1, 0, 0, "cl_khr_local_int32_base_atomics");
+        add_ext(1, 0, 0, "cl_khr_local_int32_extended_atomics");
         add_ext(2, 0, 0, "cl_khr_integer_dot_product");
+        add_ext(1, 0, 0, "cl_khr_spirv_no_integer_wrap_decoration");
+        add_ext(1, 0, 0, "cl_khr_suggested_local_work_size");
+
+        add_feat(2, 0, 0, "__opencl_c_integer_dot_product_input_4x8bit");
         add_feat(
             2,
             0,
             0,
             "__opencl_c_integer_dot_product_input_4x8bit_packed",
         );
-        add_feat(2, 0, 0, "__opencl_c_integer_dot_product_input_4x8bit");
-        add_ext(1, 0, 0, "cl_khr_local_int32_base_atomics");
-        add_ext(1, 0, 0, "cl_khr_local_int32_extended_atomics");
 
         add_spirv(c"SPV_KHR_expect_assume");
         add_spirv(c"SPV_KHR_float_controls");
@@ -715,7 +723,7 @@ impl Device {
 
         self.extensions = exts;
         self.clc_features = feats;
-        self.extension_string = format!("{} {}", PLATFORM_EXTENSION_STR, exts_str.join(" "));
+        self.extension_string = exts_str.join(" ");
         self.spirv_extensions = spirv_exts;
     }
 

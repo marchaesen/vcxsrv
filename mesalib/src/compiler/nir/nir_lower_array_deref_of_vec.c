@@ -131,14 +131,8 @@ nir_lower_array_deref_of_vec_impl(nir_function_impl *impl,
       }
    }
 
-   if (progress) {
-      /* indirect store lower will change control flow */
-      nir_metadata_preserve(impl, has_indirect_store ? nir_metadata_none : nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl,
+                       has_indirect_store ? nir_metadata_none : nir_metadata_control_flow);
 }
 
 /* Lowers away array dereferences on vectors

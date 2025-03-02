@@ -483,8 +483,7 @@ static void r300_translate_fragment_shader(
     }
 
     if (ttr.error) {
-        fprintf(stderr, "r300 FP: Cannot translate a shader. "
-                "Using a dummy shader instead.\n");
+        shader->error = strdup("Cannot translate a shader from TGSI.");
         r300_dummy_fragment_shader(r300, shader);
         return;
     }
@@ -514,8 +513,7 @@ static void r300_translate_fragment_shader(
     r3xx_compile_fragment_program(&compiler);
 
     if (compiler.Base.Error) {
-        fprintf(stderr, "r300 FP: Compiler Error:\n%sUsing a dummy shader"
-                " instead.\n", compiler.Base.ErrorMsg);
+        shader->error = strdup(compiler.Base.ErrorMsg);
 
         if (shader->dummy) {
             fprintf(stderr, "r300 FP: Cannot compile the dummy shader! "

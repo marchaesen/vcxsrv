@@ -593,8 +593,7 @@ create_entry(void *mem_ctx,
    entry->info = info;
    entry->is_store = entry->info->value_src >= 0;
    entry->num_components =
-      entry->is_store ? intrin->num_components :
-                        nir_def_last_component_read(&intrin->def) + 1;
+      entry->is_store ? intrin->num_components : nir_def_last_component_read(&intrin->def) + 1;
 
    if (entry->info->deref_src >= 0) {
       entry->deref = nir_src_as_deref(intrin->src[entry->info->deref_src]);
@@ -789,11 +788,11 @@ vectorize_loads(nir_builder *b, struct vectorize_ctx *ctx,
    nir_def *high_undef = nir_undef(b, old_high_num_components, old_high_bit_size);
 
    nir_def *low_def = nir_extract_bits(
-      b, (nir_def*[]){data, low_undef}, 2, 0, old_low_num_components,
+      b, (nir_def *[]){ data, low_undef }, 2, 0, old_low_num_components,
       old_low_bit_size);
 
    nir_def *high_def = nir_extract_bits(
-      b, (nir_def*[]){data, high_undef}, 2, high_start,
+      b, (nir_def *[]){ data, high_undef }, 2, high_start,
       old_high_num_components, old_high_bit_size);
 
    /* convert booleans */
@@ -1400,8 +1399,10 @@ vectorize_sorted_entries(struct vectorize_ctx *ctx, nir_function_impl *impl,
           */
          unsigned max_hole =
             first->is_store ||
-            (ctx->options->has_shared2_amd &&
-             get_variable_mode(first) == nir_var_mem_shared) ? 0 : 28;
+                  (ctx->options->has_shared2_amd &&
+                   get_variable_mode(first) == nir_var_mem_shared)
+               ? 0
+               : 28;
          unsigned low_size = get_bit_size(low) / 8u * low->num_components;
          bool separate = diff > max_hole + low_size;
 
@@ -1625,9 +1626,8 @@ nir_opt_load_store_vectorize(nir_shader *shader, const nir_load_store_vectorize_
       nir_foreach_block(block, impl)
          progress |= process_block(impl, ctx, block);
 
-      nir_metadata_preserve(impl,
-                            nir_metadata_control_flow |
-                            nir_metadata_live_defs);
+      nir_progress(true, impl,
+                   nir_metadata_control_flow | nir_metadata_live_defs);
    }
 
    ralloc_free(ctx);
@@ -1659,6 +1659,7 @@ nir_opt_load_store_update_alignments(nir_shader *shader)
    return nir_shader_intrinsics_pass(shader,
                                      opt_load_store_update_alignments_callback,
                                      nir_metadata_control_flow |
-                                     nir_metadata_live_defs |
-                                     nir_metadata_instr_index, NULL);
+                                        nir_metadata_live_defs |
+                                        nir_metadata_instr_index,
+                                     NULL);
 }

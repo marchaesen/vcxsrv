@@ -2170,7 +2170,7 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
    if (chain->base.image_info.explicit_sync) {
       for (uint32_t i = 0; i < WSI_ES_COUNT; i++) {
          image->dri3_syncobj[i] = xcb_generate_id(chain->conn);
-         int fd = dup(image->base.explicit_sync[i].fd);
+         int fd = os_dupfd_cloexec(image->base.explicit_sync[i].fd);
          if (fd < 0)
             goto fail_image;
 

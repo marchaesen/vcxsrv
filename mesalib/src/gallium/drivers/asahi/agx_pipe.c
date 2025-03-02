@@ -54,17 +54,9 @@
 #include "agx_tilebuffer.h"
 #include "shader_enums.h"
 
-/* Fake values, pending UAPI upstreaming */
-#ifndef DRM_FORMAT_MOD_APPLE_TWIDDLED
-#define DRM_FORMAT_MOD_APPLE_TWIDDLED (2)
-#endif
-#ifndef DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED
-#define DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED (3)
-#endif
-
 uint64_t agx_best_modifiers[] = {
-   DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED,
-   DRM_FORMAT_MOD_APPLE_TWIDDLED,
+   DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED,
+   DRM_FORMAT_MOD_APPLE_GPU_TILED,
    DRM_FORMAT_MOD_LINEAR,
 };
 
@@ -90,8 +82,7 @@ void agx_init_state_functions(struct pipe_context *ctx);
 
 const static char *s_tiling[] = {
    [AIL_TILING_LINEAR] = "LINR",
-   [AIL_TILING_TWIDDLED] = "TWID",
-   [AIL_TILING_TWIDDLED_COMPRESSED] = "COMP",
+   [AIL_TILING_GPU] = "GPU",
 };
 
 #define rsrc_debug(res, ...)                                                   \
@@ -114,12 +105,13 @@ agx_resource_debug(struct agx_resource *res, const char *msg)
    }
 
    agx_msg(
-      "%s%s %dx%dx%d %dL %d/%dM %dS M:%llx %s %s%s S:0x%llx LS:0x%llx CS:0x%llx "
+      "%s%s %dx%dx%d %dL %d/%dM %dS M:%llx %s%s %s%s S:0x%llx LS:0x%llx CS:0x%llx "
       "Base=0x%llx Size=0x%llx Meta=0x%llx/0x%llx (%s) %s%s%s%s%s%sfd:%d(%d) B:%x @ %p\n",
       msg ?: "", util_format_short_name(res->base.format), res->base.width0,
       res->base.height0, res->base.depth0, res->base.array_size,
       res->base.last_level, res->layout.levels, res->layout.sample_count_sa,
       (long long)res->modifier, s_tiling[res->layout.tiling],
+      res->layout.compressed ? " COMP" : "",
       res->layout.mipmapped_z ? "MZ " : "",
       res->layout.page_aligned_layers ? "PL " : "",
       (long long)res->layout.linear_stride_B,
@@ -146,6 +138,7 @@ agx_resource_setup(struct agx_device *dev, struct agx_resource *nresource)
 
    nresource->layout = (struct ail_layout){
       .tiling = ail_drm_modifier_to_tiling(nresource->modifier),
+      .compressed = ail_is_drm_modifier_compressed(nresource->modifier),
       .mipmapped_z = templ->target == PIPE_TEXTURE_3D,
       .format = templ->format,
       .width_px = templ->width0,
@@ -431,13 +424,13 @@ agx_select_modifier_from_list(const struct agx_resource *pres,
                               const uint64_t *modifiers, int count)
 {
    if (agx_twiddled_allowed(pres) && agx_compression_allowed(pres) &&
-       drm_find_modifier(DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED, modifiers,
+       drm_find_modifier(DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED, modifiers,
                          count))
-      return DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED;
+      return DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED;
 
    if (agx_twiddled_allowed(pres) &&
-       drm_find_modifier(DRM_FORMAT_MOD_APPLE_TWIDDLED, modifiers, count))
-      return DRM_FORMAT_MOD_APPLE_TWIDDLED;
+       drm_find_modifier(DRM_FORMAT_MOD_APPLE_GPU_TILED, modifiers, count))
+      return DRM_FORMAT_MOD_APPLE_GPU_TILED;
 
    if (agx_linear_allowed(pres) &&
        drm_find_modifier(DRM_FORMAT_MOD_LINEAR, modifiers, count))
@@ -467,9 +460,9 @@ agx_select_best_modifier(const struct agx_resource *pres)
 
    if (agx_twiddled_allowed(pres)) {
       if (agx_compression_allowed(pres))
-         return DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED;
+         return DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED;
       else
-         return DRM_FORMAT_MOD_APPLE_TWIDDLED;
+         return DRM_FORMAT_MOD_APPLE_GPU_TILED;
    }
 
    if (agx_linear_allowed(pres))
@@ -510,7 +503,7 @@ agx_resource_create_with_modifiers(struct pipe_screen *screen,
     * inferring the shader image flag. Do so to avoid reallocation in case the
     * resource is later used as an image.
     */
-   if (nresource->modifier != DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED &&
+   if (nresource->modifier != DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED &&
        templ->depth0 == 1) {
 
       nresource->base.bind |= PIPE_BIND_SHADER_IMAGE;
@@ -1167,7 +1160,7 @@ void
 agx_decompress(struct agx_context *ctx, struct agx_resource *rsrc,
                const char *reason)
 {
-   if (rsrc->layout.tiling == AIL_TILING_TWIDDLED_COMPRESSED) {
+   if (rsrc->layout.compressed) {
       perf_debug_ctx(ctx, "Decompressing resource due to %s", reason);
    } else if (!rsrc->layout.writeable_image) {
       perf_debug_ctx(ctx, "Reallocating image due to %s", reason);
@@ -1322,7 +1315,7 @@ agx_cmdbuf(struct agx_device *dev, struct drm_asahi_cmd_render *c,
 
             assert(zres->layout.tiling != AIL_TILING_LINEAR && "must tile");
 
-            if (ail_is_compressed(&zres->layout)) {
+            if (zres->layout.compressed) {
                c->depth_meta_buffer_load =
                   agx_map_texture_gpu(zres, 0) +
                   zres->layout.metadata_offset_B +
@@ -1383,7 +1376,7 @@ agx_cmdbuf(struct agx_device *dev, struct drm_asahi_cmd_render *c,
             c->stencil_buffer_store_stride = c->stencil_buffer_load_stride;
             c->stencil_buffer_partial_stride = c->stencil_buffer_load_stride;
 
-            if (ail_is_compressed(&sres->layout)) {
+            if (sres->layout.compressed) {
                c->stencil_meta_buffer_load =
                   agx_map_texture_gpu(sres, 0) +
                   sres->layout.metadata_offset_B +

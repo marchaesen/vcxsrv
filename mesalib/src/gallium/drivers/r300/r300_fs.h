@@ -40,6 +40,8 @@ struct r300_fragment_shader_code {
 
     bool write_all;
 
+    /* Error message in case compilation failed. */
+    char *error;
 };
 
 struct r300_fragment_shader {

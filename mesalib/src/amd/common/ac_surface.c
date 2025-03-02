@@ -260,6 +260,10 @@ bool ac_is_modifier_supported(const struct radeon_info *info,
    if (info->gfx_level < GFX9 && util_format_get_num_planes(format) > 1)
       return false;
 
+   /* Tiling doesn't work with the 422 (SUBSAMPLED) formats. */
+   if (util_format_is_subsampled_422(format))
+      return false;
+
    uint32_t allowed_swizzles = 0xFFFFFFFF;
    switch(info->gfx_level) {
    case GFX9:
@@ -284,8 +288,7 @@ bool ac_is_modifier_supported(const struct radeon_info *info,
       return false;
 
    if (ac_modifier_has_dcc(modifier)) {
-      /* TODO: support multi-planar formats with DCC */
-      if (util_format_get_num_planes(format) > 1)
+      if (info->gfx_level < GFX12 && util_format_get_num_planes(format) > 1)
          return false;
 
       if (!info->has_graphics)

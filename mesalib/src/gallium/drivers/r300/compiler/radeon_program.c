@@ -64,7 +64,7 @@ rc_find_free_temporary(struct radeon_compiler *c)
 
    c->max_temp_index++;
    if (c->max_temp_index > RC_REGISTER_MAX_INDEX) {
-      rc_error(c, "Ran out of temporary registers\n");
+      rc_error(c, "Ran out of temporary registers");
       return 0;
    }
    return c->max_temp_index;

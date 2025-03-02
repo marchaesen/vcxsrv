@@ -123,6 +123,7 @@ ppir_liveness_instr_srcs(ppir_compiler *comp, ppir_instr *instr)
 static void
 ppir_liveness_instr_dest(ppir_compiler *comp, ppir_instr *instr, ppir_instr *last)
 {
+   int dest_count = 0;
    for (int i = PPIR_INSTR_SLOT_NUM-1; i >= 0; i--) {
       ppir_node *node = instr->slots[i];
       if (!node)
@@ -143,21 +144,14 @@ ppir_liveness_instr_dest(ppir_compiler *comp, ppir_instr *instr, ppir_instr *las
       if (!reg || reg->undef)
          continue;
 
+      dest_count++;
       unsigned int index = reg->regalloc_index;
       bool live = BITSET_TEST(instr->live_set, index);
 
-      /* If it's an out reg, it's alive till the end of the block, so add it
-       * to live_set of the last instruction */
-      if (!live && reg->out_reg && (instr != last)) {
-         BITSET_SET(last->live_set, index);
-         BITSET_CLEAR(instr->live_set, index);
-         continue;
-      }
-
       /* If a register is written but wasn't read in a later instruction, it is
-       * either an output register in last instruction, dead code or a bug.
-       * For now, assign an interference to it to ensure it doesn't get assigned
-       * a live register and overwrites it. */
+       * likely consumed in the current instruction, dead code (which should have
+       * been eliminated by DCE pass) or a bug. Assign an interference to it to
+       * ensure it doesn't get assigned a live register and overwrites it. */
       if (!live) {
          BITSET_SET(instr->live_internal, index);
          continue;
@@ -181,6 +175,35 @@ ppir_liveness_instr_dest(ppir_compiler *comp, ppir_instr *instr, ppir_instr *las
             BITSET_CLEAR(instr->live_set, index);
          }
       }
+   }
+   if (dest_count < 2)
+      return;
+
+   /* If we have more than one write, mark all write dests as conflicting,
+    * otherwise regalloc may assign the same register to them
+    */
+   for (int i = PPIR_INSTR_SLOT_NUM-1; i >= 0; i--) {
+      ppir_node *node = instr->slots[i];
+      if (!node)
+         continue;
+
+      switch(node->op) {
+         case ppir_op_const:
+         case ppir_op_undef:
+            continue;
+         default:
+            break;
+      }
+
+      ppir_dest *dest = ppir_node_get_dest(node);
+      if (!dest || dest->type == ppir_target_pipeline)
+         continue;
+      ppir_reg *reg = ppir_dest_get_reg(dest);
+      if (!reg || reg->undef)
+         continue;
+
+      unsigned int index = reg->regalloc_index;
+      BITSET_SET(instr->live_internal, index);
    }
 }
 

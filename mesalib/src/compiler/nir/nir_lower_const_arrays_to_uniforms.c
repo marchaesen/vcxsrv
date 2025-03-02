@@ -406,7 +406,7 @@ nir_lower_const_arrays_to_uniforms(nir_shader *shader,
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 
    ralloc_free(var_infos);
    _mesa_hash_table_destroy(const_array_vars, NULL);

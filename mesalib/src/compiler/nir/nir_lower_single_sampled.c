@@ -115,7 +115,7 @@ nir_lower_single_sampled(nir_shader *shader)
                 SYSTEM_VALUE_BARYCENTRIC_LINEAR_CENTROID);
 
    return nir_shader_intrinsics_pass(shader, lower_single_sampled_instr,
-                                       nir_metadata_control_flow,
-                                       NULL) ||
+                                     nir_metadata_control_flow,
+                                     NULL) ||
           progress;
 }

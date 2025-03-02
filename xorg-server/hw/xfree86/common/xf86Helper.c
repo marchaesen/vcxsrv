@@ -1304,7 +1304,8 @@ xf86MatchDevice(const char *drivername, GDevPtr ** sectlist)
      */
     for (j = 0; xf86ConfigLayout.screens[j].screen != NULL; j++) {
         screensecptr = xf86ConfigLayout.screens[j].screen;
-        if ((screensecptr->device->driver != NULL)
+        if ((screensecptr->device != NULL)
+            && (screensecptr->device->driver != NULL)
             && (xf86NameCmp(screensecptr->device->driver, drivername) == 0)
             && (!screensecptr->device->claimed)) {
             /*

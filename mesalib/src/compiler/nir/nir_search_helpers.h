@@ -578,6 +578,18 @@ is_only_used_as_float_impl(const nir_alu_instr *instr, unsigned depth)
             default:
                break;
             }
+         } else if (user_instr->type == nir_instr_type_tex) {
+            const nir_tex_instr *tex = nir_instr_as_tex(user_instr);
+            const nir_tex_src *tex_src = container_of(src, nir_tex_src, src);
+
+            /* These have unknown type. */
+            if (tex_src->src_type == nir_tex_src_backend1 ||
+                tex_src->src_type == nir_tex_src_backend2)
+               return false;
+
+            unsigned idx = tex_src - tex->src;
+            if (nir_tex_instr_src_type(tex, idx) == nir_type_float)
+               continue;
          }
          return false;
       }
@@ -595,7 +607,9 @@ is_only_used_as_float_impl(const nir_alu_instr *instr, unsigned depth)
        * in SSA. However, we limit the search depth regardless to avoid stack
        * overflows in patholgical shaders and to reduce the worst-case time.
        */
-      if (user_alu->op == nir_op_bcsel && index != 0 && depth < 8) {
+      bool is_mov = (user_alu->op == nir_op_bcsel && index != 0) ||
+                    nir_op_is_vec_or_mov(user_alu->op);
+      if (is_mov && depth < 8) {
          if (is_only_used_as_float_impl(user_alu, depth + 1))
             continue;
       }

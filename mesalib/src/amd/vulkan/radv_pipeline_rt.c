@@ -353,10 +353,7 @@ move_rt_instructions(nir_shader *shader)
       }
    }
 
-   if (progress)
-      nir_metadata_preserve(nir_shader_get_entrypoint(shader), nir_metadata_control_flow);
-
-   return progress;
+   return nir_progress(progress, nir_shader_get_entrypoint(shader), nir_metadata_control_flow);
 }
 
 static VkResult
@@ -442,8 +439,9 @@ radv_rt_nir_to_asm(struct radv_device *device, struct vk_pipeline_cache *cache,
 
    bool dump_shader = radv_can_dump_shader(device, shaders[0]);
    bool dump_nir = dump_shader && (instance->debug_flags & RADV_DEBUG_DUMP_NIR);
-   bool replayable =
-      pipeline->base.base.create_flags & VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR;
+   bool replayable = (pipeline->base.base.create_flags &
+                      VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR) &&
+                     stage->stage != MESA_SHADER_INTERSECTION;
 
    if (dump_shader) {
       simple_mtx_lock(&instance->shader_dump_mtx);
@@ -604,7 +602,11 @@ radv_rt_compile_shaders(struct radv_device *device, struct vk_pipeline_cache *ca
 
    bool library = pipeline->base.base.create_flags & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR;
 
-   bool monolithic = !library;
+   /* Beyond 50 shader stages, inlining everything bloats the shader a ton, increasing compile times and
+    * potentially even reducing runtime performance because of instruction cache coherency issues in the
+    * traversal loop.
+    */
+   bool monolithic = !library && pipeline->stage_count < 50;
    for (uint32_t i = 0; i < pCreateInfo->stageCount; i++) {
       if (rt_stages[i].shader || rt_stages[i].nir)
          continue;

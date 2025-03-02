@@ -290,8 +290,7 @@ ail_make_miptree(struct ail_layout *layout)
       assert(layout->sample_count_sa >= 1 && "Invalid sample count");
    }
 
-   assert(!(layout->writeable_image &&
-            layout->tiling == AIL_TILING_TWIDDLED_COMPRESSED) &&
+   assert(!(layout->writeable_image && layout->compressed) &&
           "Writeable images must not be compressed");
 
    /* Hardware strides are based on the maximum number of levels, so always
@@ -313,15 +312,15 @@ ail_make_miptree(struct ail_layout *layout)
    case AIL_TILING_LINEAR:
       ail_initialize_linear(layout);
       break;
-   case AIL_TILING_TWIDDLED:
+   case AIL_TILING_GPU:
       ail_initialize_twiddled(layout);
-      break;
-   case AIL_TILING_TWIDDLED_COMPRESSED:
-      ail_initialize_twiddled(layout);
-      ail_initialize_compression(layout);
       break;
    default:
       unreachable("Unsupported tiling");
+   }
+
+   if (layout->compressed) {
+      ail_initialize_compression(layout);
    }
 
    ail_initialize_sparse_table(layout);

@@ -297,7 +297,7 @@ d3d12_lower_point_sprite(nir_shader *shader,
          }
       }
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    util_dynarray_fini(&state.output_writes);

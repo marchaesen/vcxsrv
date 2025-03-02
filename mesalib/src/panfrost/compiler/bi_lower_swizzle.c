@@ -108,6 +108,7 @@ lower_swizzle(bi_context *ctx, bi_instr *ins, unsigned src)
          break;
 
    /* No swizzles supported */
+   case BI_OPCODE_LDEXP_V2F16:
    case BI_OPCODE_HADD_V4U8:
    case BI_OPCODE_HADD_V4S8:
    case BI_OPCODE_CLZ_V4U8:

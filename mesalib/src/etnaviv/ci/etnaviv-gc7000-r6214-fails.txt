@@ -1,3 +1,4 @@
+dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgb_half_float_oes,Fail
 dEQP-GLES2.functional.fbo.render.color_clear.rbo_rgba4_depth_component16,Fail
 dEQP-GLES2.functional.fbo.render.color_clear.rbo_rgba4_stencil_index8,Fail
 dEQP-GLES2.functional.fbo.render.color_clear.rbo_rgba4,Fail
@@ -6,6 +7,16 @@ dEQP-GLES2.functional.fragment_ops.random.36,Fail
 dEQP-GLES2.functional.rasterization.primitives.lines_wide,Fail
 dEQP-GLES2.functional.shaders.builtin_variable.fragcoord_w,Fail
 dEQP-GLES2.functional.shaders.builtin_variable.fragcoord_xyz,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_float_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_int_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_ivec2_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_ivec3_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_ivec4_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_vec2_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_vec3_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_vec4_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.sequence.no_side_effects.highp_bool_vec2_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.sequence.side_effects.highp_bool_vec2_fragment,Fail
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_clamp,Fail
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_mirror,Fail
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_repeat,Fail

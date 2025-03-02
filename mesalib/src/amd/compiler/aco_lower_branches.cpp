@@ -135,6 +135,18 @@ try_remove_simple_block(branch_ctx& ctx, Block& block)
    block.instructions.clear();
 }
 
+bool
+instr_uses_reg(aco_ptr<Instruction>& instr, PhysReg reg, uint32_t size)
+{
+   auto intersects = [=](auto src) -> bool
+   { return src.physReg() + src.size() > reg && reg + size > src.physReg(); };
+
+   return std::any_of(instr->definitions.begin(), instr->definitions.end(),
+                      [=](Definition def) { return intersects(def); }) ||
+          std::any_of(instr->operands.begin(), instr->operands.end(),
+                      [=](Operand op) { return intersects(op); });
+}
+
 void
 try_merge_break_with_continue(branch_ctx& ctx, Block& block)
 {
@@ -199,11 +211,28 @@ try_merge_break_with_continue(branch_ctx& ctx, Block& block)
    if (execwrite->opcode != bld.w64or32(Builder::s_mov) || !execwrite->writes_exec())
       return;
 
-   Instruction* execsrc = block.instructions[block.instructions.size() - 2].get();
-   if (execsrc->opcode != bld.w64or32(Builder::s_andn2) ||
-       execsrc->definitions[0].physReg() != execwrite->operands[0].physReg() ||
-       execsrc->operands[0].physReg() != execwrite->operands[0].physReg() ||
-       execsrc->operands[1].physReg() != exec)
+   /* break block: find s_andn2 */
+   PhysReg exec_temp = execwrite->operands[0].physReg();
+   Instruction* execsrc = nullptr;
+   for (auto rit = block.instructions.rbegin(); rit != block.instructions.rend(); ++rit) {
+      aco_ptr<Instruction>& instr = *rit;
+      if (instr->opcode == bld.w64or32(Builder::s_andn2) &&
+          instr->definitions[0].physReg() == exec_temp &&
+          instr->operands[0].physReg() == exec_temp && instr->operands[1].physReg() == exec) {
+         execsrc = instr.release();
+         block.instructions.erase(std::next(rit).base());
+         break;
+      }
+
+      /* There might be copies for phis after the execsrc instructions,
+       * but these must not read / write the same register.
+       */
+      if (instr->writes_exec() || instr_uses_reg(instr, exec_temp, bld.lm.size()) ||
+          instr_uses_reg(instr, scc, s1))
+         break;
+   }
+
+   if (execsrc == nullptr)
       return;
 
    /* Use conditional branch in merge block. */
@@ -235,9 +264,8 @@ try_merge_break_with_continue(branch_ctx& ctx, Block& block)
       merge.instructions[0].reset(wr_exec);
    } else {
       /* Move s_andn2 to the merge block. */
-      merge.instructions.emplace(merge.instructions.begin(), std::move(block.instructions.back()));
+      merge.instructions.emplace(merge.instructions.begin(), execsrc);
    }
-   block.instructions.pop_back();
    ctx.blocks_incoming_exec_used[merge.index] = true;
 }
 

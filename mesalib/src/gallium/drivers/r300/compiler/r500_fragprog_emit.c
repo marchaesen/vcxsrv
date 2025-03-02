@@ -159,7 +159,7 @@ translate_alu_result_op(struct r300_fragment_program_compiler *c, rc_compare_fun
    case RC_COMPARE_FUNC_GEQUAL: return R500_INST_ALU_RESULT_OP_GE;
    case RC_COMPARE_FUNC_NOTEQUAL: return R500_INST_ALU_RESULT_OP_NE;
    default:
-      rc_error(&c->Base, "%s: unsupported compare func %i\n", __func__, func);
+      rc_error(&c->Base, "%s: unsupported compare func %i", __func__, func);
       return 0;
    }
 }
@@ -569,7 +569,7 @@ emit_flowcontrol(struct emit_state *s, struct rc_instruction *inst)
       s->CurrentBranchDepth--;
       break;
    default:
-      rc_error(s->C, "%s: unknown opcode %s\n", __func__,
+      rc_error(s->C, "%s: unknown opcode %s", __func__,
                rc_get_opcode_info(inst->U.I.Opcode)->Name);
    }
 }
@@ -607,7 +607,7 @@ r500BuildFragmentProgramHwCode(struct radeon_compiler *c, void *user)
    }
 
    if (code->max_temp_idx >= compiler->Base.max_temp_regs)
-      rc_error(&compiler->Base, "Too many hardware temporaries used\n");
+      rc_error(&compiler->Base, "Too many hardware temporaries used");
 
    if (compiler->Base.Error)
       return;

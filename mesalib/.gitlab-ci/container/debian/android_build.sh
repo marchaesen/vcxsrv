@@ -19,6 +19,8 @@ EPHEMERAL=(
 
 apt-get install -y --no-remove "${EPHEMERAL[@]}"
 
+. .gitlab-ci/container/container_pre_build.sh
+
 # Fetch the NDK and extract just the toolchain we want.
 ndk="android-ndk-${ANDROID_NDK_VERSION}"
 curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
@@ -112,3 +114,5 @@ rm -rf $LIBELF_VERSION
 bash .gitlab-ci/container/build-android-x86_64-llvm.sh
 
 apt-get purge -y "${EPHEMERAL[@]}"
+
+. .gitlab-ci/container/container_post_build.sh

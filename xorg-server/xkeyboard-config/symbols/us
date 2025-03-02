@@ -618,7 +618,7 @@ partial alphanumeric_keys
 xkb_symbols "dvorak-mac" {
     name[Group1]= "English (Dvorak, Macintosh)";
 
-    key <TLDE> { [ grave, asciitilde, dead_grave, grave ] };
+    key <TLDE> { [ section, plusminus ] };
 
     key <AE01> { [            1,      exclam,          exclamdown,                U2044 ] };
     key <AE02> { [            2,          at,           trademark,             EuroSign ] };
@@ -658,7 +658,7 @@ xkb_symbols "dvorak-mac" {
     key <AC10> { [     s,          S,            ssharp,      Iacute ] };
     key <AC11> { [ minus, underscore,            endash,      emdash ] };
 
-    key <LSGT> { [ section, plusminus ] };
+    key <LSGT> { [ grave, asciitilde, dead_grave, grave ] };
     key <AB01> { [ semicolon, colon,       ellipsis,             Uacute ] };
     key <AB02> { [         q,     Q,             oe,                 OE ] };
     key <AB03> { [         j,     J,          U2206,        Ocircumflex ] };
@@ -734,8 +734,8 @@ xkb_symbols "mac" {
     key.type[group1]="FOUR_LEVEL";
 
     // Slightly improvised from http://homepage.mac.com/thgewecke/kblayout.jpg
-    key <LSGT> { [   section,  plusminus,       section,        plusminus ] };
-    key <TLDE> { [     grave, asciitilde,    dead_grave,        dead_horn ] };
+    key <TLDE> { [   section,  plusminus,       section,        plusminus ] };
+    key <LSGT> { [     grave, asciitilde,    dead_grave,        dead_horn ] };
     key <AE01> { [	   1,     exclam,    exclamdown,            U2044 ] };
     key <AE02> { [	   2,         at,     trademark,         EuroSign ] };
     key <AE03> { [	   3, numbersign,      sterling,            U2039 ] };

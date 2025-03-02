@@ -104,14 +104,15 @@ disk_cache_get_function_identifier(void *ptr, struct mesa_sha1 *ctx)
 #include "util/ralloc.h"
 #include "util/rand_xor.h"
 
-/* Create a directory named 'path' if it does not already exist.
- * This is for use by mkdir_with_parents_if_needed(). Use that instead.
+/* Check if directory exists or if mkdir_if_needed param is set create a
+ * directory named 'path' if it does not already exist.
+ * This is for use by find_or_create_dir(). Use that instead.
  *
  * Returns: 0 if path already exists as a directory or if created.
  *         -1 in all other cases.
  */
 static int
-mkdir_if_needed(const char *path)
+find_or_mkdir_if_needed(const char *path, bool mkdir_if_needed)
 {
    struct stat sb;
 
@@ -128,6 +129,9 @@ mkdir_if_needed(const char *path)
       }
    }
 
+   if (!mkdir_if_needed)
+      return -1;
+
    int ret = mkdir(path, 0700);
    if (ret == 0 || (ret == -1 && errno == EEXIST))
      return 0;
@@ -138,14 +142,15 @@ mkdir_if_needed(const char *path)
    return -1;
 }
 
-/* Create a directory named 'path' if it does not already exist,
- * including parent directories if required.
+/* Check if directory exists or if mkdir param is set create a directory named
+ * 'path' if it does not already exist, including parent directories if
+ * required.
  *
  * Returns: 0 if path already exists as a directory or if created.
  *         -1 in all other cases.
  */
 static int
-mkdir_with_parents_if_needed(const char *path)
+find_or_create_dir(const char *path, bool mkdir_with_parents_if_needed)
 {
    char *p;
    const char *end;
@@ -164,7 +169,7 @@ mkdir_with_parents_if_needed(const char *path)
 
          *q = '\0';
 
-         if (mkdir_if_needed(p) == -1) {
+         if (find_or_mkdir_if_needed(p, mkdir_with_parents_if_needed) == -1) {
             free(p);
             return -1;
          }
@@ -178,22 +183,24 @@ mkdir_with_parents_if_needed(const char *path)
 }
 
 /* Concatenate an existing path and a new name to form a new path.  If the new
- * path does not exist as a directory, create it then return the resulting
- * name of the new path (ralloc'ed off of 'ctx').
+ * path does not exist as a directory, create it if the mkdir param is set
+ * then return the resulting name of the new path (ralloc'ed off of 'ctx').
  *
  * Returns NULL on any error, such as:
  *
  *      <path>/<name> exists but is not a directory
  *      <path>/<name> cannot be created as a directory
+ *      <path>/<name> does not exist and mkdir param is false
  */
 static char *
-concatenate_and_mkdir(void *ctx, const char *path, const char *name)
+concatenate_and_mkdir(void *ctx, const char *path, const char *name,
+                      bool mkdir)
 {
    char *new_path;
 
    new_path = ralloc_asprintf(ctx, "%s/%s", path, name);
 
-   if (mkdir_with_parents_if_needed(new_path) == 0)
+   if (find_or_create_dir(new_path, mkdir) == 0)
       return new_path;
 
    return NULL;
@@ -440,7 +447,7 @@ make_cache_file_directory(struct disk_cache *cache, const cache_key key)
    if (asprintf(&dir, "%s/%c%c", cache->path, buf[0], buf[1]) == -1)
       return;
 
-   mkdir_with_parents_if_needed(dir);
+   find_or_create_dir(dir, true);
    free(dir);
 }
 
@@ -882,13 +889,18 @@ disk_cache_write_item_to_disk(struct disk_cache_put_job *dc_job,
  *  - For DISK_CACHE_MULTI_FILE: mesa_shader_cache
  *  - For DISK_CACHE_SINGLE_FILE: mesa_shader_cache_sf
  *  - For DISK_CACHE_DATABASE: mesa_shader_cache_db
+ *
+ * If the mkdir param is set we create the directory if it doesn't already
+ * exist, if it does not exist and the param is false NULL will be returned.
  */
 char *
 disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
                               const char *driver_id,
                               const char *cache_dir_name_custom,
-                              enum disk_cache_type cache_type)
+                              enum disk_cache_type cache_type,
+                              bool mkdir)
 {
+
    char *cache_dir_name;
 
    if (cache_dir_name_custom) {
@@ -912,7 +924,7 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
    }
 
    if (path) {
-      path = concatenate_and_mkdir(mem_ctx, path, cache_dir_name);
+      path = concatenate_and_mkdir(mem_ctx, path, cache_dir_name, mkdir);
       if (!path)
          return NULL;
    }
@@ -921,7 +933,8 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
       char *xdg_cache_home = secure_getenv("XDG_CACHE_HOME");
 
       if (xdg_cache_home) {
-         path = concatenate_and_mkdir(mem_ctx, xdg_cache_home, cache_dir_name);
+         path = concatenate_and_mkdir(mem_ctx, xdg_cache_home, cache_dir_name,
+                                      mkdir);
          if (!path)
             return NULL;
       }
@@ -931,11 +944,11 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
       char *home = getenv("HOME");
 
       if (home) {
-         path = concatenate_and_mkdir(mem_ctx, home, ".cache");
+         path = concatenate_and_mkdir(mem_ctx, home, ".cache", mkdir);
          if (!path)
             return NULL;
 
-         path = concatenate_and_mkdir(mem_ctx, path, cache_dir_name);
+         path = concatenate_and_mkdir(mem_ctx, path, cache_dir_name, mkdir);
          if (!path)
             return NULL;
       }
@@ -967,21 +980,21 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
          }
       }
 
-      path = concatenate_and_mkdir(mem_ctx, pwd.pw_dir, ".cache");
+      path = concatenate_and_mkdir(mem_ctx, pwd.pw_dir, ".cache", mkdir);
       if (!path)
          return NULL;
 
-      path = concatenate_and_mkdir(mem_ctx, path, cache_dir_name);
+      path = concatenate_and_mkdir(mem_ctx, path, cache_dir_name, mkdir);
       if (!path)
          return NULL;
    }
 
    if (cache_type == DISK_CACHE_SINGLE_FILE) {
-      path = concatenate_and_mkdir(mem_ctx, path, driver_id);
+      path = concatenate_and_mkdir(mem_ctx, path, driver_id, mkdir);
       if (!path)
          return NULL;
 
-      path = concatenate_and_mkdir(mem_ctx, path, gpu_name);
+      path = concatenate_and_mkdir(mem_ctx, path, gpu_name, mkdir);
       if (!path)
          return NULL;
    }
@@ -1243,7 +1256,8 @@ void
 disk_cache_delete_old_cache(void)
 {
    void *ctx = ralloc_context(NULL);
-   char *dirname = disk_cache_generate_cache_dir(ctx, NULL, NULL, NULL, DISK_CACHE_MULTI_FILE);
+   char *dirname = disk_cache_generate_cache_dir(ctx, NULL, NULL, NULL,
+                                                 DISK_CACHE_MULTI_FILE, false);
    if (!dirname)
       goto finish;
 

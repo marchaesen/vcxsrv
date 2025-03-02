@@ -957,13 +957,11 @@ ac_nir_lower_ngg_gs(nir_shader *shader, const ac_nir_lower_ngg_options *options)
    ngg_gs_finale(b, &state);
 
    /* Take care of metadata and validation before calling other passes */
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
    nir_validate_shader(shader, "after emitting NGG GS");
 
    /* Cleanup */
    nir_lower_vars_to_ssa(shader);
    nir_remove_dead_variables(shader, nir_var_function_temp, NULL);
-   nir_metadata_preserve(impl, nir_metadata_none);
-
-   return true;
+   return nir_progress(true, impl, nir_metadata_none);
 }

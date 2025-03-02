@@ -91,7 +91,7 @@ rc_error(struct radeon_compiler *c, const char *fmt, ...)
 int
 rc_if_fail_helper(struct radeon_compiler *c, const char *file, int line, const char *assertion)
 {
-   rc_error(c, "ICE at %s:%i: assertion failed: %s\n", file, line, assertion);
+   rc_error(c, "ICE at %s:%i: assertion failed: %s", file, line, assertion);
    return 1;
 }
 
@@ -530,7 +530,7 @@ rc_validate_final_shader(struct radeon_compiler *c, void *user)
 {
    /* Check the number of constants. */
    if (c->Program.Constants.Count > c->max_constants) {
-      rc_error(c, "Too many constants. Max: %i, Got: %i\n", c->max_constants,
+      rc_error(c, "Too many constants. Max: %i, Got: %i", c->max_constants,
                c->Program.Constants.Count);
    }
 }

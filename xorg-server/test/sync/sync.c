@@ -124,19 +124,19 @@ test_set_counter(xcb_connection_t *c)
 static void
 test_change_counter_basic(xcb_connection_t *c)
 {
-    int iterations = 4;
-    xcb_sync_query_counter_cookie_t queries[iterations];
+#define T1_ITERATIONS 4
+    xcb_sync_query_counter_cookie_t queries[T1_ITERATIONS];
 
     xcb_sync_counter_t counter = xcb_generate_id(c);
     xcb_sync_create_counter(c, counter, sync_value(0));
 
-    for (int i = 0; i < iterations; i++) {
+    for (int i = 0; i < T1_ITERATIONS; i++) {
         xcb_sync_change_counter(c, counter, sync_value(i));
         queries[i] = xcb_sync_query_counter_unchecked(c, counter);
     }
 
     int64_t expected_value = 0;
-    for (int i = 0; i < iterations; i++) {
+    for (int i = 0; i < T1_ITERATIONS; i++) {
         expected_value += i;
         int64_t value = counter_value(c, queries[i]);
 
@@ -154,9 +154,9 @@ test_change_counter_basic(xcb_connection_t *c)
 static void
 test_change_counter_overflow(xcb_connection_t *c)
 {
-    int iterations = 4;
-    xcb_sync_query_counter_cookie_t queries[iterations];
-    xcb_void_cookie_t changes[iterations];
+#define T2_ITERATIONS 4
+    xcb_sync_query_counter_cookie_t queries[T2_ITERATIONS];
+    xcb_void_cookie_t changes[T2_ITERATIONS];
     static const struct {
         int64_t a, b;
     } overflow_args[] = {
@@ -260,9 +260,13 @@ test_change_alarm_delta(xcb_connection_t *c)
     xcb_sync_create_alarm(c, alarm, 0, NULL);
 
     for (int i = 0; i < ARRAY_SIZE(some_values); i++) {
-        uint32_t values[] = { some_values[i] >> 32, some_values[i] };
+        uint32_t mask = XCB_SYNC_CA_TEST_TYPE | XCB_SYNC_CA_DELTA;
+        uint32_t test_type = (some_values[i] >= 0 ?
+                               XCB_SYNC_TESTTYPE_POSITIVE_COMPARISON :
+                               XCB_SYNC_TESTTYPE_NEGATIVE_COMPARISON);
+        uint32_t values[] = { test_type, some_values[i] >> 32, some_values[i] };
 
-        xcb_sync_change_alarm(c, alarm, XCB_SYNC_CA_DELTA, values);
+        xcb_sync_change_alarm(c, alarm, mask, values);
         queries[i] = xcb_sync_query_alarm_unchecked(c, alarm);
     }
 

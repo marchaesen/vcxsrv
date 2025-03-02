@@ -126,7 +126,7 @@ panvk_per_arch(CreateDescriptorSetLayout)(
    VK_MULTIALLOC_DECL(&ma, struct panvk_sampler *, samplers,
                       immutable_sampler_count);
 
-   if (!vk_descriptor_set_layout_multizalloc(&device->vk, &ma)) {
+   if (!vk_descriptor_set_layout_multizalloc(&device->vk, &ma, pCreateInfo)) {
       free(bindings);
       return panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    }

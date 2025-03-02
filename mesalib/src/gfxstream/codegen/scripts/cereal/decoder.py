@@ -73,11 +73,8 @@ public:
              m_state(VkDecoderGlobalState::get()),
              m_vkStream(nullptr, m_state->getFeatures()),
              m_vkMemReadingStream(nullptr, m_state->getFeatures()),
-             m_boxedHandleUnwrapMapping(m_state),
              m_boxedHandleCreateMapping(m_state),
-             m_boxedHandleDestroyMapping(m_state),
-             m_boxedHandleUnwrapAndDeleteMapping(m_state),
-             m_boxedHandleUnwrapAndDeletePreserveBoxedMapping(m_state),
+             m_boxedHandleUnwrapMapping(m_state),
              m_prevSeqno(std::nullopt),
              m_queueSubmitWithCommandsEnabled(m_state->getFeatures().VulkanQueueSubmitWithCommands.enabled),
              m_snapshotsEnabled(m_state->snapshotsEnabled()) {}
@@ -98,12 +95,9 @@ private:
     VkDecoderGlobalState* m_state;
     %s m_vkStream;
     VulkanMemReadingStream m_vkMemReadingStream;
-    BoxedHandleUnwrapMapping m_boxedHandleUnwrapMapping;
     BoxedHandleCreateMapping m_boxedHandleCreateMapping;
-    BoxedHandleDestroyMapping m_boxedHandleDestroyMapping;
-    BoxedHandleUnwrapAndDeleteMapping m_boxedHandleUnwrapAndDeleteMapping;
+    BoxedHandleUnwrapMapping m_boxedHandleUnwrapMapping;
     android::base::BumpPool m_pool;
-    BoxedHandleUnwrapAndDeletePreserveBoxedMapping m_boxedHandleUnwrapAndDeletePreserveBoxedMapping;
     std::optional<uint32_t> m_prevSeqno;
     bool m_queueSubmitWithCommandsEnabled = false;
     const bool m_snapshotsEnabled = false;
@@ -745,6 +739,8 @@ custom_decodes = {
     "vkDestroySemaphore" : emit_global_state_wrapped_decoding,
 
     "vkCreateFence" : emit_global_state_wrapped_decoding,
+    "vkGetFenceStatus" : emit_global_state_wrapped_decoding,
+    "vkWaitForFences" : emit_global_state_wrapped_decoding,
     "vkResetFences" : emit_global_state_wrapped_decoding,
     "vkDestroyFence" : emit_global_state_wrapped_decoding,
 
@@ -835,9 +831,6 @@ size_t VkDecoder::Impl::decode(void* buf, size_t len, IOStream* ioStream,
         self.cgen.stmt("unsigned char *ptr = (unsigned char *)buf")
         self.cgen.stmt("const unsigned char* const end = (const unsigned char*)buf + len")
 
-        self.cgen.beginIf("m_forSnapshotLoad")
-        self.cgen.stmt("ptr += m_state->setCreatedHandlesForSnapshotLoad(ptr)");
-        self.cgen.endIf()
         self.cgen.line("while (end - ptr >= 8)")
         self.cgen.beginBlock() # while loop
 
@@ -985,10 +978,6 @@ size_t VkDecoder::Impl::decode(void* buf, size_t len, IOStream* ioStream,
         self.cgen.stmt("ptr += packetLen")
         self.cgen.stmt("vkStream->clearPool()")
         self.cgen.endBlock() # while loop
-
-        self.cgen.beginIf("m_forSnapshotLoad")
-        self.cgen.stmt("m_state->clearCreatedHandlesForSnapshotLoad()");
-        self.cgen.endIf()
 
         self.cgen.stmt("m_pool.freeAll()")
         self.cgen.stmt("return ptr - (unsigned char*)buf;")

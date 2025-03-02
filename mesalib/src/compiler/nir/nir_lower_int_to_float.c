@@ -297,11 +297,7 @@ nir_lower_int_to_float_impl(nir_function_impl *impl)
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
+   nir_progress(progress, impl, nir_metadata_control_flow);
 
    free(float_types);
    free(int_types);

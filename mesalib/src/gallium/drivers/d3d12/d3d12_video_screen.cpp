@@ -856,7 +856,8 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                                uint32_t &max_tile_rows,
                                uint32_t &max_tile_cols,
                                uint32_t &maxIRDuration,
-                               union pipe_enc_cap_roi &roi_support)
+                               union pipe_enc_cap_roi &roi_support,
+                               bool &bVideoEncodeRequiresTextureArray)
 {
    ComPtr<ID3D12VideoDevice3> spD3D12VideoDevice;
    struct d3d12_screen *pD3D12Screen = (struct d3d12_screen *) pscreen;
@@ -933,6 +934,7 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                                                                                  capEncoderSupportData1,
                                                                                  resolutionDepCaps,
                                                                                  maxQualityLevels);
+            bVideoEncodeRequiresTextureArray = (capEncoderSupportData1.SupportFlags & D3D12_VIDEO_ENCODER_SUPPORT_FLAG_RECONSTRUCTED_FRAMES_REQUIRE_TEXTURE_ARRAYS) != 0;
             if (supportedSliceStructures == PIPE_VIDEO_CAP_SLICE_STRUCTURE_NONE)
                maxSlices = 0;
             else
@@ -1212,6 +1214,7 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                                                                                     capEncoderSupportData1,
                                                                                     resolutionDepCaps,
                                                                                     maxQualityLevels);
+               bVideoEncodeRequiresTextureArray = (capEncoderSupportData1.SupportFlags & D3D12_VIDEO_ENCODER_SUPPORT_FLAG_RECONSTRUCTED_FRAMES_REQUIRE_TEXTURE_ARRAYS) != 0;
                if (supportedSliceStructures == PIPE_VIDEO_CAP_SLICE_STRUCTURE_NONE)
                   maxSlices = 0;
                else
@@ -1473,6 +1476,7 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                                                                                     capEncoderSupportData1,
                                                                                     resolutionDepCaps,
                                                                                     maxQualityLevels);
+               bVideoEncodeRequiresTextureArray = (capEncoderSupportData1.SupportFlags & D3D12_VIDEO_ENCODER_SUPPORT_FLAG_RECONSTRUCTED_FRAMES_REQUIRE_TEXTURE_ARRAYS) != 0;
                if (supportedSliceStructures == PIPE_VIDEO_CAP_SLICE_STRUCTURE_NONE)
                   maxSlices = 0;
                else
@@ -1776,6 +1780,7 @@ d3d12_screen_get_video_param_encode(struct pipe_screen *pscreen,
                                     enum pipe_video_entrypoint entrypoint,
                                     enum pipe_video_cap param)
 {
+   bool bVideoEncodeRequiresTextureArray = false;
    uint32_t maxLvlEncode = 0u;
    D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC minResEncode = {};
    D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC maxResEncode = {};
@@ -1866,7 +1871,8 @@ d3d12_screen_get_video_param_encode(struct pipe_screen *pscreen,
                                             max_tile_rows,
                                             max_tile_cols,
                                             maxIRDuration,
-                                            roi_support)) {
+                                            roi_support,
+                                            bVideoEncodeRequiresTextureArray)) {
 
             DXGI_FORMAT format = d3d12_convert_pipe_video_profile_to_dxgi_format(profile);
             auto pipeFmt = d3d12_get_pipe_format(format);
@@ -1992,6 +1998,48 @@ d3d12_screen_get_video_param_encode(struct pipe_screen *pscreen,
          debug_printf("[d3d12_screen_get_video_param] unknown video param: %d\n", param);
          return 0;
    }
+}
+
+bool
+d3d12_video_encode_requires_texture_array_dpb(struct d3d12_screen* pScreen, enum pipe_video_profile profile)
+{
+   bool bVideoEncodeRequiresTextureArray = false;
+   uint32_t maxLvlEncode = 0u;
+   D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC minResEncode = {};
+   D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC maxResEncode = {};
+   union pipe_enc_cap_surface_alignment alignResEncode = {};
+   uint32_t maxSlices = 0u;
+   uint32_t supportedSliceStructures = 0u;
+   uint32_t maxReferencesPerFrame = 0u;
+   uint32_t isRCMaxFrameSizeSupported = 0u;
+   uint32_t maxQualityLevels = 0u;
+   uint32_t max_tile_rows = 0u;
+   uint32_t max_tile_cols = 0u;
+   uint32_t maxIRDuration = 0u;
+   union pipe_enc_cap_roi roi_support = {};
+   struct d3d12_encode_codec_support codec_specific_support;
+   memset(&codec_specific_support, 0, sizeof(codec_specific_support));
+   if (d3d12_has_video_encode_support(&pScreen->base,
+                                      profile,
+                                      maxLvlEncode,
+                                      minResEncode,
+                                      maxResEncode,
+                                      alignResEncode,
+                                      maxSlices,
+                                      supportedSliceStructures,
+                                      maxReferencesPerFrame,
+                                      codec_specific_support,
+                                      isRCMaxFrameSizeSupported,
+                                      maxQualityLevels,
+                                      max_tile_rows,
+                                      max_tile_cols,
+                                      maxIRDuration,
+                                      roi_support,
+                                      bVideoEncodeRequiresTextureArray))
+   {
+      return bVideoEncodeRequiresTextureArray;
+   }
+   return false;
 }
 
 static int

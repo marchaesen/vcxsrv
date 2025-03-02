@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "nir_tcs_info.h"
-#include "nir.h"
 #include <math.h>
+#include "nir.h"
+#include "nir_tcs_info.h"
 
 static unsigned
 get_tess_level_component(nir_intrinsic_instr *intr)
@@ -49,7 +49,7 @@ scan_tess_levels(struct exec_list *cf_list, unsigned *upper_block_tl_writemask,
       switch (cf_node->type) {
       case nir_cf_node_block: {
          nir_block *block = nir_cf_node_as_block(cf_node);
-         nir_foreach_instr (instr, block) {
+         nir_foreach_instr(instr, block) {
             if (instr->type != nir_instr_type_intrinsic)
                continue;
 
@@ -236,8 +236,7 @@ nir_gather_tcs_info(const nir_shader *nir, nir_tcs_info *info,
     * If the primitive type is unspecified, we have to assume the worst case.
     */
    unsigned min_outer, min_inner, max_outer, max_inner;
-   mesa_count_tess_level_components(prim == TESS_PRIMITIVE_UNSPECIFIED ?
-                                       TESS_PRIMITIVE_ISOLINES : prim,
+   mesa_count_tess_level_components(prim == TESS_PRIMITIVE_UNSPECIFIED ? TESS_PRIMITIVE_ISOLINES : prim,
                                     &min_outer, &min_inner);
    mesa_count_tess_level_components(prim, &max_outer, &max_inner);
    const unsigned min_valid_outer_comp_mask = BITFIELD_RANGE(0, min_outer);
@@ -297,23 +296,24 @@ nir_gather_tcs_info(const nir_shader *nir, nir_tcs_info *info,
          /* The (0, 1] range of outer[0]. */
          (tess_level_writes_le_one & ~tess_level_writes_le_zero &
           ~tess_level_writes_le_two & ~tess_level_writes_other & 0x1) ==
-         (tess_level_writes_any & 0x1) &&
+            (tess_level_writes_any & 0x1) &&
          /* The (0, 2] range of outer[1]. */
          ((tess_level_writes_le_one | tess_level_writes_le_two) &
           ~tess_level_writes_le_zero & ~tess_level_writes_other & 0x2) ==
-         (tess_level_writes_any & 0x2);
+            (tess_level_writes_any & 0x2);
 
       bool triquads_are_eff_one =
          /* The (0, 2] outer range. */
          ((tess_level_writes_le_one | tess_level_writes_le_two) &
           ~tess_level_writes_le_zero & ~tess_level_writes_other &
           max_valid_outer_comp_mask) ==
-         (tess_level_writes_any & max_valid_outer_comp_mask) &&
+            (tess_level_writes_any & max_valid_outer_comp_mask) &&
          /* The [-inf, 2] inner range. */
          ((tess_level_writes_le_zero | tess_level_writes_le_one |
-           tess_level_writes_le_two) & ~tess_level_writes_other &
+           tess_level_writes_le_two) &
+          ~tess_level_writes_other &
           max_valid_inner_comp_mask) ==
-         (tess_level_writes_any & max_valid_inner_comp_mask);
+            (tess_level_writes_any & max_valid_inner_comp_mask);
 
       if (prim == TESS_PRIMITIVE_UNSPECIFIED) {
          info->all_tess_levels_are_effectively_one = isolines_are_eff_one &&

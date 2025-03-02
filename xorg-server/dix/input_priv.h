@@ -293,6 +293,19 @@ void ActivateGrabNoDelivery(DeviceIntPtr dev,
                             GrabPtr grab,
                             InternalEvent *event,
                             InternalEvent *real_event);
+
+/* states for device grabs */
+
+#define GRAB_STATE_NOT_GRABBED             0
+#define GRAB_STATE_THAWED                  1
+#define GRAB_STATE_THAWED_BOTH             2       /* not a real state */
+#define GRAB_STATE_FREEZE_NEXT_EVENT       3
+#define GRAB_STATE_FREEZE_BOTH_NEXT_EVENT  4
+#define GRAB_STATE_FROZEN                  5       /* any state >= has device frozen */
+#define GRAB_STATE_FROZEN_NO_EVENT         5
+#define GRAB_STATE_FROZEN_WITH_EVENT       6
+#define GRAB_STATE_THAW_OTHERS             7
+
 /**
  * Masks specifying the type of event to deliver for an InternalEvent; used
  * by EventIsDeliverable.

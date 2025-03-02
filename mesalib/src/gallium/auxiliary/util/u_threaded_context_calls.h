@@ -10,6 +10,7 @@
  */
 CALL(draw_single)
 CALL(set_vertex_buffers)
+CALL(set_vertex_elements_and_buffers)
 CALL(set_constant_buffer)
 CALL(bind_rasterizer_state)
 CALL(buffer_unmap)

@@ -497,7 +497,7 @@ ir3_shader_passthrough_tcs(struct ir3_shader *vs, unsigned patch_vertices)
                                   &tcs->num_outputs,
                                   tcs->info.stage);
 
-      NIR_PASS_V(tcs, nir_lower_system_values);
+      NIR_PASS(_, tcs, nir_lower_system_values);
 
       nir_shader_gather_info(tcs, nir_shader_get_entrypoint(tcs));
 

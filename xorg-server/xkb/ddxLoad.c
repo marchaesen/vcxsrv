@@ -42,6 +42,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "os/osdep.h"
 #include "xkb/xkbfile_priv.h"
 #include "xkb/xkbfmisc_priv.h"
+#include "xkb/xkbrules_priv.h"
 
 #include "inputstr.h"
 #include "scrnintstr.h"
@@ -435,14 +436,14 @@ XkbDDXNamesFromRules(DeviceIntPtr keybd,
     if (!XkbRF_LoadRules(file, rules)) {
         LogMessage(X_ERROR, "XKB: Couldn't parse rules file %s\n", rules_name);
         fclose(file);
-        XkbRF_Free(rules, TRUE);
+        XkbRF_Free(rules);
         return FALSE;
     }
 
     memset(names, 0, sizeof(*names));
     complete = XkbRF_GetComponents(rules, defs, names);
     fclose(file);
-    XkbRF_Free(rules, TRUE);
+    XkbRF_Free(rules);
 
     if (!complete)
         LogMessage(X_ERROR, "XKB: Rules returned no components\n");

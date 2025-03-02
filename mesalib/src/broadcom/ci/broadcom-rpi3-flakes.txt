@@ -70,3 +70,8 @@ spec@ext_framebuffer_multisample@accuracy all_samples stencil_draw small depthst
 
 dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_ops.keep_invert_decr
 dEQP-GLES2.functional.texture.mipmap.cube.generate.rgba8888_fastest
+
+spec@arb_point_parameters@arb_point_parameters-point-attenuation
+spec@arb_point_parameters@arb_point_parameters-point-attenuation@Aliased combinations
+spec@arb_point_parameters@arb_point_parameters-point-attenuation@Antialiased combinations
+spec@ext_framebuffer_multisample@accuracy 2 stencil_draw small depthstencil

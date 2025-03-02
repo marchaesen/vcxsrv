@@ -25,10 +25,11 @@ struct vn_format_properties_entry {
 };
 
 struct vn_image_format_properties {
-   struct VkImageFormatProperties2 format;
+   VkImageFormatProperties2 format;
    VkResult cached_result;
 
    VkExternalImageFormatProperties ext_image;
+   VkHostImageCopyDevicePerformanceQuery host_copy;
    VkImageCompressionPropertiesEXT compression;
    VkSamplerYcbcrConversionImageFormatProperties ycbcr_conversion;
 };
@@ -80,12 +81,17 @@ struct vn_physical_device {
 
    VkDriverId renderer_driver_id;
 
+   /* Static storage so that host copy properties query can be done once. */
+   VkImageLayout copy_src_layouts[64];
+   VkImageLayout copy_dst_layouts[64];
+
    VkQueueFamilyProperties2 *queue_family_properties;
    VkQueueFamilyGlobalPriorityProperties *global_priority_properties;
    uint32_t queue_family_count;
    bool sparse_binding_disabled;
    /* Track the queue family index to emulate a second queue. -1 means no
-    * emulation is needed.
+    * emulation is needed. To be noted that the emulation is a workaround for
+    * Android 14+ UI framework and it does not handle wait-before-signal.
     */
    int emulate_second_queue;
 

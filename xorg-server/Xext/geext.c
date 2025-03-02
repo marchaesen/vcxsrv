@@ -27,16 +27,30 @@
 #include "windowstr.h"
 #include <X11/extensions/ge.h>
 
-#include "geint.h"
 #include "geext.h"
 #include "protocol-versions.h"
 #include "extinit_priv.h"
 
-Bool noGEExtension = FALSE;
+#define MAXEXTENSIONS   128
 
 DevPrivateKeyRec GEClientPrivateKeyRec;
 
-GEExtension GEExtensions[MAXEXTENSIONS];
+#define GEClientPrivateKey (&GEClientPrivateKeyRec)
+
+/** Struct to keep information about registered extensions */
+typedef struct _GEExtension {
+    /** Event swapping routine */
+    void (*evswap) (xGenericEvent *from, xGenericEvent *to);
+} GEExtension, *GEExtensionPtr;
+
+static GEExtension GEExtensions[MAXEXTENSIONS];
+
+typedef struct _GEClientInfo {
+    CARD32 major_version;
+    CARD32 minor_version;
+} GEClientInfoRec, *GEClientInfoPtr;
+
+#define GEGetClient(pClient)    ((GEClientInfoPtr)(dixLookupPrivate(&((pClient)->devPrivates), GEClientPrivateKey)))
 
 /* Forward declarations */
 static void SGEGenericEvent(xEvent *from, xEvent *to);
@@ -93,7 +107,7 @@ SProcGEQueryVersion(ClientPtr client)
     REQUEST_SIZE_MATCH(xGEQueryVersionReq);
     swaps(&stuff->majorVersion);
     swaps(&stuff->minorVersion);
-    return SProcGEQueryVersion(client);
+    return ProcGEQueryVersion(client);
 }
 
 /************************************************************/
@@ -197,15 +211,4 @@ GERegisterExtension(int extension,
 
     /* extension opcodes are > 128, might as well save some space here */
     GEExtensions[EXT_MASK(extension)].evswap = ev_swap;
-}
-
-/* Sets type and extension field for a generic event. This is just an
- * auxiliary function, extensions could do it manually too.
- */
-void
-GEInitEvent(xGenericEvent *ev, int extension)
-{
-    ev->type = GenericEvent;
-    ev->extension = extension;
-    ev->length = 0;
 }

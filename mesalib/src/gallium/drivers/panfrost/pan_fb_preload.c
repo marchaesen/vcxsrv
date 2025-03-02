@@ -1185,27 +1185,27 @@ pan_preload_emit_dcd(struct pan_fb_preload_cache *cache, struct pan_pool *pool,
    pan_pack(out, DRAW, cfg) {
       if (zs) {
          /* ZS_EMIT requires late update/kill */
-         cfg.zs_update_operation = MALI_PIXEL_KILL_FORCE_LATE;
-         cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_LATE;
+         cfg.flags_0.zs_update_operation = MALI_PIXEL_KILL_FORCE_LATE;
+         cfg.flags_0.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_LATE;
          cfg.blend_count = 0;
       } else {
          /* Skipping ATEST requires forcing Z/S */
-         cfg.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
-         cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
+         cfg.flags_0.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
+         cfg.flags_0.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
 
          cfg.blend = blend.gpu;
          cfg.blend_count = bd_count;
-         cfg.render_target_mask = 0x1;
+         cfg.flags_1.render_target_mask = 0x1;
       }
 
-      cfg.allow_forward_pixel_to_kill = !zs;
-      cfg.allow_forward_pixel_to_be_killed = true;
+      cfg.flags_0.allow_forward_pixel_to_kill = !zs;
+      cfg.flags_0.allow_forward_pixel_to_be_killed = true;
       cfg.depth_stencil = pan_preload_emit_zs(pool, z, s);
-      cfg.sample_mask = 0xFFFF;
-      cfg.multisample_enable = ms;
-      cfg.evaluate_per_sample = ms;
+      cfg.flags_1.sample_mask = 0xFFFF;
+      cfg.flags_0.multisample_enable = ms;
+      cfg.flags_0.evaluate_per_sample = ms;
       cfg.maximum_z = 1.0;
-      cfg.clean_fragment_write = clean_fragment_write;
+      cfg.flags_0.clean_fragment_write = clean_fragment_write;
       cfg.shader.resources = T.gpu | nr_tables;
       cfg.shader.shader = spd.gpu;
       cfg.shader.thread_storage = tsd;

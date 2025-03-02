@@ -38,7 +38,7 @@ struct r300_emit_state {
 
 #define error(fmt, args...)                                                                        \
    do {                                                                                            \
-      rc_error(&c->Base, "%s::%s(): " fmt "\n", __FILE__, __func__, ##args);                       \
+      rc_error(&c->Base, "%s::%s(): " fmt, __FILE__, __func__, ##args);                            \
    } while (0)
 
 static unsigned int
@@ -141,7 +141,7 @@ emit_alu(struct r300_emit_state *emit, struct rc_pair_instruction *inst)
       /* rc_recompute_ips does not give an exact count, because it counts extra stuff
        * like BEGINTEX, but here it is intended to be only approximative anyway,
        * just to give some idea how close to the limit we are. */
-      rc_error(&c->Base, "Too many ALU instructions used: %u, max: %u.\n",
+      rc_error(&c->Base, "Too many ALU instructions used: %u, max: %u",
                rc_recompute_ips(&c->Base), c->Base.max_alu_insts);
       return 0;
    }
@@ -456,7 +456,7 @@ r300BuildFragmentProgramHwCode(struct radeon_compiler *c, void *user)
    }
 
    if (code->pixsize >= compiler->Base.max_temp_regs)
-      rc_error(&compiler->Base, "Too many hardware temporaries used.\n");
+      rc_error(&compiler->Base, "Too many hardware temporaries used");
 
    if (compiler->Base.Error)
       return;

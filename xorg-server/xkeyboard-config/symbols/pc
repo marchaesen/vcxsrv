@@ -50,7 +50,9 @@ xkb_symbols "pc105" {
     modifier_map Mod4  { <SUPR> };
 
     key <HYPR> {[  NoSymbol, Hyper_L  ]};
-    modifier_map Mod3  { <HYPR> };
+    // The modifier map to `Mod3` conflicts with `LevelFive`, which multiple
+    // layouts require. Thus the modifier map is loaded only on demand, see the
+    // symbols file `hyper` and the various options related to `Hyper`.
 
     include "srvr_ctrl(fkey2vt)"
 

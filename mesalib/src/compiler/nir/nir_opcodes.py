@@ -1438,6 +1438,16 @@ unop_convert("fisnormal", tbool1, tfloat, "isnormal(src0)")
 unop_convert("fisfinite", tbool1, tfloat, "isfinite(src0)")
 unop_convert("fisfinite32", tbool32, tfloat, "isfinite(src0)")
 
+# panfrost-specific opcodes
+
+# 16-bit ldexp with 16-bit exponent for bifrost
+opcode("ldexp16_pan", 0, tfloat16, [0, 0], [tfloat16, tint16], False, "", """
+dst = ldexpf(src0, src1);
+/* flush denormals to zero. */
+if (!isnormal(dst))
+   dst = copysignf(0.0f, src0);
+""")
+
 # vc4-specific opcodes
 
 # Saturated vector add for 4 8bit ints.

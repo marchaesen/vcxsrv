@@ -845,7 +845,7 @@ struct lvp_cmd_encode_as {
    VkGeometryTypeKHR geometry_type;
 };
 
-enum lvp_cmd_type {
+enum {
    LVP_CMD_WRITE_BUFFER_CP = VK_CMD_TYPE_COUNT,
    LVP_CMD_DISPATCH_UNALIGNED,
    LVP_CMD_FILL_BUFFER_ADDR,

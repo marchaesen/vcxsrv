@@ -219,7 +219,7 @@ struct nine_context {
     struct {
         uint32_t group;
         uint16_t sampler[NINE_MAX_SAMPLERS];
-        uint32_t vtxbuf;
+        bool vtxbuf_dirty;
         BOOL vs_const_f;
         BOOL vs_const_i;
         BOOL vs_const_b;
@@ -268,9 +268,9 @@ struct nine_context {
 
     struct NineVertexDeclaration9 *vdecl;
 
+    unsigned num_vertex_buffers;
     struct pipe_vertex_buffer vtxbuf[PIPE_MAX_ATTRIBS];
     uint32_t vtxbuf_mask; /* i bit set for context->vtxbuf[i].buffer.resource not NULL */
-    uint32_t last_vtxbuf_count;
     uint16_t vtxstride[PIPE_MAX_ATTRIBS];
     UINT stream_freq[PIPE_MAX_ATTRIBS];
     uint32_t stream_instancedata_mask; /* derived from stream_freq */

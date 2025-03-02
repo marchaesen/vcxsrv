@@ -664,7 +664,7 @@
     <field name="Force seamless cubemaps" size="1" start="26" type="bool"/>
     <field name="Front-facing depth bias" size="1" start="28" type="bool"/>
     <field name="Back-facing depth bias" size="1" start="29" type="bool"/>
-    <field name="Single-sampled lines" size="1" start="30" type="bool"/>
+    <field name="Aligned line-ends" size="1" start="30" type="bool"/>
     <field name="Point snap" size="1" start="31" type="bool"/>
   </struct>
 

@@ -213,11 +213,10 @@ agx_nir_lower_sample_mask(nir_shader *shader)
       }
    } else {
       /* regular shaders that don't use discard have nothing to lower */
-      nir_metadata_preserve(impl, nir_metadata_all);
-      return false;
+      return nir_no_progress(impl);
    }
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 
    nir_shader_intrinsics_pass(shader, lower_discard_to_sample_mask_0,
                               nir_metadata_control_flow, NULL);

@@ -2409,6 +2409,12 @@ typedef struct nir_tex_instr {
    /** True if this tg4 instruction has an implicit LOD or LOD bias, instead of using level 0 */
    unsigned is_gather_implicit_lod : 1;
 
+   /** True if helper invocation loads can be skipped
+    *
+    * This is set by nir_opt_tex_skip_helpers().
+    */
+   unsigned skip_helpers : 1;
+
    /** Gather offsets */
    int8_t tg4_offsets[4][2];
 
@@ -3286,8 +3292,7 @@ typedef enum {
     */
    nir_metadata_live_defs = 0x4,
 
-   /** A dummy metadata value to track when a pass forgot to call
-    * nir_metadata_preserve.
+   /** A dummy metadata value to track when a pass forgot to preserve metadata.
     *
     * A pass should always clear this value even if it doesn't make any
     * progress to indicate that it thought about preserving metadata.
@@ -3348,9 +3353,7 @@ typedef enum {
    /** All metadata
     *
     * This includes all nir_metadata flags except not_properly_reset.  Passes
-    * which do not change the shader in any way should call
-    *
-    *    nir_metadata_preserve(impl, nir_metadata_all);
+    * which do not change the shader in any way should use this.
     */
    nir_metadata_all = ~nir_metadata_not_properly_reset,
 } nir_metadata;
@@ -3896,12 +3899,23 @@ nir_function_impl *nir_cf_node_get_function(nir_cf_node *node);
 
 /** requests that the given pieces of metadata be generated */
 void nir_metadata_require(nir_function_impl *impl, nir_metadata required, ...);
-/** dirties all but the preserved metadata */
-void nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved);
 /** Preserves all metadata for the given shader */
 void nir_shader_preserve_all_metadata(nir_shader *shader);
 /** dirties all metadata and fills it with obviously wrong information */
 void nir_metadata_invalidate(nir_shader *shader);
+
+/**
+ * Indicate progress on an implementation, preserving only the specified
+ * metadata. The supplied progress is returned to improve ergonomics.
+ */
+bool nir_progress(bool progress, nir_function_impl *impl, nir_metadata preserved);
+
+/** Indicate that there is no progress. All metadata is preserved. */
+static inline bool
+nir_no_progress(nir_function_impl *impl)
+{
+   return nir_progress(false, impl, nir_metadata_none /* ignored */);
+}
 
 /** creates an instruction with default swizzle/writemask/etc. with NULL registers */
 nir_alu_instr *nir_alu_instr_create(nir_shader *shader, nir_op op);
@@ -5146,9 +5160,11 @@ nir_lower_shader_calls(nir_shader *shader,
                        void *mem_ctx);
 
 int nir_get_io_offset_src_number(const nir_intrinsic_instr *instr);
+int nir_get_io_index_src_number(const nir_intrinsic_instr *instr);
 int nir_get_io_arrayed_index_src_number(const nir_intrinsic_instr *instr);
 
 nir_src *nir_get_io_offset_src(nir_intrinsic_instr *instr);
+nir_src *nir_get_io_index_src(nir_intrinsic_instr *instr);
 nir_src *nir_get_io_arrayed_index_src(nir_intrinsic_instr *instr);
 nir_src *nir_get_shader_call_payload_src(nir_intrinsic_instr *call);
 
@@ -6081,6 +6097,8 @@ bool nir_remove_single_src_phis_block(nir_block *block);
 
 bool nir_opt_phi_precision(nir_shader *shader);
 
+bool nir_opt_phi_to_bool(nir_shader *shader);
+
 bool nir_opt_shrink_stores(nir_shader *shader, bool shrink_image_store);
 
 bool nir_opt_shrink_vectors(nir_shader *shader, bool shrink_start);
@@ -6103,6 +6121,8 @@ bool nir_opt_move_discards_to_top(nir_shader *shader);
 bool nir_opt_ray_queries(nir_shader *shader);
 
 bool nir_opt_ray_query_ranges(nir_shader *shader);
+
+bool nir_opt_tex_skip_helpers(nir_shader *shader, bool no_add_divergence);
 
 void nir_sweep(nir_shader *shader);
 

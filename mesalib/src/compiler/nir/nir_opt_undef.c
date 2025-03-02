@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
+#include <math.h>
+#include "util/mesa-blake3.h"
 #include "nir.h"
 #include "nir_builder.h"
-#include "util/mesa-blake3.h"
-#include <math.h>
 
 /** @file nir_opt_undef.c
  *
@@ -251,7 +251,7 @@ replace_ssa_undef(nir_builder *b, nir_instr *instr, void *data)
    const struct undef_options *options = data;
 
    nir_undef_instr *undef = nir_instr_as_undef(instr);
-   struct visit_info info = {0};
+   struct visit_info info = { 0 };
 
    nir_foreach_use_including_if(src, &undef->def) {
       visit_undef_use(src, &info);
@@ -297,7 +297,7 @@ opt_undef_uses(nir_builder *b, nir_instr *instr, void *data)
 bool
 nir_opt_undef(nir_shader *shader)
 {
-   struct undef_options options = {0};
+   struct undef_options options = { 0 };
 
    /* Disallow the undef->NaN transformation only for those shaders where
     * it's known to break rendering. These are shader source BLAKE3s printed by
@@ -305,20 +305,20 @@ nir_opt_undef(nir_shader *shader)
     */
    uint32_t shader_blake3s[][BLAKE3_OUT_LEN32] = {
       /* gputest/gimark */
-      {0x582c214b, 0x25478275, 0xc9a835d2, 0x95c9b643, 0x69deae47, 0x213c7427, 0xa9da66a5, 0xac254ed2},
+      { 0x582c214b, 0x25478275, 0xc9a835d2, 0x95c9b643, 0x69deae47, 0x213c7427, 0xa9da66a5, 0xac254ed2 },
 
       /* Viewperf13/CATIA_car_01 */
-      {0x880dfa0f, 0x60e32201, 0xe3a89f59, 0xb1cc6f07, 0xcdbebe66, 0x20122aec, 0x83450d4e, 0x8f42843d}, /* Taillights */
-      {0x624e53bb, 0x8eb635ba, 0xb1e4ed9b, 0x651b0fec, 0x86fcf79a, 0xde0863fb, 0x09ce80c1, 0xd972e40f}, /* Grill */
-      {0x01a8db39, 0xfa175175, 0x621f7302, 0xfcde9177, 0x72d873bf, 0x048d38c1, 0xe669d2de, 0xaa6584af}, /* Headlights */
-      {0x32029770, 0xab295b41, 0x3f1daf07, 0x9dd9153e, 0xd598be73, 0xe555b2f3, 0x6e087eaf, 0x084d329c}, /* Rims */
+      { 0x880dfa0f, 0x60e32201, 0xe3a89f59, 0xb1cc6f07, 0xcdbebe66, 0x20122aec, 0x83450d4e, 0x8f42843d }, /* Taillights */
+      { 0x624e53bb, 0x8eb635ba, 0xb1e4ed9b, 0x651b0fec, 0x86fcf79a, 0xde0863fb, 0x09ce80c1, 0xd972e40f }, /* Grill */
+      { 0x01a8db39, 0xfa175175, 0x621f7302, 0xfcde9177, 0x72d873bf, 0x048d38c1, 0xe669d2de, 0xaa6584af }, /* Headlights */
+      { 0x32029770, 0xab295b41, 0x3f1daf07, 0x9dd9153e, 0xd598be73, 0xe555b2f3, 0x6e087eaf, 0x084d329c }, /* Rims */
 
       /* Viewperf13/CATIA_car_04 */
-      {0x55207b90, 0x08fa2f8f, 0x9db62464, 0xadba6570, 0xb6d5d962, 0xf434bff5, 0x46a34d64, 0x021bfb45}, /* Headlights */
-      {0x83fbdd6a, 0x231b027e, 0x6f142248, 0x2b3045de, 0xd2a4f460, 0x59dfb8d8, 0x6dbc00f9, 0xcca13143}, /* Rims */
-      {0x88ed3a0a, 0xf128d384, 0x8161fdac, 0xd10cb257, 0x5e63db2d, 0x56798b6f, 0x881e81ee, 0xa4e937d4}, /* Tires */
-      {0xbf84697c, 0x3bc75bb6, 0x9d012175, 0x2dd90bcf, 0x0562f0ed, 0x5aa80e62, 0xb5793ae3, 0x9127bcab}, /* Windows */
-      {0x47a3eb4b, 0x136f676d, 0x94045ed3, 0x57b00972, 0x8cda7550, 0x88327fda, 0x37f7cf37, 0x66db05e3}, /* Body */
+      { 0x55207b90, 0x08fa2f8f, 0x9db62464, 0xadba6570, 0xb6d5d962, 0xf434bff5, 0x46a34d64, 0x021bfb45 }, /* Headlights */
+      { 0x83fbdd6a, 0x231b027e, 0x6f142248, 0x2b3045de, 0xd2a4f460, 0x59dfb8d8, 0x6dbc00f9, 0xcca13143 }, /* Rims */
+      { 0x88ed3a0a, 0xf128d384, 0x8161fdac, 0xd10cb257, 0x5e63db2d, 0x56798b6f, 0x881e81ee, 0xa4e937d4 }, /* Tires */
+      { 0xbf84697c, 0x3bc75bb6, 0x9d012175, 0x2dd90bcf, 0x0562f0ed, 0x5aa80e62, 0xb5793ae3, 0x9127bcab }, /* Windows */
+      { 0x47a3eb4b, 0x136f676d, 0x94045ed3, 0x57b00972, 0x8cda7550, 0x88327fda, 0x37f7cf37, 0x66db05e3 }, /* Body */
    };
 
    for (unsigned i = 0; i < ARRAY_SIZE(shader_blake3s); i++) {

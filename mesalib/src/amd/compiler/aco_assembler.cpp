@@ -1538,6 +1538,8 @@ chain_branches(asm_context& ctx, std::vector<uint32_t>& out, branch_info& branch
    unsigned target = branch.target;
    branch.target = new_block->index;
 
+   unsigned skip_branch_target = 0; /* Target of potentially inserted short jump. */
+
    /* Find suitable insertion point:
     * We define two offset ranges within our new branch instruction should be placed.
     * Then we try to maximize the distance from either the previous branch or the target.
@@ -1573,15 +1575,20 @@ chain_branches(asm_context& ctx, std::vector<uint32_t>& out, branch_info& branch
    if (insert_at == 0) {
       /* Find the last block that is still within reach. */
       unsigned insertion_block_idx = 0;
-      while (ctx.program->blocks[insertion_block_idx + 1].offset < upper_end)
-         insertion_block_idx++;
+      unsigned next_block = 0;
+      while (ctx.program->blocks[next_block + 1].offset < upper_end) {
+         if (!ctx.program->blocks[next_block].instructions.empty())
+            insertion_block_idx = next_block;
+         next_block++;
+      }
 
-      insert_at = ctx.program->blocks[insertion_block_idx].offset;
-      auto it = ctx.program->blocks[insertion_block_idx].instructions.begin();
-      int skip = 0;
+      insert_at = ctx.program->blocks[next_block].offset;
       if (insert_at < upper_start) {
          /* Ensure some forward progress by splitting the block if necessary. */
+         auto it = ctx.program->blocks[next_block].instructions.begin();
+         int skip = 0;
          while (skip-- > 0 || insert_at < upper_start) {
+            assert(it != ctx.program->blocks[next_block].instructions.end());
             Instruction* instr = (it++)->get();
             if (instr->isSOPP()) {
                if (instr->opcode == aco_opcode::s_clause)
@@ -1601,9 +1608,11 @@ chain_branches(asm_context& ctx, std::vector<uint32_t>& out, branch_info& branch
 
          /* If the insertion point is in the middle of the block, insert the branch instructions
           * into that block instead. */
-         bld.reset(&ctx.program->blocks[insertion_block_idx].instructions, it);
+         bld.reset(&ctx.program->blocks[next_block].instructions, it);
       } else {
-         bld.reset(&ctx.program->blocks[insertion_block_idx - 1].instructions);
+         /* Insert the additional branches at the end of the previous non-empty block. */
+         bld.reset(&ctx.program->blocks[insertion_block_idx].instructions);
+         skip_branch_target = next_block;
       }
 
       /* Since we insert a branch into existing code, mitigate LdsBranchVmemWARHazard on GFX10. */
@@ -1616,6 +1625,7 @@ chain_branches(asm_context& ctx, std::vector<uint32_t>& out, branch_info& branch
       branch_instr = bld.sopp(aco_opcode::s_branch, 1).instr;
       emit_sopp_instruction(ctx, code, branch_instr, true);
    }
+   assert(insert_at >= upper_start);
    const unsigned block_offset = insert_at + code.size();
 
    branch_instr = bld.sopp(aco_opcode::s_branch, 0);
@@ -1623,6 +1633,11 @@ chain_branches(asm_context& ctx, std::vector<uint32_t>& out, branch_info& branch
    insert_code(ctx, out, insert_at, code.size(), code.data());
 
    new_block->offset = block_offset;
+   if (skip_branch_target) {
+      /* If we insert a short jump over the new branch at the end of a block,
+       * ensure that it gets updated accordingly after additional changes. */
+      ctx.branches.push_back({block_offset - 1, skip_branch_target});
+   }
    ctx.branches.push_back({block_offset, target});
    assert(out[ctx.branches.back().pos] == code.back());
 }

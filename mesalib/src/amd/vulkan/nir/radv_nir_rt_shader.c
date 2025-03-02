@@ -157,12 +157,7 @@ lower_rt_derefs(nir_shader *shader)
       }
    }
 
-   if (progress)
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   else
-      nir_metadata_preserve(impl, nir_metadata_all);
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 /*
@@ -789,10 +784,7 @@ lower_hit_attribs(nir_shader *shader, nir_variable **hit_attribs, uint32_t workg
    if (!hit_attribs)
       shader->info.shared_size = MAX2(shader->info.shared_size, workgroup_size * RADV_MAX_HIT_ATTRIB_SIZE);
 
-   if (progress)
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }
 
 static void
@@ -1210,7 +1202,7 @@ nir_lower_intersection_shader(nir_shader *intersection, nir_shader *any_hit)
          nir_def_rewrite_uses(&intrin->def, accepted);
       }
    }
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    /* We did some inlining; have to re-index SSA defs */
    nir_index_ssa_defs(impl);
@@ -1629,7 +1621,7 @@ radv_build_traversal(struct radv_device *device, struct radv_ray_tracing_pipelin
       radv_build_end_trace_token(b, vars, original_tmax, nir_load_var(b, trav_vars.hit),
                                  nir_load_var(b, iteration_instance_count));
 
-   nir_metadata_preserve(nir_shader_get_entrypoint(b->shader), nir_metadata_none);
+   nir_progress(true, nir_shader_get_entrypoint(b->shader), nir_metadata_none);
    radv_nir_lower_hit_attrib_derefs(b->shader);
 
    /* Register storage for hit attributes */
@@ -1748,7 +1740,7 @@ radv_build_traversal_shader(struct radv_device *device, struct radv_ray_tracing_
 
    /* Deal with all the inline functions. */
    nir_index_ssa_defs(nir_shader_get_entrypoint(b.shader));
-   nir_metadata_preserve(nir_shader_get_entrypoint(b.shader), nir_metadata_none);
+   nir_progress(true, nir_shader_get_entrypoint(b.shader), nir_metadata_none);
 
    /* Lower and cleanup variables */
    NIR_PASS(_, b.shader, nir_lower_global_vars_to_local);
@@ -2076,7 +2068,7 @@ radv_nir_lower_rt_abi(nir_shader *shader, const VkRayTracingPipelineCreateInfoKH
       radv_store_arg(&b, args, traversal_info, args->ac.rt.hit_kind, nir_load_var(&b, vars.hit_kind));
    }
 
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 
    /* cleanup passes */
    NIR_PASS(_, shader, nir_lower_global_vars_to_local);

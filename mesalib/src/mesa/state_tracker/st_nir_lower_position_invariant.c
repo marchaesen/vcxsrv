@@ -50,7 +50,5 @@ st_nir_lower_position_invariant(struct nir_shader *s, bool aos,
 
    nir_store_output(&b, result, nir_imm_int(&b, 0),
                     .io_semantics.location = VARYING_SLOT_POS);
-   nir_metadata_preserve(b.impl, nir_metadata_control_flow);
-
-   return true;
+   return nir_progress(true, b.impl, nir_metadata_control_flow);
 }

@@ -289,6 +289,5 @@ agx_nir_lower_tes(nir_shader *tes, bool to_hw_vs)
    }
 
    nir_lower_idiv(tes, &(nir_lower_idiv_options){.allow_fp16 = true});
-   nir_metadata_preserve(nir_shader_get_entrypoint(tes), nir_metadata_none);
-   return true;
+   return nir_progress(true, nir_shader_get_entrypoint(tes), nir_metadata_none);
 }

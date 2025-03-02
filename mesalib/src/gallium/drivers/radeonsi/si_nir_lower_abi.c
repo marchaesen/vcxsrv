@@ -652,7 +652,7 @@ bool si_nir_lower_abi(nir_shader *nir, struct si_shader *shader, struct si_shade
    nir_metadata preserved = progress ?
       nir_metadata_control_flow :
       nir_metadata_all;
-   nir_metadata_preserve(impl, preserved);
+   nir_progress(true, impl, preserved);
 
    return progress;
 }

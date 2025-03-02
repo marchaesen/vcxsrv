@@ -53,6 +53,7 @@ void NotifyParentProcess(void);
 void CreateWellKnownSockets(void);
 void ResetWellKnownSockets(void);
 void CloseWellKnownConnections(void);
+void SetCriticalOutputPending(void);
 
 /* exported only for DRI module, but should not be used by external drivers */
 _X_EXPORT void ResetCurrentRequest(struct _Client *client);

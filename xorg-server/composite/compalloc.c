@@ -138,6 +138,7 @@ compRedirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
     CompScreenPtr cs = GetCompScreen(pWin->drawable.pScreen);
     WindowPtr pLayerWin;
     Bool anyMarked = FALSE;
+    int status = Success;
 
     if (pWin == cs->pOverlayWin) {
         return Success;
@@ -216,13 +217,13 @@ compRedirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
 
     if (!compCheckRedirect(pWin)) {
         FreeResource(ccw->id, X11_RESTYPE_NONE);
-        return BadAlloc;
+        status = BadAlloc;
     }
 
     if (anyMarked)
         compHandleMarkedWindows(pWin, pLayerWin);
 
-    return Success;
+    return status;
 }
 
 void
@@ -604,9 +605,12 @@ compAllocPixmap(WindowPtr pWin)
     int h = pWin->drawable.height + (bw << 1);
     PixmapPtr pPixmap = compNewPixmap(pWin, x, y, w, h);
     CompWindowPtr cw = GetCompWindow(pWin);
+    Bool status;
 
-    if (!pPixmap)
-        return FALSE;
+    if (!pPixmap) {
+        status = FALSE;
+        goto out;
+    }
     if (cw->update == CompositeRedirectAutomatic)
         pWin->redirectDraw = RedirectDrawAutomatic;
     else
@@ -620,14 +624,16 @@ compAllocPixmap(WindowPtr pWin)
         DamageRegister(&pWin->drawable, cw->damage);
         cw->damageRegistered = TRUE;
     }
+    status = TRUE;
 
+out:
     /* Make sure our borderClip is up to date */
     RegionUninit(&cw->borderClip);
     RegionCopy(&cw->borderClip, &pWin->borderClip);
     cw->borderClipX = pWin->drawable.x;
     cw->borderClipY = pWin->drawable.y;
 
-    return TRUE;
+    return status;
 }
 
 void

@@ -33,9 +33,6 @@
 
 extern int RREventBase, RRErrorBase;
 
-extern int (*ProcRandrVector[RRNumberRequests]) (ClientPtr);
-extern int (*SProcRandrVector[RRNumberRequests]) (ClientPtr);
-
 extern RESTYPE RRClientType, RREventType;     /* resource types for event masks */
 extern DevPrivateKeyRec RRClientPrivateKeyRec;
 
@@ -135,5 +132,13 @@ int ProcRRDeleteMonitor(ClientPtr client);
 int ProcRRCreateLease(ClientPtr client);
 
 int ProcRRFreeLease(ClientPtr client);
+
+int ProcRRQueryVersion(ClientPtr client);
+
+int ProcRRSelectInput(ClientPtr client);
+
+int ProcRRDispatch(ClientPtr client);
+
+int SProcRRDispatch(ClientPtr client);
 
 #endif /* _XSERVER_RANDRSTR_PRIV_H_ */

@@ -152,6 +152,11 @@ void *vk_shader_zalloc(struct vk_device *device,
                        gl_shader_stage stage,
                        const VkAllocationCallbacks *alloc,
                        size_t size);
+void *vk_shader_multizalloc(struct vk_device *device,
+                            struct vk_multialloc *ma,
+                            const struct vk_shader_ops *ops,
+                            gl_shader_stage stage,
+                            const VkAllocationCallbacks *alloc);
 void vk_shader_free(struct vk_device *device,
                     const VkAllocationCallbacks *alloc,
                     struct vk_shader *shader);
@@ -196,7 +201,10 @@ struct vk_device_shader_ops {
     * not any enabled device features or pipeline state.  This allows us to
     * potentially cache this shader and re-use it across pipelines.
     */
-   void (*preprocess_nir)(struct vk_physical_device *device, nir_shader *nir);
+   void (*preprocess_nir)(
+      struct vk_physical_device *device,
+      nir_shader *nir,
+      const struct vk_pipeline_robustness_state *rs);
 
    /** True if the driver wants geometry stages linked
     *

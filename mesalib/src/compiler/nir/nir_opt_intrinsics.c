@@ -428,12 +428,9 @@ nir_opt_intrinsics(nir_shader *shader)
    bool progress = false;
 
    nir_foreach_function_impl(impl, shader) {
-      if (opt_intrinsics_impl(impl, shader->options)) {
-         progress = true;
-         nir_metadata_preserve(impl, nir_metadata_control_flow);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
+      bool impl_progress = opt_intrinsics_impl(impl, shader->options);
+      progress |= nir_progress(impl_progress, impl,
+                               nir_metadata_control_flow);
    }
 
    return progress;

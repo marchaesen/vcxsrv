@@ -108,9 +108,9 @@ print_cs_instr(FILE *fp, const uint64_t *instr)
       break;
    }
 
-   case MALI_CS_OPCODE_MOVE: {
-      cs_unpack(instr, CS_MOVE, I);
-      fprintf(fp, "MOVE d%u, #0x%" PRIX64, I.destination, I.immediate);
+   case MALI_CS_OPCODE_MOVE48: {
+      cs_unpack(instr, CS_MOVE48, I);
+      fprintf(fp, "MOVE48 d%u, #0x%" PRIX64, I.destination, I.immediate);
       break;
    }
 
@@ -204,7 +204,7 @@ print_cs_instr(FILE *fp, const uint64_t *instr)
    }
 
    case MALI_CS_OPCODE_ADD_IMMEDIATE32: {
-      cs_unpack(instr, CS_ADD_IMMEDIATE32, I);
+      cs_unpack(instr, CS_ADD_IMM32, I);
 
       fprintf(fp, "ADD_IMMEDIATE32 r%u, r%u, #%d", I.destination, I.source,
               I.immediate);
@@ -212,7 +212,7 @@ print_cs_instr(FILE *fp, const uint64_t *instr)
    }
 
    case MALI_CS_OPCODE_ADD_IMMEDIATE64: {
-      cs_unpack(instr, CS_ADD_IMMEDIATE64, I);
+      cs_unpack(instr, CS_ADD_IMM64, I);
 
       fprintf(fp, "ADD_IMMEDIATE64 d%u, d%u, #%d", I.destination, I.source,
               I.immediate);
@@ -301,10 +301,17 @@ print_cs_instr(FILE *fp, const uint64_t *instr)
          "clean_invalidate",
       };
 
-      fprintf(fp, "FLUSH_CACHE2.%s_l2.%s_lsc%s r%u, #%x, #%u",
+      static const char *other_mode[] = {
+         "nop_other",
+         "INVALID",
+         "invalidate_other",
+         "INVALID",
+      };
+
+      fprintf(fp, "FLUSH_CACHE2.%s_l2.%s_lsc.%s r%u, #%x, #%u",
               mode[I.l2_flush_mode], mode[I.lsc_flush_mode],
-              I.other_invalidate ? ".invalidate_other" : ".nop_other",
-              I.latest_flush_id, I.wait_mask, I.signal_slot);
+              other_mode[I.other_flush_mode], I.latest_flush_id, I.wait_mask,
+              I.signal_slot);
       break;
    }
 
@@ -622,7 +629,8 @@ pandecode_run_idvs(struct pandecode_context *ctx, FILE *fp,
 
    /* Merge flag overrides with the register flags */
    struct mali_primitive_flags_packed tiler_flags_packed = {
-      .opaque[0] = cs_get_u32(qctx, 56) | I->flags_override,
+      .opaque[0] =
+         cs_get_u32(qctx, MALI_IDVS_SR_TILER_FLAGS) | I->flags_override,
    };
    pan_unpack(&tiler_flags_packed, PRIMITIVE_FLAGS, tiler_flags);
 
@@ -676,20 +684,22 @@ pandecode_run_idvs(struct pandecode_context *ctx, FILE *fp,
       GENX(pandecode_fau)(ctx, lo, hi, "Fragment FAU");
    }
 
-   if (cs_get_u64(qctx, 16)) {
+   if (cs_get_u64(qctx, MALI_IDVS_SR_VERTEX_POS_SPD)) {
       GENX(pandecode_shader)
-      (ctx, cs_get_u64(qctx, 16), "Position shader", qctx->gpu_id);
+      (ctx, cs_get_u64(qctx, MALI_IDVS_SR_VERTEX_POS_SPD), "Position shader",
+       qctx->gpu_id);
    }
 
    if (tiler_flags.secondary_shader) {
-      uint64_t ptr = cs_get_u64(qctx, 18);
+      uint64_t ptr = cs_get_u64(qctx, MALI_IDVS_SR_VERTEX_VARY_SPD);
 
       GENX(pandecode_shader)(ctx, ptr, "Varying shader", qctx->gpu_id);
    }
 
-   if (cs_get_u64(qctx, 20)) {
+   if (cs_get_u64(qctx, MALI_IDVS_SR_FRAGMENT_SPD)) {
       GENX(pandecode_shader)
-      (ctx, cs_get_u64(qctx, 20), "Fragment shader", qctx->gpu_id);
+      (ctx, cs_get_u64(qctx, MALI_IDVS_SR_FRAGMENT_SPD), "Fragment shader",
+       qctx->gpu_id);
    }
 
    DUMP_ADDR(ctx, LOCAL_STORAGE, cs_get_u64(qctx, reg_position_tsd),
@@ -702,42 +712,58 @@ pandecode_run_idvs(struct pandecode_context *ctx, FILE *fp,
              "Fragment Local Storage @%" PRIx64 ":\n",
              cs_get_u64(qctx, reg_frag_tsd));
 
-   pandecode_log(ctx, "Global attribute offset: %u\n", cs_get_u32(qctx, 32));
-   pandecode_log(ctx, "Index count: %u\n", cs_get_u32(qctx, 33));
-   pandecode_log(ctx, "Instance count: %u\n", cs_get_u32(qctx, 34));
+   pandecode_log(ctx, "Global attribute offset: %u\n",
+                 cs_get_u32(qctx, MALI_IDVS_SR_GLOBAL_ATTRIBUTE_OFFSET));
+   pandecode_log(ctx, "Index count: %u\n",
+                 cs_get_u32(qctx, MALI_IDVS_SR_INDEX_COUNT));
+   pandecode_log(ctx, "Instance count: %u\n",
+                 cs_get_u32(qctx, MALI_IDVS_SR_INSTANCE_COUNT));
 
    if (tiler_flags.index_type)
-      pandecode_log(ctx, "Index offset: %u\n", cs_get_u32(qctx, 35));
+      pandecode_log(ctx, "Index offset: %u\n",
+                    cs_get_u32(qctx, MALI_IDVS_SR_INDEX_OFFSET));
 
-   pandecode_log(ctx, "Vertex offset: %d\n", cs_get_u32(qctx, 36));
-   pandecode_log(ctx, "Instance offset: %u\n", cs_get_u32(qctx, 37));
-   pandecode_log(ctx, "Tiler DCD flags2: %X\n", cs_get_u32(qctx, 38));
+   pandecode_log(ctx, "Vertex offset: %d\n",
+                 cs_get_u32(qctx, MALI_IDVS_SR_VERTEX_OFFSET));
+   pandecode_log(ctx, "Instance offset: %u\n",
+                 cs_get_u32(qctx, MALI_IDVS_SR_INSTANCE_OFFSET));
+   pandecode_log(ctx, "Tiler DCD flags2: %X\n",
+                 cs_get_u32(qctx, MALI_IDVS_SR_DCD2));
 
    if (tiler_flags.index_type)
-      pandecode_log(ctx, "Index array size: %u\n", cs_get_u32(qctx, 39));
+      pandecode_log(ctx, "Index array size: %u\n",
+                    cs_get_u32(qctx, MALI_IDVS_SR_INDEX_BUFFER_SIZE));
 
-   GENX(pandecode_tiler)(ctx, cs_get_u64(qctx, 40), qctx->gpu_id);
+   GENX(pandecode_tiler)(ctx, cs_get_u64(qctx, MALI_IDVS_SR_TILER_CTX),
+                         qctx->gpu_id);
 
-   DUMP_CL(ctx, SCISSOR, &qctx->regs[42], "Scissor\n");
-   pandecode_log(ctx, "Low depth clamp: %f\n", uif(cs_get_u32(qctx, 44)));
-   pandecode_log(ctx, "High depth clamp: %f\n", uif(cs_get_u32(qctx, 45)));
-   pandecode_log(ctx, "Occlusion: %" PRIx64 "\n", cs_get_u64(qctx, 46));
+   DUMP_CL(ctx, SCISSOR, &qctx->regs[MALI_IDVS_SR_SCISSOR_BOX], "Scissor\n");
+   pandecode_log(ctx, "Low depth clamp: %f\n",
+                 uif(cs_get_u32(qctx, MALI_IDVS_SR_LOW_DEPTH_CLAMP)));
+   pandecode_log(ctx, "High depth clamp: %f\n",
+                 uif(cs_get_u32(qctx, MALI_IDVS_SR_HIGH_DEPTH_CLAMP)));
+   pandecode_log(ctx, "Occlusion: %" PRIx64 "\n",
+                 cs_get_u64(qctx, MALI_IDVS_SR_OQ));
 
    if (tiler_flags.secondary_shader)
-      pandecode_log(ctx, "Varying allocation: %u\n", cs_get_u32(qctx, 48));
+      pandecode_log(ctx, "Varying allocation: %u\n",
+                    cs_get_u32(qctx, MALI_IDVS_SR_VARY_SIZE));
 
-   uint64_t blend = cs_get_u64(qctx, 50);
+   uint64_t blend = cs_get_u64(qctx, MALI_IDVS_SR_BLEND_DESC);
    GENX(pandecode_blend_descs)(ctx, blend & ~15, blend & 15, 0, qctx->gpu_id);
 
-   DUMP_ADDR(ctx, DEPTH_STENCIL, cs_get_u64(qctx, 52), "Depth/stencil");
+   DUMP_ADDR(ctx, DEPTH_STENCIL, cs_get_u64(qctx, MALI_IDVS_SR_ZSD),
+             "Depth/stencil");
 
    if (tiler_flags.index_type)
-      pandecode_log(ctx, "Indices: %" PRIx64 "\n", cs_get_u64(qctx, 54));
+      pandecode_log(ctx, "Indices: %" PRIx64 "\n",
+                    cs_get_u64(qctx, MALI_IDVS_SR_INDEX_BUFFER));
 
    DUMP_UNPACKED(ctx, PRIMITIVE_FLAGS, tiler_flags, "Primitive flags\n");
-   DUMP_CL(ctx, DCD_FLAGS_0, &qctx->regs[57], "DCD Flags 0\n");
-   DUMP_CL(ctx, DCD_FLAGS_1, &qctx->regs[58], "DCD Flags 1\n");
-   DUMP_CL(ctx, PRIMITIVE_SIZE, &qctx->regs[60], "Primitive size\n");
+   DUMP_CL(ctx, DCD_FLAGS_0, &qctx->regs[MALI_IDVS_SR_DCD0], "DCD Flags 0\n");
+   DUMP_CL(ctx, DCD_FLAGS_1, &qctx->regs[MALI_IDVS_SR_DCD1], "DCD Flags 1\n");
+   DUMP_CL(ctx, PRIMITIVE_SIZE, &qctx->regs[MALI_IDVS_SR_PRIMITIVE_SIZE],
+           "Primitive size\n");
 
    ctx->indent--;
 }
@@ -751,11 +777,12 @@ pandecode_run_fragment(struct pandecode_context *ctx, FILE *fp,
 
    ctx->indent++;
 
-   DUMP_CL(ctx, SCISSOR, &qctx->regs[42], "Scissor\n");
+   DUMP_CL(ctx, SCISSOR, &qctx->regs[MALI_FRAGMENT_SR_BBOX_MIN], "Scissor\n");
 
    /* TODO: Tile enable map */
    GENX(pandecode_fbd)
-   (ctx, cs_get_u64(qctx, 40) & ~0x3full, true, qctx->gpu_id);
+   (ctx, cs_get_u64(qctx, MALI_FRAGMENT_SR_FBD_POINTER) & ~0x3full, true,
+    qctx->gpu_id);
 
    ctx->indent--;
 }
@@ -913,8 +940,8 @@ interpret_cs_instr(struct pandecode_context *ctx, struct queue_ctx *qctx)
       break;
    }
 
-   case MALI_CS_OPCODE_MOVE: {
-      cs_unpack(bytes, CS_MOVE, I);
+   case MALI_CS_OPCODE_MOVE48: {
+      cs_unpack(bytes, CS_MOVE48, I);
 
       qctx->regs[I.destination + 0] = (uint32_t)I.immediate;
       qctx->regs[I.destination + 1] = (uint32_t)(I.immediate >> 32);
@@ -945,14 +972,14 @@ interpret_cs_instr(struct pandecode_context *ctx, struct queue_ctx *qctx)
    }
 
    case MALI_CS_OPCODE_ADD_IMMEDIATE32: {
-      cs_unpack(bytes, CS_ADD_IMMEDIATE32, I);
+      cs_unpack(bytes, CS_ADD_IMM32, I);
 
       qctx->regs[I.destination] = qctx->regs[I.source] + I.immediate;
       break;
    }
 
    case MALI_CS_OPCODE_ADD_IMMEDIATE64: {
-      cs_unpack(bytes, CS_ADD_IMMEDIATE64, I);
+      cs_unpack(bytes, CS_ADD_IMM64, I);
 
       int64_t value =
          (qctx->regs[I.source] | ((int64_t)qctx->regs[I.source + 1] << 32)) +
@@ -1157,8 +1184,8 @@ record_indirect_branch_target(struct cs_code_cfg *cfg,
          const uint64_t *instr = &cfg->instrs[blk->start + blk_offs];
          cs_unpack(instr, CS_BASE, base);
          switch (base.opcode) {
-         case MALI_CS_OPCODE_MOVE: {
-            cs_unpack(instr, CS_MOVE, I);
+         case MALI_CS_OPCODE_MOVE48: {
+            cs_unpack(instr, CS_MOVE48, I);
 
             assert(I.destination % 2 == 0 &&
                    "Destination register should be aligned to 2");
@@ -1174,13 +1201,13 @@ record_indirect_branch_target(struct cs_code_cfg *cfg,
          }
 
          case MALI_CS_OPCODE_ADD_IMMEDIATE32: {
-            cs_unpack(instr, CS_ADD_IMMEDIATE32, I);
+            cs_unpack(instr, CS_ADD_IMM32, I);
             reg_file.u32[I.destination] = reg_file.u32[I.source] + I.immediate;
             break;
          }
 
          case MALI_CS_OPCODE_ADD_IMMEDIATE64: {
-            cs_unpack(instr, CS_ADD_IMMEDIATE64, I);
+            cs_unpack(instr, CS_ADD_IMM64, I);
 
             assert(I.destination % 2 == 0 &&
                    "Destination register should be aligned to 2");
@@ -1234,8 +1261,8 @@ collect_indirect_branch_targets_recurse(struct cs_code_cfg *cfg,
       const uint64_t *instr = &cfg->instrs[instr_ptr];
       cs_unpack(instr, CS_BASE, base);
       switch (base.opcode) {
-      case MALI_CS_OPCODE_MOVE: {
-         cs_unpack(instr, CS_MOVE, I);
+      case MALI_CS_OPCODE_MOVE48: {
+         cs_unpack(instr, CS_MOVE48, I);
          BITSET_CLEAR(track_map, I.destination);
          BITSET_CLEAR(track_map, I.destination + 1);
          break;
@@ -1248,7 +1275,7 @@ collect_indirect_branch_targets_recurse(struct cs_code_cfg *cfg,
       }
 
       case MALI_CS_OPCODE_ADD_IMMEDIATE32: {
-         cs_unpack(instr, CS_ADD_IMMEDIATE32, I);
+         cs_unpack(instr, CS_ADD_IMM32, I);
          if (BITSET_TEST(track_map, I.destination)) {
             BITSET_SET(track_map, I.source);
             BITSET_CLEAR(track_map, I.destination);
@@ -1257,7 +1284,7 @@ collect_indirect_branch_targets_recurse(struct cs_code_cfg *cfg,
       }
 
       case MALI_CS_OPCODE_ADD_IMMEDIATE64: {
-         cs_unpack(instr, CS_ADD_IMMEDIATE64, I);
+         cs_unpack(instr, CS_ADD_IMM64, I);
          if (BITSET_TEST(track_map, I.destination)) {
             BITSET_SET(track_map, I.source);
             BITSET_CLEAR(track_map, I.destination);

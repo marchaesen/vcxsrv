@@ -567,32 +567,24 @@ radv_nir_apply_pipeline_layout(nir_shader *shader, struct radv_device *device, c
       .layout = &stage->layout,
    };
 
-   nir_builder b;
-
-   nir_foreach_function (function, shader) {
-      if (!function->impl)
-         continue;
-
-      b = nir_builder_create(function->impl);
+   nir_foreach_function_impl (impl, shader) {
+      bool impl_progress = false;
+      nir_builder b = nir_builder_create(impl);
 
       /* Iterate in reverse so load_ubo lowering can look at
        * the vulkan_resource_index to tell if it's an inline
        * ubo.
        */
-      nir_foreach_block_reverse (block, function->impl) {
+      nir_foreach_block_reverse (block, impl) {
          nir_foreach_instr_reverse_safe (instr, block) {
             if (instr->type == nir_instr_type_tex)
-               progress |= apply_layout_to_tex(&b, &state, nir_instr_as_tex(instr));
+               impl_progress |= apply_layout_to_tex(&b, &state, nir_instr_as_tex(instr));
             else if (instr->type == nir_instr_type_intrinsic)
-               progress |= apply_layout_to_intrin(&b, &state, nir_instr_as_intrinsic(instr));
+               impl_progress |= apply_layout_to_intrin(&b, &state, nir_instr_as_intrinsic(instr));
          }
       }
-   }
 
-   if (progress) {
-      nir_foreach_function (function, shader) {
-         nir_metadata_preserve(function->impl, nir_metadata_control_flow);
-      }
+      progress |= nir_progress(impl_progress, impl, nir_metadata_control_flow);
    }
 
    return progress;

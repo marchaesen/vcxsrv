@@ -36,27 +36,11 @@ is" without express or implied warranty.
 #include "Args.h"
 #include "Events.h"
 
+// must come after Xnest.h, because of trickery to avoid name clash
+#include <X11/XKBlib.h>
 #include <X11/extensions/XKB.h>
+
 #include "xkbsrv.h"
-
-extern Bool
- XkbQueryExtension(Display * /* dpy */ ,
-                   int * /* opcodeReturn */ ,
-                   int * /* eventBaseReturn */ ,
-                   int * /* errorBaseReturn */ ,
-                   int * /* majorRtrn */ ,
-                   int *        /* minorRtrn */
-    );
-
-extern XkbDescPtr XkbGetKeyboard(Display * /* dpy */ ,
-                                 unsigned int /* which */ ,
-                                 unsigned int   /* deviceSpec */
-    );
-
-extern Status XkbGetControls(Display * /* dpy */ ,
-                             unsigned long /* which */ ,
-                             XkbDescPtr /* desc */
-    );
 
 DeviceIntPtr xnestKeyboardDevice = NULL;
 

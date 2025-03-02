@@ -340,8 +340,7 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
        shader->info.stage != MESA_SHADER_TESS_EVAL &&
        shader->info.stage != MESA_SHADER_GEOMETRY &&
        shader->info.stage != MESA_SHADER_FRAGMENT) {
-      nir_metadata_preserve(entrypoint, nir_metadata_all);
-      return false;
+      return nir_no_progress(entrypoint);
    }
 
    state.shader = shader;
@@ -381,7 +380,7 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
       if (outputs)
          emit_output_copies_impl(&state, impl);
 
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    exec_list_append(&shader->variables, &state.old_inputs);

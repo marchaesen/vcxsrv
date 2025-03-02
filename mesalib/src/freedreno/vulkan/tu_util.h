@@ -36,43 +36,43 @@
  */
 #define TU_DEBUG_ENV(name) unlikely(tu_env.env_debug & TU_DEBUG_##name)
 
-enum tu_debug_flags
+enum tu_debug_flags : uint64_t
 {
-   TU_DEBUG_STARTUP = 1 << 0,
-   TU_DEBUG_NIR = 1 << 1,
-   TU_DEBUG_NOBIN = 1 << 3,
-   TU_DEBUG_SYSMEM = 1 << 4,
-   TU_DEBUG_FORCEBIN = 1 << 5,
-   TU_DEBUG_NOUBWC = 1 << 6,
-   TU_DEBUG_NOMULTIPOS = 1 << 7,
-   TU_DEBUG_NOLRZ = 1 << 8,
-   TU_DEBUG_PERFC = 1 << 9,
-   TU_DEBUG_FLUSHALL = 1 << 10,
-   TU_DEBUG_SYNCDRAW = 1 << 11,
-   TU_DEBUG_PUSH_CONSTS_PER_STAGE = 1 << 12,
-   TU_DEBUG_GMEM = 1 << 13,
-   TU_DEBUG_RAST_ORDER = 1 << 14,
-   TU_DEBUG_UNALIGNED_STORE = 1 << 15,
-   TU_DEBUG_LAYOUT = 1 << 16,
-   TU_DEBUG_LOG_SKIP_GMEM_OPS = 1 << 17,
-   TU_DEBUG_PERF = 1 << 18,
-   TU_DEBUG_NOLRZFC = 1 << 19,
-   TU_DEBUG_DYNAMIC = 1 << 20,
-   TU_DEBUG_BOS = 1 << 21,
-   TU_DEBUG_3D_LOAD = 1 << 22,
-   TU_DEBUG_FDM = 1 << 23,
-   TU_DEBUG_NOCONFORM = 1 << 24,
-   TU_DEBUG_RD = 1 << 25,
-   TU_DEBUG_HIPRIO = 1 << 26,
-   TU_DEBUG_NO_CONCURRENT_RESOLVES = 1 << 27,
-   TU_DEBUG_NO_CONCURRENT_UNRESOLVES = 1 << 28,
-   TU_DEBUG_DUMPAS = 1 << 29,
-   TU_DEBUG_NO_BIN_MERGING = 1 << 30,
+   TU_DEBUG_STARTUP                  = BITFIELD64_BIT(0),
+   TU_DEBUG_NIR                      = BITFIELD64_BIT(1),
+   TU_DEBUG_NOBIN                    = BITFIELD64_BIT(2),
+   TU_DEBUG_SYSMEM                   = BITFIELD64_BIT(3),
+   TU_DEBUG_FORCEBIN                 = BITFIELD64_BIT(4),
+   TU_DEBUG_NOUBWC                   = BITFIELD64_BIT(5),
+   TU_DEBUG_NOMULTIPOS               = BITFIELD64_BIT(6),
+   TU_DEBUG_NOLRZ                    = BITFIELD64_BIT(7),
+   TU_DEBUG_PERFC                    = BITFIELD64_BIT(8),
+   TU_DEBUG_FLUSHALL                 = BITFIELD64_BIT(9),
+   TU_DEBUG_SYNCDRAW                 = BITFIELD64_BIT(10),
+   TU_DEBUG_PUSH_CONSTS_PER_STAGE    = BITFIELD64_BIT(11),
+   TU_DEBUG_GMEM                     = BITFIELD64_BIT(12),
+   TU_DEBUG_RAST_ORDER               = BITFIELD64_BIT(13),
+   TU_DEBUG_UNALIGNED_STORE          = BITFIELD64_BIT(14),
+   TU_DEBUG_LAYOUT                   = BITFIELD64_BIT(15),
+   TU_DEBUG_LOG_SKIP_GMEM_OPS        = BITFIELD64_BIT(16),
+   TU_DEBUG_PERF                     = BITFIELD64_BIT(17),
+   TU_DEBUG_NOLRZFC                  = BITFIELD64_BIT(18),
+   TU_DEBUG_DYNAMIC                  = BITFIELD64_BIT(19),
+   TU_DEBUG_BOS                      = BITFIELD64_BIT(20),
+   TU_DEBUG_3D_LOAD                  = BITFIELD64_BIT(21),
+   TU_DEBUG_FDM                      = BITFIELD64_BIT(22),
+   TU_DEBUG_NOCONFORM                = BITFIELD64_BIT(23),
+   TU_DEBUG_RD                       = BITFIELD64_BIT(24),
+   TU_DEBUG_HIPRIO                   = BITFIELD64_BIT(25),
+   TU_DEBUG_NO_CONCURRENT_RESOLVES   = BITFIELD64_BIT(26),
+   TU_DEBUG_NO_CONCURRENT_UNRESOLVES = BITFIELD64_BIT(27),
+   TU_DEBUG_DUMPAS                   = BITFIELD64_BIT(28),
+   TU_DEBUG_NO_BIN_MERGING           = BITFIELD64_BIT(29),
 };
 
 struct tu_env {
-    std::atomic<uint32_t> debug;
-    uint32_t env_debug;
+    std::atomic<uint64_t> debug;
+    uint64_t env_debug;
 };
 
 extern struct tu_env tu_env;

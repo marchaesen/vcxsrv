@@ -449,7 +449,7 @@ typedef struct
 typedef struct
 {
    vlVdpDevice *device;
-   struct pipe_video_buffer templat, *video_buffer;
+   struct pipe_video_buffer templat, *video_buffer, *ref_buffer;
 } vlVdpSurface;
 
 typedef struct

@@ -685,8 +685,8 @@ XkbChangeTypesOfKey(XkbDescPtr xkb,
     int width, nOldGroups, oldWidth, newTypes[XkbNumKbdGroups];
 
     if ((!xkb) || (!XkbKeycodeInRange(xkb, key)) || (!xkb->map) ||
-        (!xkb->map->types) || ((groups & XkbAllGroupsMask) == 0) ||
-        (nGroups > XkbNumKbdGroups)) {
+        (!xkb->map->types) || (!newTypesIn) ||
+        ((groups & XkbAllGroupsMask) == 0) || (nGroups > XkbNumKbdGroups)) {
         return BadMatch;
     }
     if (nGroups == 0) {
@@ -697,6 +697,7 @@ XkbChangeTypesOfKey(XkbDescPtr xkb,
         i = XkbSetNumGroups(i, 0);
         xkb->map->key_sym_map[key].group_info = i;
         XkbResizeKeySyms(xkb, key, 0);
+        XkbResizeKeyActions(xkb, key, 0);
         return Success;
     }
 
@@ -807,14 +808,14 @@ XkbVirtualModsToReal(XkbDescPtr xkb, unsigned virtual_mask, unsigned *mask_rtrn)
     register int i, bit;
     register unsigned mask;
 
-    if (xkb == NULL)
+    if ((xkb == NULL) || (xkb->server == NULL)) {
+        *mask_rtrn = 0;
         return False;
+    }
     if (virtual_mask == 0) {
         *mask_rtrn = 0;
         return True;
     }
-    if (xkb->server == NULL)
-        return False;
     for (i = mask = 0, bit = 1; i < XkbNumVirtualMods; i++, bit <<= 1) {
         if (virtual_mask & bit)
             mask |= xkb->server->vmods[i];

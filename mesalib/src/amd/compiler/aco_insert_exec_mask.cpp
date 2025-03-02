@@ -300,6 +300,21 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
 
    } else if (preds.size() == 1) {
       ctx.info[idx].exec = ctx.info[preds[0]].exec;
+
+      /* After continue and break blocks, we implicitly set exec to zero.
+       * This is so that parallelcopies can be inserted before the branch
+       * without being affected by the changed exec mask.
+       */
+      if (ctx.info[idx].exec.back().op.constantEquals(0)) {
+         assert(block->logical_succs.empty());
+         /* Check whether the successor block already restores exec. */
+         uint16_t block_kind = ctx.program->blocks[block->linear_succs[0]].kind;
+         if (!(block_kind & (block_kind_loop_header | block_kind_loop_exit | block_kind_invert |
+                             block_kind_merge))) {
+            /* The successor does not restore exec. */
+            restore_exec = true;
+         }
+      }
    } else {
       assert(preds.size() == 2);
       assert(ctx.info[preds[0]].exec.size() == ctx.info[preds[1]].exec.size());
@@ -627,15 +642,14 @@ add_branch_code(exec_ctx& ctx, Block* block)
       assert(block->instructions.back()->opcode == aco_opcode::p_branch);
       block->instructions.pop_back();
 
-      bool need_parallelcopy = false;
-      while (!(ctx.info[idx].exec.back().type & mask_type_loop)) {
+      while (!(ctx.info[idx].exec.back().type & mask_type_loop))
          ctx.info[idx].exec.pop_back();
-         need_parallelcopy = true;
-      }
 
-      if (need_parallelcopy)
-         bld.copy(Definition(exec, bld.lm), ctx.info[idx].exec.back().op);
-      bld.branch(aco_opcode::p_cbranch_nz, Operand(exec, bld.lm), block->linear_succs[1],
+      Temp cond = bld.sop2(Builder::s_or, bld.def(bld.lm), bld.def(s1, scc),
+                           ctx.info[idx].exec.back().op, Operand::zero(bld.lm.bytes()))
+                     .def(1)
+                     .getTemp();
+      bld.branch(aco_opcode::p_cbranch_nz, Operand(cond, scc), block->linear_succs[1],
                  block->linear_succs[0]);
    } else if (block->kind & block_kind_uniform) {
       Pseudo_branch_instruction& branch = block->instructions.back()->branch();
@@ -703,14 +717,8 @@ add_branch_code(exec_ctx& ctx, Block* block)
             break;
       }
 
-      /* check if the successor is the merge block, otherwise set exec to 0 */
-      // TODO: this could be done better by directly branching to the merge block
-      unsigned succ_idx = ctx.program->blocks[block->linear_succs[1]].linear_succs[0];
-      Block& succ = ctx.program->blocks[succ_idx];
-      if (!(succ.kind & block_kind_invert || succ.kind & block_kind_merge)) {
-         bld.copy(Definition(exec, bld.lm), Operand::zero(bld.lm.bytes()));
-      }
-
+      /* Implicitly set exec to zero and branch. */
+      ctx.info[idx].exec.back().op = Operand::zero(bld.lm.bytes());
       bld.branch(aco_opcode::p_cbranch_nz, bld.scc(cond), block->linear_succs[1],
                  block->linear_succs[0]);
    } else if (block->kind & block_kind_continue) {
@@ -729,14 +737,8 @@ add_branch_code(exec_ctx& ctx, Block* block)
       }
       assert(cond != Temp());
 
-      /* check if the successor is the merge block, otherwise set exec to 0 */
-      // TODO: this could be done better by directly branching to the merge block
-      unsigned succ_idx = ctx.program->blocks[block->linear_succs[1]].linear_succs[0];
-      Block& succ = ctx.program->blocks[succ_idx];
-      if (!(succ.kind & block_kind_invert || succ.kind & block_kind_merge)) {
-         bld.copy(Definition(exec, bld.lm), Operand::zero(bld.lm.bytes()));
-      }
-
+      /* Implicitly set exec to zero and branch. */
+      ctx.info[idx].exec.back().op = Operand::zero(bld.lm.bytes());
       bld.branch(aco_opcode::p_cbranch_nz, bld.scc(cond), block->linear_succs[1],
                  block->linear_succs[0]);
    } else {

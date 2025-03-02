@@ -4313,7 +4313,6 @@ VkResult ResourceTracker::on_vkCreateImage(void* context, VkResult, VkDevice dev
                 } else {
                     return VK_ERROR_VALIDATION_FAILED_EXT;
                 }
-               return VK_ERROR_VALIDATION_FAILED_EXT; // stub constant
             }
         }
 
@@ -6781,27 +6780,20 @@ VkResult ResourceTracker::on_vkGetPhysicalDeviceImageFormatProperties2_common(
     const VkPhysicalDeviceImageDrmFormatModifierInfoEXT* drmFmtMod =
         vk_find_struct_const(pImageFormatInfo, PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT);
     VkDrmFormatModifierPropertiesListEXT* emulatedDrmFmtModPropsList = nullptr;
-    if (drmFmtMod) {
-        if (getHostDeviceExtensionIndex(VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME) != -1) {
-            // Host supports DRM format modifiers => leave the input unchanged.
-        } else {
-            mesa_logd("emulating DRM_FORMAT_MOD_LINEAR with VK_IMAGE_TILING_LINEAR");
-            emulatedDrmFmtModPropsList =
-                vk_find_struct(pImageFormatProperties, DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT);
-
-            // Host doesn't support DRM format modifiers, try emulating.
-            if (drmFmtMod) {
-
-                if (drmFmtMod->drmFormatModifier == DRM_FORMAT_MOD_LINEAR) {
-                    localImageFormatInfo.tiling = VK_IMAGE_TILING_LINEAR;
-                    pImageFormatInfo = &localImageFormatInfo;
-                    // Leave drmFormatMod in the input; it should be ignored when
-                    // tiling is not VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT
-                } else {
-                    return VK_ERROR_FORMAT_NOT_SUPPORTED;
-                }
-            }
+    if (drmFmtMod &&
+        getHostDeviceExtensionIndex(VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME) == -1) {
+        if (drmFmtMod->drmFormatModifier != DRM_FORMAT_MOD_LINEAR) {
+            return VK_ERROR_FORMAT_NOT_SUPPORTED;
         }
+        mesa_logd("emulating DRM_FORMAT_MOD_LINEAR with VK_IMAGE_TILING_OPTIMAL");
+        emulatedDrmFmtModPropsList =
+            vk_find_struct(pImageFormatProperties, DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT);
+        localImageFormatInfo.tiling = VK_IMAGE_TILING_LINEAR;
+        localImageFormatInfo.usage &=
+            ~(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
+        pImageFormatInfo = &localImageFormatInfo;
+        // Leave drmFormatMod in the input; it should be ignored when
+        // tiling is not VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT
     }
 #endif  // LINUX_GUEST_BUILD
 
@@ -6831,6 +6823,14 @@ VkResult ResourceTracker::on_vkGetPhysicalDeviceImageFormatProperties2_common(
                 .drmFormatModifierTilingFeatures = formatProperties.linearTilingFeatures,
             };
         }
+    }
+    if (ext_img_info &&
+        ext_img_info->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT) {
+        ext_img_properties->externalMemoryProperties.externalMemoryFeatures |=
+            VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
+        ext_img_properties->externalMemoryProperties.exportFromImportedHandleTypes =
+            ext_img_properties->externalMemoryProperties.compatibleHandleTypes =
+                VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
     }
 #endif  // LINUX_GUEST_BUILD
 

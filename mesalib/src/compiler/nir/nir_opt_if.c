@@ -1444,7 +1444,7 @@ nir_opt_if(nir_shader *shader, nir_opt_if_options options)
 
       nir_metadata_require(impl, nir_metadata_control_flow);
       progress = opt_if_safe_cf_list(&b, &impl->body, options);
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
 
       bool preserve = true;
 
@@ -1464,11 +1464,7 @@ nir_opt_if(nir_shader *shader, nir_opt_if_options options)
          nir_lower_reg_intrinsics_to_ssa_impl(impl);
       }
 
-      if (preserve) {
-         nir_metadata_preserve(impl, nir_metadata_none);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
+      nir_progress(preserve, impl, nir_metadata_none);
    }
 
    return progress;

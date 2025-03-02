@@ -1177,7 +1177,7 @@ zink_kopper_query_buffer_age(struct pipe_context *pctx, struct pipe_resource *pr
    assert(res->obj->dt);
    struct kopper_displaytarget *cdt = res->obj->dt;
 
-   ctx = zink_tc_context_unwrap(pctx, zink_screen(pctx->screen)->threaded);
+   ctx = zink_tc_context_unwrap(pctx);
 
    /* Returning 0 here isn't ideal (yes, the buffer is undefined, because you
     * lost it) but threading the error up is more hassle than it's worth.

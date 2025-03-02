@@ -1510,11 +1510,8 @@ nir_copy_prop_vars_impl(nir_function_impl *impl)
 
    copy_prop_vars_cf_node(&state, NULL, &impl->cf_node);
 
-   if (state.progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
+   bool impl_progress = state.progress;
+   nir_progress(impl_progress, impl, nir_metadata_control_flow);
 
    ralloc_free(mem_ctx);
    return state.progress;

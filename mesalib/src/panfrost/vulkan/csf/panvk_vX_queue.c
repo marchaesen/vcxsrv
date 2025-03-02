@@ -395,9 +395,11 @@ init_subqueue(struct panvk_queue *queue, enum panvk_subqueue_id subqueue)
       .gpu = panvk_priv_mem_dev_addr(queue->tiler_heap.desc) + 4096,
       .capacity = 64 * 1024 / sizeof(uint64_t),
    };
+   const struct drm_panthor_csif_info *csif_info =
+      panthor_kmod_get_csif_props(dev->kmod.dev);
    const struct cs_builder_conf conf = {
-      .nr_registers = 96,
-      .nr_kernel_registers = 4,
+      .nr_registers = csif_info->cs_reg_count,
+      .nr_kernel_registers = MAX2(csif_info->unpreserved_cs_reg_count, 4),
    };
    struct cs_builder b;
 

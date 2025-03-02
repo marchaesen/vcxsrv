@@ -307,12 +307,8 @@ lower_uniform_offset_to_bytes_cb(nir_builder *b, nir_intrinsic_instr *intr,
 }
 
 static bool
-lower_textures_cb(nir_builder *b, nir_instr *instr, void *_state)
+lower_textures_cb(nir_builder *b, nir_tex_instr *tex, void *_state)
 {
-        if (instr->type != nir_instr_type_tex)
-                return false;
-
-        nir_tex_instr *tex = nir_instr_as_tex(instr);
         if (nir_tex_instr_need_sampler(tex))
                 return false;
 
@@ -334,8 +330,8 @@ v3d_nir_lower_uniform_offset_to_bytes(nir_shader *s)
 static bool
 v3d_nir_lower_textures(nir_shader *s)
 {
-        return nir_shader_instructions_pass(s, lower_textures_cb,
-                                            nir_metadata_control_flow, NULL);
+        return nir_shader_tex_pass(s, lower_textures_cb,
+                                   nir_metadata_control_flow, NULL);
 }
 
 static void *

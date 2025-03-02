@@ -86,6 +86,10 @@ algebraic_late = [
     (('i2f16', 'a'), ('f2f16', ('i2f32', ('i2i32', a))), 'gpu_arch >= 11'),
     (('u2f16', 'a'), ('f2f16', ('u2f32', ('u2u32', a))), 'gpu_arch >= 11'),
 
+    # We don't have S32_TO_F16 on any arch
+    (('i2f16', 'a@32'), ('f2f16', ('i2f32', a))),
+    (('u2f16', 'a@32'), ('f2f16', ('u2f32', a))),
+
     # On v11+, V2F16_TO_V2S16 / V2F16_TO_V2U16 are gone
     (('f2i16', 'a@16'), ('f2i16', ('f2f32', a)), 'gpu_arch >= 11'),
     (('f2u16', 'a@16'), ('f2u16', ('f2f32', a)), 'gpu_arch >= 11'),

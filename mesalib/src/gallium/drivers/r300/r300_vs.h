@@ -37,6 +37,9 @@ struct r300_vertex_shader_code {
     struct r300_vertex_program_code code;
 
     struct r300_vertex_shader_code *next;
+
+    /* Error message in case compilation failed. */
+    char *error;
 };
 
 struct r300_vertex_shader {

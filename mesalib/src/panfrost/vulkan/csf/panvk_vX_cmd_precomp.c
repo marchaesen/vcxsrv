@@ -103,19 +103,20 @@ panvk_per_arch(dispatch_precomp)(struct panvk_precomp_ctx *ctx,
 
    cs_update_compute_ctx(b) {
       /* No resource table */
-      cs_move64_to(b, cs_sr_reg64(b, 0), 0);
+      cs_move64_to(b, cs_sr_reg64(b, COMPUTE, SRT_0), 0);
 
       uint64_t fau_count =
          DIV_ROUND_UP(BIFROST_PRECOMPILED_KERNEL_SYSVALS_SIZE + data_size, 8);
       uint64_t fau_ptr = push_uniforms.gpu | (fau_count << 56);
-      cs_move64_to(b, cs_sr_reg64(b, 8), fau_ptr);
+      cs_move64_to(b, cs_sr_reg64(b, COMPUTE, FAU_0), fau_ptr);
 
-      cs_move64_to(b, cs_sr_reg64(b, 16), panvk_priv_mem_dev_addr(shader->spd));
+      cs_move64_to(b, cs_sr_reg64(b, COMPUTE, SPD_0),
+                   panvk_priv_mem_dev_addr(shader->spd));
 
-      cs_move64_to(b, cs_sr_reg64(b, 24), tsd);
+      cs_move64_to(b, cs_sr_reg64(b, COMPUTE, TSD_0), tsd);
 
       /* Global attribute offset */
-      cs_move32_to(b, cs_sr_reg32(b, 32), 0);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, GLOBAL_ATTRIBUTE_OFFSET), 0);
 
       struct mali_compute_size_workgroup_packed wg_size;
       pan_pack(&wg_size, COMPUTE_SIZE_WORKGROUP, cfg) {
@@ -124,17 +125,17 @@ panvk_per_arch(dispatch_precomp)(struct panvk_precomp_ctx *ctx,
          cfg.workgroup_size_z = shader->local_size.z;
          cfg.allow_merging_workgroups = false;
       }
-      cs_move32_to(b, cs_sr_reg32(b, 33), wg_size.opaque[0]);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, WG_SIZE), wg_size.opaque[0]);
 
       /* Job offset */
-      cs_move32_to(b, cs_sr_reg32(b, 34), 0);
-      cs_move32_to(b, cs_sr_reg32(b, 35), 0);
-      cs_move32_to(b, cs_sr_reg32(b, 36), 0);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, JOB_OFFSET_X), 0);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, JOB_OFFSET_Y), 0);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, JOB_OFFSET_Z), 0);
 
       /* Job size */
-      cs_move32_to(b, cs_sr_reg32(b, 37), grid.count[0]);
-      cs_move32_to(b, cs_sr_reg32(b, 38), grid.count[1]);
-      cs_move32_to(b, cs_sr_reg32(b, 39), grid.count[2]);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, JOB_SIZE_X), grid.count[0]);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, JOB_SIZE_Y), grid.count[1]);
+      cs_move32_to(b, cs_sr_reg32(b, COMPUTE, JOB_SIZE_Z), grid.count[2]);
    }
 
    panvk_per_arch(cs_pick_iter_sb)(cmdbuf, PANVK_SUBQUEUE_COMPUTE);

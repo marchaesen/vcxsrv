@@ -261,8 +261,7 @@ nir_opt_sink(nir_shader *shader, nir_move_options options)
          }
       }
 
-      nir_metadata_preserve(impl,
-                            nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    }
 
    return progress;

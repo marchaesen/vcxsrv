@@ -485,6 +485,11 @@
     <value name="Clean and invalidate" value="3"/>
   </enum>
 
+  <enum name="CS Other Flush Mode">
+    <value name="None" value="0"/>
+    <value name="Invalidate" value="2"/>
+  </enum>
+
   <enum name="CS Sync scope">
     <value name="System" value="0"/>
     <value name="CSG" value="2"/>
@@ -496,7 +501,7 @@
 
   <enum name="CS Opcode">
     <value name="NOP" value="0"/>
-    <value name="MOVE" value="1"/>
+    <value name="MOVE48" value="1"/>
     <value name="MOVE32" value="2"/>
     <value name="WAIT" value="3"/>
     <value name="RUN_COMPUTE" value="4"/>
@@ -546,10 +551,10 @@
     <field name="Opcode" size="8" start="56" type="CS Opcode" default="NOP"/>
   </struct>
 
-  <struct name="CS MOVE" size="2">
+  <struct name="CS MOVE48" size="2">
     <field name="Immediate" size="48" start="0" type="hex"/>
     <field name="Destination" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CS Opcode" default="MOVE"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="MOVE48"/>
   </struct>
 
   <struct name="CS MOVE32" size="2">
@@ -627,14 +632,14 @@
     <field name="Opcode" size="8" start="56" type="CS Opcode" default="FINISH_FRAGMENT"/>
   </struct>
 
-  <struct name="CS ADD_IMMEDIATE32" size="2">
+  <struct name="CS ADD_IMM32" size="2">
     <field name="Immediate" size="32" start="0" type="int"/>
     <field name="Source" size="8" start="40" type="uint"/>
     <field name="Destination" size="8" start="48" type="uint"/>
     <field name="Opcode" size="8" start="56" type="CS Opcode" default="ADD_IMMEDIATE32"/>
   </struct>
 
-  <struct name="CS ADD_IMMEDIATE64" size="2">
+  <struct name="CS ADD_IMM64" size="2">
     <field name="Immediate" size="32" start="0" type="int"/>
     <field name="Source" size="8" start="40" type="uint"/>
     <field name="Destination" size="8" start="48" type="uint"/>
@@ -713,7 +718,7 @@
   <struct name="CS FLUSH_CACHE2" size="2">
     <field name="L2 flush mode" size="4" start="0" type="CS Flush Mode"/>
     <field name="LSC flush mode" size="4" start="4" type="CS Flush Mode"/>
-    <field name="Other invalidate" size="1" start="9" type="bool"/>
+    <field name="Other flush mode" size="4" start="8" type="CS Other Flush Mode"/>
     <field name="Wait mask" size="16" start="16" type="hex"/>
     <field name="Latest Flush ID" size="8" start="40" type="uint"/>
     <field name="Signal slot" size="4" start="48" type="uint"/>
@@ -839,6 +844,81 @@
     <field name="Address" size="8" start="40" type="uint"/>
     <field name="Opcode" size="8" start="56" type="CS Opcode" default="SYNC_WAIT64"/>
   </struct>
+
+  <enum name="COMPUTE SR">
+    <value name="SRT_0" value="0"/>
+    <value name="SRT_1" value="2"/>
+    <value name="SRT_2" value="4"/>
+    <value name="SRT_3" value="6"/>
+    <value name="FAU_0" value="8"/>
+    <value name="FAU_1" value="10"/>
+    <value name="FAU_2" value="12"/>
+    <value name="FAU_3" value="14"/>
+    <value name="SPD_0" value="16"/>
+    <value name="SPD_1" value="18"/>
+    <value name="SPD_2" value="20"/>
+    <value name="SPD_3" value="22"/>
+    <value name="TSD_0" value="24"/>
+    <value name="TSD_1" value="26"/>
+    <value name="TSD_2" value="28"/>
+    <value name="TSD_3" value="30"/>
+    <value name="GLOBAL_ATTRIBUTE_OFFSET" value="32"/>
+    <value name="WG_SIZE" value="33"/>
+    <value name="JOB_OFFSET_X" value="34"/>
+    <value name="JOB_OFFSET_Y" value="35"/>
+    <value name="JOB_OFFSET_Z" value="36"/>
+    <value name="JOB_SIZE_X" value="37"/>
+    <value name="JOB_SIZE_Y" value="38"/>
+    <value name="JOB_SIZE_Z" value="39"/>
+  </enum>
+
+  <enum name="IDVS SR">
+    <value name="SRT_0" value="0"/>
+    <value name="SRT_1" value="2"/>
+    <value name="SRT_2" value="4"/>
+    <value name="SRT_3" value="6"/>
+    <value name="FAU_0" value="8"/>
+    <value name="FAU_1" value="10"/>
+    <value name="FAU_2" value="12"/>
+    <value name="FAU_3" value="14"/>
+    <value name="SPD_0" value="16"/>
+    <value name="SPD_1" value="18"/>
+    <value name="SPD_2" value="20"/>
+    <value name="SPD_3" value="22"/>
+    <value name="TSD_0" value="24"/>
+    <value name="TSD_1" value="26"/>
+    <value name="TSD_2" value="28"/>
+    <value name="TSD_3" value="30"/>
+    <value name="GLOBAL_ATTRIBUTE_OFFSET" value="32"/>
+    <value name="INDEX_COUNT" value="33"/>
+    <value name="INSTANCE_COUNT" value="34"/>
+    <value name="INDEX_OFFSET" value="35"/>
+    <value name="VERTEX_OFFSET" value="36"/>
+    <value name="INSTANCE_OFFSET" value="37"/>
+    <value name="DCD2" value="38"/>
+    <value name="INDEX_BUFFER_SIZE" value="39"/>
+    <value name="TILER_CTX" value="40"/>
+    <value name="SCISSOR_BOX" value="42"/>
+    <value name="LOW_DEPTH_CLAMP" value="44"/>
+    <value name="HIGH_DEPTH_CLAMP" value="45"/>
+    <value name="OQ" value="46"/>
+    <value name="VARY_SIZE" value="48"/>
+    <value name="BLEND_DESC" value="50"/>
+    <value name="ZSD" value="52"/>
+    <value name="INDEX_BUFFER" value="54"/>
+    <value name="TILER_FLAGS" value="56"/>
+    <value name="DCD0" value="57"/>
+    <value name="DCD1" value="58"/>
+    <value name="PRIMITIVE_SIZE" value="60"/>
+  </enum>
+
+  <enum name="FRAGMENT SR">
+    <value name="FBD_POINTER" value="40"/>
+    <value name="BBOX_MIN" value="42"/>
+    <value name="BBOX_MAX" value="43"/>
+    <value name="TEM_POINTER" value="44"/>
+    <value name="TEM_ROW_STRIDE" value="46"/>
+  </enum>
 
   <struct name="Attribute" size="8" align="32">
     <field name="Type" size="4" start="0:0" type="Descriptor Type" default="Attribute"/>
@@ -1800,7 +1880,7 @@
     <field name="Clean Fragment Write" size="1" start="9" type="bool"/>
     <field name="Primitive Barrier" size="1" start="10" type="bool"/>
     <field name="Evaluate per-sample" size="1" start="11" type="bool"/>
-    <field name="Single-sampled lines" size="1" start="13" type="bool"/>
+    <field name="Aligned line-ends" size="1" start="13" type="bool"/>
     <field name="Occlusion query" size="2" start="14" type="Occlusion Mode" default="Disabled"/>
     <field name="Front face CCW" size="1" start="16" type="bool"/>
     <field name="Cull front face" size="1" start="17" type="bool"/>
@@ -1823,30 +1903,8 @@
   </struct>
 
   <struct name="Draw" align="64">
-    <!-- DCD flags 0 -->
-    <field name="Allow forward pixel to kill" size="1" start="0:0" type="bool"/>
-    <field name="Allow forward pixel to be killed" size="1" start="0:1" type="bool"/>
-    <field name="Pixel kill operation" size="2" start="0:2" type="Pixel Kill"/>
-    <field name="ZS update operation" size="2" start="0:4" type="Pixel Kill"/>
-    <field name="Allow primitive reorder" size="1" start="0:6" type="bool"/>
-    <field name="Overdraw alpha0" start="0:7" size="1" type="bool"/>
-    <field name="Overdraw alpha1" size="1" start="0:8" type="bool"/>
-    <field name="Clean Fragment Write" size="1" start="0:9" type="bool"/>
-    <field name="Primitive Barrier" size="1" start="0:10" type="bool"/>
-    <field name="Evaluate per-sample" size="1" start="0:11" type="bool"/>
-    <field name="Single-sampled lines" size="1" start="0:13" type="bool"/>
-    <field name="Occlusion query" size="2" start="0:14" type="Occlusion Mode" default="Disabled"/>
-    <field name="Front face CCW" size="1" start="0:16" type="bool"/>
-    <field name="Cull front face" size="1" start="0:17" type="bool"/>
-    <field name="Cull back face" size="1" start="0:18" type="bool"/>
-    <field name="Multisample enable" size="1" start="0:19" type="bool"/>
-    <field name="Shader modifies coverage" size="1" start="0:20" type="bool"/>
-    <field name="Alpha-to-coverage Invert" size="1" start="0:21" type="bool"/>
-    <field name="Alpha-to-coverage" size="1" start="0:22" type="bool"/>
-    <field name="Scissor to bounding box" size="1" start="0:23" type="bool"/>
-    <!-- DCD flags 1 -->
-    <field name="Sample mask" size="16" start="1:0" type="uint"/>
-    <field name="Render target mask" start="1:16" size="8" type="hex"/>
+    <field name="Flags 0" size="32" start="0:0" type="DCD Flags 0"/>
+    <field name="Flags 1" size="32" start="1:0" type="DCD Flags 1"/>
     <field name="Vertex array" start="2:0" size="96" type="Vertex Array"/>
     <field name="Flags 2" start="5:0" size="32" type="DCD Flags 2"/>
     <field name="Minimum Z" start="6:0" size="32" type="float"/>

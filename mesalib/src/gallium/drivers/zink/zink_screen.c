@@ -1747,7 +1747,7 @@ zink_flush_frontbuffer(struct pipe_screen *pscreen,
    if (!zink_is_swapchain(res))
       return;
 
-   ctx = zink_tc_context_unwrap(pctx, screen->threaded);
+   ctx = zink_tc_context_unwrap(pctx);
 
    if (!zink_kopper_acquired(res->obj->dt, res->obj->dt_idx)) {
       /* swapbuffers to an undefined surface: acquire and present garbage */
@@ -3365,6 +3365,8 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       /* determine if vis vram is roughly equal to total vram */
       if (biggest_vis_vram > biggest_vram * 0.9)
          screen->resizable_bar = true;
+      if (biggest_vis_vram >= 8ULL * 1024ULL * 1024ULL * 1024ULL)
+         screen->always_cached_upload = true;
    }
 
    setup_renderdoc(screen);

@@ -131,7 +131,8 @@ iris_utrace_record_ts(struct u_trace *trace, void *cs,
 
 static uint64_t
 iris_utrace_read_ts(struct u_trace_context *utctx,
-                    void *timestamps, uint64_t offset_B, void *flush_data)
+                    void *timestamps, uint64_t offset_B,
+                    uint32_t flags, void *flush_data)
 {
    struct iris_context *ice =
       container_of(utctx, struct iris_context, ds.trace_context);

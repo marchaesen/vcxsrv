@@ -551,7 +551,5 @@ r600_append_tcs_TF_emission(nir_shader *shader, enum mesa_prim prim_type)
 
    nir_pop_if(b, nullptr);
 
-   nir_metadata_preserve(f->impl, nir_metadata_none);
-
-   return true;
+   return nir_progress(true, f->impl, nir_metadata_none);
 }

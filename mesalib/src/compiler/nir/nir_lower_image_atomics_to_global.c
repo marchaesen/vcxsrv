@@ -111,9 +111,10 @@ nir_lower_image_atomics_to_global(nir_shader *shader,
                                   const void *data)
 {
    struct lower_state state = {
-      .filter = filter, .data = data,
+      .filter = filter,
+      .data = data,
    };
    return nir_shader_intrinsics_pass(shader, lower,
                                      nir_metadata_control_flow,
-                                     (void *) &state);
+                                     (void *)&state);
 }

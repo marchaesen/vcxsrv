@@ -417,7 +417,7 @@ init_program_db(struct zink_screen *screen, struct zink_program *pg, enum zink_d
    VkDeviceSize val;
    VKSCR(GetDescriptorSetLayoutSizeEXT)(screen->dev, dsl, &val);
    pg->dd.db_size[type] = align64(val, screen->info.db_props.descriptorBufferOffsetAlignment);
-   pg->dd.db_offset[type] = rzalloc_array(pg, uint32_t, num_bindings);
+   pg->dd.db_offset[type] = rzalloc_array(pg->ralloc_ctx, uint32_t, num_bindings);
    for (unsigned i = 0; i < num_bindings; i++) {
       VKSCR(GetDescriptorSetLayoutBindingOffsetEXT)(screen->dev, dsl, bindings[i].binding, &val);
       pg->dd.db_offset[type][i] = val;
@@ -503,7 +503,7 @@ zink_descriptor_program_init(struct zink_context *ctx, struct zink_program *pg)
       }
       for (unsigned i = 0; i < ZINK_DESCRIPTOR_BASE_TYPES; i++) {
          if (desc_set_size[i])
-            pg->dd.db_template[i] = rzalloc_array(pg, struct zink_descriptor_template, desc_set_size[i]);
+            pg->dd.db_template[i] = rzalloc_array(pg->ralloc_ctx, struct zink_descriptor_template, desc_set_size[i]);
       }
    }
 

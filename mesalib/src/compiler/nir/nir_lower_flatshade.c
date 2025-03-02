@@ -37,7 +37,8 @@ static bool
 lower_input_io(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
    if (intr->intrinsic != nir_intrinsic_load_interpolated_input)
-      return false;;
+      return false;
+   ;
    nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
    if (!check_location(sem.location))
       return false;

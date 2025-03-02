@@ -657,7 +657,6 @@ panfrost_emit_frag_shader(struct panfrost_context *ctx,
    if (u_reduced_prim(ctx->active_prim) == MESA_PRIM_LINES &&
        rast->base.line_smooth) {
       rsd.opaque[8] |= (1u << 16); // multisample_enable = 1
-      rsd.opaque[9] &= ~(1u << 30); // single_sampled_lines = 0
    }
 
    /* Word 10, 11 Stencil Front and Back */
@@ -3592,7 +3591,7 @@ panfrost_create_rasterizer_state(struct pipe_context *pctx,
    pan_pack(&so->stencil_misc, STENCIL_MASK_MISC, cfg) {
       cfg.front_facing_depth_bias = cso->offset_tri;
       cfg.back_facing_depth_bias = cso->offset_tri;
-      cfg.single_sampled_lines = !cso->multisample;
+      cfg.aligned_line_ends = !cso->line_rectangular;
    }
 #endif
 

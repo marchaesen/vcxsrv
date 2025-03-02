@@ -82,7 +82,7 @@ radv_set_mutable_tex_desc_fields(struct radv_device *device, struct radv_image *
          },
       .is_stencil = is_stencil,
       .dcc_enabled = !disable_compression && dcc_enabled,
-      .tc_compat_htile_enabled = !disable_compression && radv_image_is_tc_compat_htile(image),
+      .tc_compat_htile_enabled = !disable_compression && radv_tc_compat_htile_enabled(image, first_level),
    };
 
    ac_set_mutable_tex_desc_fields(&pdev->info, &ac_state, state);
@@ -188,7 +188,7 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
             .nbc_view = nbc_view,
          },
       .dcc_enabled = radv_dcc_enabled(image, first_level),
-      .tc_compat_htile_enabled = radv_image_is_tc_compat_htile(image),
+      .tc_compat_htile_enabled = radv_tc_compat_htile_enabled(image, first_level),
    };
 
    ac_build_texture_descriptor(&pdev->info, &tex_state, &state[0]);
@@ -291,7 +291,7 @@ gfx6_make_texture_descriptor(struct radv_device *device, struct radv_image *imag
       .last_layer = last_layer,
       .min_lod = min_lod,
       .dcc_enabled = radv_dcc_enabled(image, first_level),
-      .tc_compat_htile_enabled = radv_image_is_tc_compat_htile(image),
+      .tc_compat_htile_enabled = radv_tc_compat_htile_enabled(image, first_level),
       .aniso_single_level = !instance->drirc.disable_aniso_single_level,
    };
 

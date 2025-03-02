@@ -66,9 +66,13 @@ nir_metadata_require(nir_function_impl *impl, nir_metadata required, ...)
    impl->valid_metadata |= required;
 }
 
-void
-nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved)
+bool
+nir_progress(bool progress, nir_function_impl *impl, nir_metadata preserved)
 {
+   /* If we do not make progress, we preserve all metadata. */
+   if (!progress)
+      preserved = nir_metadata_all;
+
    /* If we discard valid liveness information, immediately free the
     * liveness information for each block. For large shaders, it can
     * consume a huge amount of memory, and it's usually not immediately
@@ -83,13 +87,14 @@ nir_metadata_preserve(nir_function_impl *impl, nir_metadata preserved)
    }
 
    impl->valid_metadata &= preserved;
+   return progress;
 }
 
 void
 nir_shader_preserve_all_metadata(nir_shader *shader)
 {
    nir_foreach_function_impl(impl, shader) {
-      nir_metadata_preserve(impl, nir_metadata_all);
+      nir_no_progress(impl);
    }
 }
 
@@ -143,7 +148,7 @@ nir_metadata_invalidate(nir_shader *shader)
  * Make sure passes properly invalidate metadata (part 1).
  *
  * Call this before running a pass to set a bogus metadata flag, which will
- * only be preserved if the pass forgets to call nir_metadata_preserve().
+ * only be preserved if the pass forgets to call nir_progress().
  */
 void
 nir_metadata_set_validation_flag(nir_shader *shader)
@@ -158,7 +163,7 @@ nir_metadata_set_validation_flag(nir_shader *shader)
  *
  * Call this after a pass makes progress to verify that the bogus metadata set by
  * the earlier function was properly thrown away.  Note that passes may not call
- * nir_metadata_preserve() if they don't actually make any changes at all.
+ * nir_progress() if they don't actually make any changes at all.
  */
 void
 nir_metadata_check_validation_flag(nir_shader *shader)
@@ -168,7 +173,8 @@ nir_metadata_check_validation_flag(nir_shader *shader)
    }
 }
 
-void nir_metadata_require_all(nir_shader *shader)
+void
+nir_metadata_require_all(nir_shader *shader)
 {
    bool force_unroll_sampler_indirect = shader->options->force_indirect_unrolling_sampler;
    nir_variable_mode indirect_mask = shader->options->force_indirect_unrolling;

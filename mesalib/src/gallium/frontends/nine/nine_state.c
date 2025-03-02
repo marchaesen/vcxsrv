@@ -897,6 +897,8 @@ update_vertex_elements(struct NineDevice9 *device)
     u_foreach_bit(bit, vtxbuf_mask)
         vtxbuf_holes_map[bit] = i++;
 
+    context->num_vertex_buffers = 0;
+
     for (n = 0; n < vs->num_inputs; ++n) {
         index = vdecl_index_map[n];
         if (index >= 0) {
@@ -920,13 +922,15 @@ update_vertex_elements(struct NineDevice9 *device)
             ve.velems[n].instance_divisor = 0;
             ve.velems[n].dual_slot = false;
         }
+        context->num_vertex_buffers = MAX2(context->num_vertex_buffers,
+                                           ve.velems[n].vertex_buffer_index + 1);
     }
 
     if (context->dummy_vbo_bound_at != dummy_vbo_stream) {
         if (context->dummy_vbo_bound_at >= 0)
-            context->changed.vtxbuf |= 1 << context->dummy_vbo_bound_at;
+            context->changed.vtxbuf_dirty = true;
         if (dummy_vbo_stream >= 0)
-            context->changed.vtxbuf |= 1 << dummy_vbo_stream;
+            context->changed.vtxbuf_dirty = true;
         context->dummy_vbo_bound_at = dummy_vbo_stream;
     }
 
@@ -940,12 +944,11 @@ update_vertex_buffers(struct NineDevice9 *device)
     struct nine_context *context = &device->context;
     struct pipe_context *pipe = context->pipe;
     struct pipe_vertex_buffer vbuffer[PIPE_MAX_ATTRIBS];
-    unsigned vtxbuf_count;
+    unsigned num_vertex_buffers = context->num_vertex_buffers;
     unsigned mask, i, vtxbuf_i;
 
     mask = context->vtxbuf_mask |
         ((context->dummy_vbo_bound_at >= 0) ? BITFIELD_BIT(context->dummy_vbo_bound_at) : 0);
-    vtxbuf_count = util_bitcount(mask);
 
     DBG("mask=%x\n", mask);
     for (i = 0; mask; i++) {
@@ -959,13 +962,18 @@ update_vertex_buffers(struct NineDevice9 *device)
         }
     }
 
-    if (vtxbuf_count)
-        util_set_vertex_buffers(pipe, vtxbuf_count, false, vbuffer);
+    /* Gallium requires that we bind exactly the number of vertex buffers that's
+     * used by vertex elements.
+     */
+    if (i < num_vertex_buffers)
+       memset(&vbuffer[i], 0, sizeof(vbuffer[i]) * (num_vertex_buffers - i));
+
+    if (num_vertex_buffers)
+        util_set_vertex_buffers(pipe, num_vertex_buffers, false, vbuffer);
     else
         pipe->set_vertex_buffers(pipe, 0, NULL);
 
-    context->last_vtxbuf_count = vtxbuf_count;
-    context->changed.vtxbuf = 0;
+    context->changed.vtxbuf_dirty = false;
 }
 
 static inline bool
@@ -1261,8 +1269,10 @@ nine_update_state(struct NineDevice9 *device)
             prepare_dsa(device);
         if (group & NINE_STATE_VIEWPORT)
             update_viewport(device);
-        if (group & (NINE_STATE_VDECL | NINE_STATE_VS | NINE_STATE_STREAMFREQ))
+        if (group & (NINE_STATE_VDECL | NINE_STATE_VS | NINE_STATE_STREAMFREQ)) {
             update_vertex_elements(device);
+            context->changed.vtxbuf_dirty = true;
+        }
     }
 
     if (likely(group & (NINE_STATE_FREQUENT | NINE_STATE_VS | NINE_STATE_PS | NINE_STATE_SWVP))) {
@@ -1278,7 +1288,7 @@ nine_update_state(struct NineDevice9 *device)
             prepare_ps_constants_userbuf(device);
     }
 
-    if (context->changed.vtxbuf)
+    if (context->changed.vtxbuf_dirty)
         update_vertex_buffers(device);
 
     if (context->commit & NINE_STATE_COMMIT_BLEND)
@@ -1605,7 +1615,7 @@ CSMT_ITEM_NO_WAIT(nine_context_set_stream_source_apply,
     context->vtxbuf[i].buffer_offset = OffsetInBytes;
     pipe_resource_reference(&context->vtxbuf[i].buffer.resource, res);
 
-    context->changed.vtxbuf |= 1 << StreamNumber;
+    context->changed.vtxbuf_dirty = true;
     if (res)
         context->vtxbuf_mask |= 1 << StreamNumber;
     else
@@ -2525,7 +2535,7 @@ CSMT_ITEM_NO_WAIT(nine_context_draw_indexed_primitive_from_vtxbuf_idxbuf,
         info.index.user = user_ibuf;
 
     util_set_vertex_buffers(context->pipe, 1, false, vbuf);
-    context->changed.vtxbuf |= 1;
+    context->changed.vtxbuf_dirty = true;
 
     context->pipe->draw_vbo(context->pipe, &info, 0, NULL, &draw, 1);
 }
@@ -2907,7 +2917,7 @@ void nine_state_restore_non_cso(struct NineDevice9 *device)
     struct nine_context *context = &device->context;
 
     context->changed.group = NINE_STATE_ALL; /* TODO: we can remove states that have prepared commits */
-    context->changed.vtxbuf = (1ULL << device->caps.MaxStreams) - 1;
+    context->changed.vtxbuf_dirty = true;
     context->changed.ucp = true;
     context->commit |= 0xffffffff; /* re-commit everything */
     context->enabled_sampler_count_vs = 0;
@@ -2972,7 +2982,7 @@ nine_state_set_defaults(struct NineDevice9 *device, const D3DCAPS9 *caps,
     /* Set changed flags to initialize driver.
      */
     context->changed.group = NINE_STATE_ALL;
-    context->changed.vtxbuf = (1ULL << device->caps.MaxStreams) - 1;
+    context->changed.vtxbuf_dirty = true;
     context->changed.ucp = true;
 
     context->ff.changed.transform[0] = ~0;

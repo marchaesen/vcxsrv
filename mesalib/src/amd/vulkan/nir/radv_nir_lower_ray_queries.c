@@ -644,13 +644,10 @@ radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device
       progress = true;
    }
 
-   nir_foreach_function (function, shader) {
-      if (!function->impl)
-         continue;
+   nir_foreach_function_impl (impl, shader) {
+      nir_builder builder = nir_builder_create(impl);
 
-      nir_builder builder = nir_builder_create(function->impl);
-
-      nir_foreach_variable_in_list (var, &function->impl->locals) {
+      nir_foreach_variable_in_list (var, &impl->locals) {
          if (!var->data.ray_query)
             continue;
 
@@ -659,7 +656,7 @@ radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device
          progress = true;
       }
 
-      nir_foreach_block (block, function->impl) {
+      nir_foreach_block (block, impl) {
          nir_foreach_instr_safe (instr, block) {
             if (instr->type != nir_instr_type_intrinsic)
                continue;
@@ -719,7 +716,7 @@ radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device
          }
       }
 
-      nir_metadata_preserve(function->impl, nir_metadata_none);
+      nir_progress(true, impl, nir_metadata_none);
    }
 
    ralloc_free(query_ht);

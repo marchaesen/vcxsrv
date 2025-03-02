@@ -84,9 +84,9 @@ a618-angle:
     - .lava-test-deqp:arm64
     - .lava-sc7180-trogdor-kingoftown:arm64
     - .collabora-turnip-manual-rules
+    - .test-angle
   variables:
     DEQP_SUITE: tu-angle
-    USE_ANGLE: 1
 
 a618-vk:
   extends:
@@ -232,9 +232,9 @@ a660-angle:
     - .lava-test-deqp:arm64
     - .lava-sm8350-hdk:arm64
     - .collabora-turnip-manual-rules
+    - .test-angle
   variables:
     DEQP_SUITE: tu-angle
-    USE_ANGLE: 1
 
 a660-piglit-cl:
   extends:
@@ -420,9 +420,9 @@ a750-angle:
     - .b2c-arm64-test-gl
     - .a750-mupuf
     - .valve-turnip-manual-rules
+    - .test-angle
   timeout: 25m  # base runtime 10min total, 7min of testing
   variables:
-    USE_ANGLE: 1
     B2C_TIMEOUT_BOOT_MINUTES: 17
     B2C_TIMEOUT_OVERALL_MINUTES: 20
     DEQP_SUITE: tu-angle

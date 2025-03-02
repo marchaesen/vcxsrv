@@ -38,6 +38,10 @@
 #include "compiler/glsl_types.h"
 #endif
 
+#ifndef _WIN32
+#include "dlfcn.h"
+#endif
+
 #define VERSION_IS_1_0(version) \
    (VK_API_VERSION_MAJOR(version) == 1 && VK_API_VERSION_MINOR(version) == 0)
 
@@ -206,6 +210,8 @@ vk_instance_init(struct vk_instance *instance,
       instance->trace_trigger_file = secure_getenv("MESA_VK_TRACE_TRIGGER");
    }
 
+   simple_mtx_init(&instance->renderdoc_mtx, mtx_plain);
+
 #if !VK_LITE_RUNTIME_INSTANCE
    glsl_type_singleton_init_or_ref();
 #endif
@@ -231,6 +237,8 @@ vk_instance_finish(struct vk_instance *instance)
 #if !VK_LITE_RUNTIME_INSTANCE
    glsl_type_singleton_decref();
 #endif
+
+   simple_mtx_destroy(&instance->renderdoc_mtx);
 
    if (unlikely(!list_is_empty(&instance->debug_utils.callbacks))) {
       list_for_each_entry_safe(struct vk_debug_utils_messenger, messenger,
@@ -644,4 +652,40 @@ vk_icdNegotiateLoaderICDInterfaceVersion(uint32_t *pSupportedVersion)
    vk_icd_version = MIN2(vk_icd_version, *pSupportedVersion);
    *pSupportedVersion = vk_icd_version;
    return VK_SUCCESS;
+}
+
+void
+vk_instance_start_renderdoc_capture(struct vk_instance *instance)
+{
+#ifndef _WIN32
+   simple_mtx_lock(&instance->renderdoc_mtx);
+
+   if (!instance->renderdoc_api) {
+      void *renderdoc = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD);
+      pRENDERDOC_GetAPI get_api = dlsym(renderdoc, "RENDERDOC_GetAPI");
+      get_api(eRENDERDOC_API_Version_1_0_0, (void *)&instance->renderdoc_api);
+
+      instance->renderdoc_api->SetActiveWindow(
+         RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(vk_instance_to_handle(instance)), NULL);
+   }
+
+   if (!instance->renderdoc_api->IsFrameCapturing())
+      instance->renderdoc_api->StartFrameCapture(NULL, NULL);
+
+   simple_mtx_unlock(&instance->renderdoc_mtx);
+#endif
+}
+
+void
+vk_instance_end_renderdoc_capture(struct vk_instance *instance)
+{
+   if (!instance->renderdoc_api)
+      return;
+
+   simple_mtx_lock(&instance->renderdoc_mtx);
+
+   if (instance->renderdoc_api->IsFrameCapturing())
+      instance->renderdoc_api->EndFrameCapture(NULL, NULL);
+
+   simple_mtx_unlock(&instance->renderdoc_mtx);
 }

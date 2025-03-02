@@ -19,8 +19,8 @@
 #include "vk_format.h"
 
 uint64_t agx_best_modifiers[] = {
-   DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED,
-   DRM_FORMAT_MOD_APPLE_TWIDDLED,
+   DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED,
+   DRM_FORMAT_MOD_APPLE_GPU_TILED,
    DRM_FORMAT_MOD_LINEAR,
 };
 
@@ -35,7 +35,7 @@ hk_modifier_features(const struct agx_device *dev, uint64_t mod,
    }
 
    /* Don't advertise compression for the uncompressable */
-   if (mod == DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED &&
+   if (mod == DRM_FORMAT_MOD_APPLE_GPU_TILED_COMPRESSED &&
        !hk_can_compress_format(dev, vk_format))
       return 0;
 

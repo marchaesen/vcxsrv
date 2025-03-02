@@ -87,6 +87,6 @@ nir_lower_fb_read(nir_shader *shader)
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    return nir_shader_intrinsics_pass(shader, nir_lower_fb_read_instr,
-                                       nir_metadata_control_flow,
-                                       NULL);
+                                     nir_metadata_control_flow,
+                                     NULL);
 }

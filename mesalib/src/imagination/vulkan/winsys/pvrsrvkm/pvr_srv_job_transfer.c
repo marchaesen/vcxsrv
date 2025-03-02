@@ -40,6 +40,7 @@
 #include "pvr_srv_sync.h"
 #include "pvr_winsys.h"
 #include "util/macros.h"
+#include "util/os_file.h"
 #include "vk_alloc.h"
 #include "vk_log.h"
 #include "vk_util.h"
@@ -285,7 +286,7 @@ VkResult pvr_srv_winsys_transfer_submit(
       struct pvr_srv_sync *srv_wait_sync = to_srv_sync(submit_info->wait);
 
       if (srv_wait_sync->fd >= 0) {
-         in_fd = dup(srv_wait_sync->fd);
+         in_fd = os_dupfd_cloexec(srv_wait_sync->fd);
          if (in_fd == -1) {
             return vk_errorf(NULL,
                              VK_ERROR_OUT_OF_HOST_MEMORY,

@@ -59,7 +59,7 @@ lower_bitmap(nir_shader *shader, nir_builder *b,
    nir_def *cond;
 
    nir_def *baryc =
-         nir_load_barycentric_pixel(b, 32, .interp_mode = INTERP_MODE_SMOOTH);
+      nir_load_barycentric_pixel(b, 32, .interp_mode = INTERP_MODE_SMOOTH);
    texcoord = nir_load_interpolated_input(b, 4, 32, baryc, nir_imm_int(b, 0),
                                           .io_semantics.location = VARYING_SLOT_TEX0);
 
@@ -106,7 +106,7 @@ lower_bitmap_impl(nir_function_impl *impl,
 
    lower_bitmap(impl->function->shader, &b, options);
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow);
+   nir_progress(true, impl, nir_metadata_control_flow);
 }
 
 bool

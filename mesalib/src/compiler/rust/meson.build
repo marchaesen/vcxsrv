@@ -32,6 +32,7 @@ _compiler_binding_types = [
   'pipe_shader_type',
   'shader_info',
   'tess_primitive_mode',
+  'u_printf_info',
 ]
 
 _compiler_bindgen_args = [

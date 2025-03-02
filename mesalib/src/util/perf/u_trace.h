@@ -107,7 +107,7 @@ typedef void (*u_trace_delete_buffer)(struct u_trace_context *utctx,
                                       void *buffer);
 
 /**
- * Driver provided callback to emit commands into the soecified command
+ * Driver provided callback to emit commands into the specified command
  * stream to capture a 64b timestamp into the specified timestamps buffer,
  * at the specified index.
  *
@@ -160,6 +160,7 @@ typedef const void *(*u_trace_get_data)(struct u_trace_context *utctx,
 typedef uint64_t (*u_trace_read_ts)(struct u_trace_context *utctx,
                                     void *timestamps,
                                     uint64_t offset_B,
+                                    uint32_t flags,
                                     void *flush_data);
 
 /**

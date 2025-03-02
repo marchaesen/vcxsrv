@@ -32,7 +32,7 @@ static void si_utrace_record_ts(struct u_trace *trace, void *cs, void *timestamp
 }
 
 static uint64_t si_utrace_read_ts(struct u_trace_context *utctx, void *timestamps,
-                                  uint64_t offset_B, void *flush_data)
+                                  uint64_t offset_B, uint32_t flags, void *flush_data)
 {
    struct si_context *ctx = container_of(utctx, struct si_context, ds.trace_context);
    struct pipe_resource *buffer = timestamps;

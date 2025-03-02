@@ -215,7 +215,7 @@ vlVdpGetReferenceFrame(VdpVideoSurface handle, struct pipe_video_buffer **ref_fr
    if (!surface)
       return VDP_STATUS_INVALID_HANDLE;
 
-   *ref_frame = surface->video_buffer;
+   *ref_frame = surface->ref_buffer ? surface->ref_buffer : surface->video_buffer;
    if (!*ref_frame)
          return VDP_STATUS_INVALID_HANDLE;
 
@@ -619,12 +619,9 @@ copyAV1TileInfo(struct pipe_av1_picture_desc *picture,
 
 static VdpStatus
 vlVdpDecoderRenderAV1(struct pipe_av1_picture_desc *picture,
-                      VdpVideoSurface target,
                       const VdpPictureInfoAV1 *picture_info)
 {
    unsigned i, j;
-
-   picture->film_grain_target = NULL;
 
    picture->picture_parameter.profile = picture_info->profile;
    picture->picture_parameter.order_hint_bits_minus_1 = picture_info->order_hint_bits_minus1;
@@ -660,7 +657,6 @@ vlVdpDecoderRenderAV1(struct pipe_av1_picture_desc *picture,
    picture->picture_parameter.seq_info_fields.subsampling_y =
       picture_info->subsampling_y;
 
-   picture->picture_parameter.current_frame_id = target;
    picture->picture_parameter.frame_width = picture_info->width;
    picture->picture_parameter.frame_height = picture_info->height;
    picture->picture_parameter.max_width = picture_info->width;
@@ -1035,6 +1031,7 @@ vlVdpDecoderRender(VdpDecoder decoder,
       struct pipe_av1_picture_desc av1;
    } desc;
    bool picture_interlaced = false;
+   struct pipe_video_buffer *target_buf;
 
    if (!(picture_info && bitstream_buffers))
       return VDP_STATUS_INVALID_POINTER;
@@ -1086,7 +1083,7 @@ vlVdpDecoderRender(VdpDecoder decoder,
       ret = vlVdpDecoderRenderH265(&desc.h265, (VdpPictureInfoHEVC *)picture_info);
       break;
    case PIPE_VIDEO_FORMAT_AV1:
-      ret = vlVdpDecoderRenderAV1(&desc.av1, target, (VdpPictureInfoAV1 *)picture_info);
+      ret = vlVdpDecoderRenderAV1(&desc.av1, (VdpPictureInfoAV1 *)picture_info);
       break;
    default:
       return VDP_STATUS_INVALID_DECODER_PROFILE;
@@ -1132,10 +1129,32 @@ vlVdpDecoderRender(VdpDecoder decoder,
       mtx_unlock(&vlsurf->device->mutex);
    }
 
+   target_buf = vlsurf->video_buffer;
+
+   if (u_reduce_video_profile(dec->profile) == PIPE_VIDEO_FORMAT_AV1) {
+      desc.av1.film_grain_target = NULL;
+      if (desc.av1.picture_parameter.film_grain_info.film_grain_info_fields.apply_grain) {
+         if (!vlsurf->ref_buffer) {
+            mtx_lock(&vlsurf->device->mutex);
+            vlsurf->ref_buffer = dec->context->create_video_buffer(dec->context, &vlsurf->templat);
+            mtx_unlock(&vlsurf->device->mutex);
+            if (!vlsurf->ref_buffer)
+               return VDP_STATUS_RESOURCES;
+         }
+         desc.av1.film_grain_target = target_buf;
+         target_buf = vlsurf->ref_buffer;
+      } else if (vlsurf->ref_buffer) {
+         mtx_lock(&vlsurf->device->mutex);
+         vlsurf->ref_buffer->destroy(vlsurf->ref_buffer);
+         vlsurf->ref_buffer = NULL;
+         mtx_unlock(&vlsurf->device->mutex);
+      }
+   }
+
    mtx_lock(&vldecoder->mutex);
-   dec->begin_frame(dec, vlsurf->video_buffer, &desc.base);
-   dec->decode_bitstream(dec, vlsurf->video_buffer, &desc.base, bitstream_buffer_count, buffers, sizes);
-   dec->end_frame(dec, vlsurf->video_buffer, &desc.base);
+   dec->begin_frame(dec, target_buf, &desc.base);
+   dec->decode_bitstream(dec, target_buf, &desc.base, bitstream_buffer_count, buffers, sizes);
+   dec->end_frame(dec, target_buf, &desc.base);
    mtx_unlock(&vldecoder->mutex);
    return ret;
 }

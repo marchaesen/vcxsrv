@@ -364,7 +364,7 @@ struct radeon_winsys {
     * \return          The pointer at the beginning of the buffer.
     */
    void *(*buffer_map)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
-                       struct radeon_cmdbuf *cs, enum pipe_map_flags usage);
+                       struct radeon_cmdbuf *rcs, enum pipe_map_flags usage);
 
    /**
     * Unmap a buffer object from the client's address space.
@@ -563,7 +563,7 @@ struct radeon_winsys {
     *
     * \return true on success
     */
-   bool (*cs_create)(struct radeon_cmdbuf *cs,
+   bool (*cs_create)(struct radeon_cmdbuf *rcs,
                      struct radeon_winsys_ctx *ctx, enum amd_ip_type amd_ip_type,
                      void (*flush)(void *ctx, unsigned flags,
                                    struct pipe_fence_handle **fence),
@@ -576,7 +576,7 @@ struct radeon_winsys {
     * \param preamble_ib      Non-preemptible preamble IB for the context.
     * \param preamble_num_dw  Number of dwords in the preamble IB.
     */
-   bool (*cs_setup_preemption)(struct radeon_cmdbuf *cs, const uint32_t *preamble_ib,
+   bool (*cs_setup_preemption)(struct radeon_cmdbuf *rcs, const uint32_t *preamble_ib,
                                unsigned preamble_num_dw);
 
    /**
@@ -584,7 +584,7 @@ struct radeon_winsys {
     *
     * \param cs        A command stream to destroy.
     */
-   void (*cs_destroy)(struct radeon_cmdbuf *cs);
+   void (*cs_destroy)(struct radeon_cmdbuf *rcs);
 
    /**
     * Add a buffer. Each buffer used by a CS must be added using this function.
@@ -595,7 +595,7 @@ struct radeon_winsys {
     * \param domain  Bitmask of the RADEON_DOMAIN_* flags.
     * \return Buffer index.
     */
-   unsigned (*cs_add_buffer)(struct radeon_cmdbuf *cs, struct pb_buffer_lean *buf,
+   unsigned (*cs_add_buffer)(struct radeon_cmdbuf *rcs, struct pb_buffer_lean *buf,
                              unsigned usage, enum radeon_bo_domain domain);
 
    /**
@@ -608,7 +608,7 @@ struct radeon_winsys {
     * \param buf       Buffer
     * \return          The buffer index, or -1 if the buffer has not been added.
     */
-   int (*cs_lookup_buffer)(struct radeon_cmdbuf *cs, struct pb_buffer_lean *buf);
+   int (*cs_lookup_buffer)(struct radeon_cmdbuf *rcs, struct pb_buffer_lean *buf);
 
    /**
     * Return true if there is enough memory in VRAM and GTT for the buffers
@@ -618,7 +618,7 @@ struct radeon_winsys {
     *
     * \param cs        A command stream to validate.
     */
-   bool (*cs_validate)(struct radeon_cmdbuf *cs);
+   bool (*cs_validate)(struct radeon_cmdbuf *rcs);
 
    /**
     * Check whether the given number of dwords is available in the IB.
@@ -628,7 +628,7 @@ struct radeon_winsys {
     * \param dw        Number of CS dwords requested by the caller.
     * \return true if there is enough space
     */
-   bool (*cs_check_space)(struct radeon_cmdbuf *cs, unsigned dw);
+   bool (*cs_check_space)(struct radeon_cmdbuf *rcs, unsigned dw);
 
    /**
     * Return the buffer list.
@@ -640,7 +640,7 @@ struct radeon_winsys {
     * \param list  Returned buffer list. Set to NULL to query the count only.
     * \return      The buffer count.
     */
-   unsigned (*cs_get_buffer_list)(struct radeon_cmdbuf *cs, struct radeon_bo_list_item *list);
+   unsigned (*cs_get_buffer_list)(struct radeon_cmdbuf *rcs, struct radeon_bo_list_item *list);
 
    /**
     * Flush a command stream.
@@ -652,7 +652,7 @@ struct radeon_winsys {
     * \return Negative POSIX error code or 0 for success.
     *         Asynchronous submissions never return an error.
     */
-   int (*cs_flush)(struct radeon_cmdbuf *cs, unsigned flags, struct pipe_fence_handle **fence);
+   int (*cs_flush)(struct radeon_cmdbuf *rcs, unsigned flags, struct pipe_fence_handle **fence);
 
    /**
     * Create a fence before the CS is flushed.
@@ -661,7 +661,7 @@ struct radeon_winsys {
     * The fence must not be used for anything except \ref cs_add_fence_dependency
     * before the flush.
     */
-   struct pipe_fence_handle *(*cs_get_next_fence)(struct radeon_cmdbuf *cs);
+   struct pipe_fence_handle *(*cs_get_next_fence)(struct radeon_cmdbuf *rcs);
 
    /**
     * Return true if a buffer is referenced by a command stream.
@@ -669,7 +669,7 @@ struct radeon_winsys {
     * \param cs        A command stream.
     * \param buf       A winsys buffer.
     */
-   bool (*cs_is_buffer_referenced)(struct radeon_cmdbuf *cs, struct pb_buffer_lean *buf,
+   bool (*cs_is_buffer_referenced)(struct radeon_cmdbuf *rcs, struct pb_buffer_lean *buf,
                                    unsigned usage);
 
    /**
@@ -679,29 +679,29 @@ struct radeon_winsys {
     * \param fid       Feature ID, one of RADEON_FID_*
     * \param enable    Whether to enable or disable the feature.
     */
-   bool (*cs_request_feature)(struct radeon_cmdbuf *cs, enum radeon_feature_id fid, bool enable);
+   bool (*cs_request_feature)(struct radeon_cmdbuf *rcs, enum radeon_feature_id fid, bool enable);
    /**
     * Make sure all asynchronous flush of the cs have completed
     *
     * \param cs        A command stream.
     */
-   void (*cs_sync_flush)(struct radeon_cmdbuf *cs);
+   void (*cs_sync_flush)(struct radeon_cmdbuf *rcs);
 
    /**
     * Add a fence dependency to the CS, so that the CS will wait for
     * the fence before execution.
     */
-   void (*cs_add_fence_dependency)(struct radeon_cmdbuf *cs, struct pipe_fence_handle *fence);
+   void (*cs_add_fence_dependency)(struct radeon_cmdbuf *rcs, struct pipe_fence_handle *fence);
 
    /**
     * Signal a syncobj when the CS finishes execution.
     */
-   void (*cs_add_syncobj_signal)(struct radeon_cmdbuf *cs, struct pipe_fence_handle *fence);
+   void (*cs_add_syncobj_signal)(struct radeon_cmdbuf *rcs, struct pipe_fence_handle *fence);
 
    /**
     * Returns the amd_ip_type type of a CS.
     */
-   enum amd_ip_type (*cs_get_ip_type)(struct radeon_cmdbuf *cs);
+   enum amd_ip_type (*cs_get_ip_type)(struct radeon_cmdbuf *rcs);
 
    /**
     * Wait for the fence and return true if the fence has been signalled.
@@ -760,35 +760,35 @@ struct radeon_winsys {
    /**
     * Secure context
     */
-   bool (*cs_is_secure)(struct radeon_cmdbuf *cs);
+   bool (*cs_is_secure)(struct radeon_cmdbuf *rcs);
 
    /**
     * Stable pstate
     */
-   bool (*cs_set_pstate)(struct radeon_cmdbuf *cs, enum radeon_ctx_pstate state);
+   bool (*cs_set_pstate)(struct radeon_cmdbuf *rcs, enum radeon_ctx_pstate state);
 
    /**
     * Pass the VAs to the buffers where various information is saved by the FW during mcbp.
     */
-   void (*cs_set_mcbp_reg_shadowing_va)(struct radeon_cmdbuf *cs, uint64_t regs_va,
+   void (*cs_set_mcbp_reg_shadowing_va)(struct radeon_cmdbuf *rcs, uint64_t regs_va,
                                                                   uint64_t csa_va);
 };
 
-static inline bool radeon_emitted(struct radeon_cmdbuf *cs, unsigned num_dw)
+static inline bool radeon_emitted(struct radeon_cmdbuf *rcs, unsigned num_dw)
 {
-   return cs && (cs->prev_dw + cs->current.cdw > num_dw);
+   return rcs && (rcs->prev_dw + rcs->current.cdw > num_dw);
 }
 
-static inline void radeon_emit(struct radeon_cmdbuf *cs, uint32_t value)
+static inline void radeon_emit(struct radeon_cmdbuf *rcs, uint32_t value)
 {
-   cs->current.buf[cs->current.cdw++] = value;
+   rcs->current.buf[rcs->current.cdw++] = value;
 }
 
-static inline void radeon_emit_array(struct radeon_cmdbuf *cs, const uint32_t *values,
+static inline void radeon_emit_array(struct radeon_cmdbuf *rcs, const uint32_t *values,
                                      unsigned count)
 {
-   memcpy(cs->current.buf + cs->current.cdw, values, count * 4);
-   cs->current.cdw += count;
+   memcpy(rcs->current.buf + rcs->current.cdw, values, count * 4);
+   rcs->current.cdw += count;
 }
 
 static inline bool radeon_uses_secure_bos(struct radeon_winsys* ws)

@@ -1397,29 +1397,37 @@
     <field name="Vertex attribute stride" size="16" start="2:16" type="uint"/>
   </struct>
 
+  <struct name="DCD Flags 0" size="1">
+    <field name="Allow forward pixel to kill" size="1" start="0" type="bool"/>
+    <field name="Allow forward pixel to be killed" size="1" start="1" type="bool"/>
+    <field name="Pixel kill operation" size="2" start="2" type="Pixel Kill"/>
+    <field name="ZS update operation" size="2" start="4" type="Pixel Kill"/>
+    <field name="Allow primitive reorder" size="1" start="6" type="bool"/>
+    <field name="Overdraw alpha0" start="7" size="1" type="bool"/>
+    <field name="Overdraw alpha1" size="1" start="8" type="bool"/>
+    <field name="Clean Fragment Write" size="1" start="9" type="bool"/>
+    <field name="Primitive Barrier" size="1" start="10" type="bool"/>
+    <field name="Evaluate per-sample" size="1" start="11" type="bool"/>
+    <field name="Aligned line-ends" size="1" start="13" type="bool"/>
+    <field name="Occlusion query" size="2" start="14" type="Occlusion Mode" default="Disabled"/>
+    <field name="Front face CCW" size="1" start="16" type="bool"/>
+    <field name="Cull front face" size="1" start="17" type="bool"/>
+    <field name="Cull back face" size="1" start="18" type="bool"/>
+    <field name="Multisample enable" size="1" start="19" type="bool"/>
+    <field name="Shader modifies coverage" size="1" start="20" type="bool"/>
+    <field name="Alpha-to-coverage Invert" size="1" start="21" type="bool"/>
+    <field name="Alpha-to-coverage" size="1" start="22" type="bool"/>
+    <field name="Scissor to bounding box" size="1" start="23" type="bool"/>
+  </struct>
+
+  <struct name="DCD Flags 1" size="1">
+    <field name="Sample mask" size="16" start="0" type="uint"/>
+    <field name="Render target mask" start="16" size="8" type="hex"/>
+  </struct>
+
   <struct name="Draw" align="64">
-    <field name="Allow forward pixel to kill" size="1" start="0:0" type="bool"/>
-    <field name="Allow forward pixel to be killed" size="1" start="0:1" type="bool"/>
-    <field name="Pixel kill operation" size="2" start="0:2" type="Pixel Kill"/>
-    <field name="ZS update operation" size="2" start="0:4" type="Pixel Kill"/>
-    <field name="Allow primitive reorder" size="1" start="0:6" type="bool"/>
-    <field name="Overdraw alpha0" start="0:7" size="1" type="bool"/>
-    <field name="Overdraw alpha1" size="1" start="0:8" type="bool"/>
-    <field name="Clean Fragment Write" size="1" start="0:9" type="bool"/>
-    <field name="Primitive Barrier" size="1" start="0:10" type="bool"/>
-    <field name="Evaluate per-sample" size="1" start="0:11" type="bool"/>
-    <field name="Single-sampled lines" size="1" start="0:13" type="bool"/>
-    <field name="Occlusion query" size="2" start="0:14" type="Occlusion Mode" default="Disabled"/>
-    <field name="Front face CCW" size="1" start="0:16" type="bool"/>
-    <field name="Cull front face" size="1" start="0:17" type="bool"/>
-    <field name="Cull back face" size="1" start="0:18" type="bool"/>
-    <field name="Multisample enable" size="1" start="0:19" type="bool"/>
-    <field name="Shader modifies coverage" size="1" start="0:20" type="bool"/>
-    <field name="Alpha-to-coverage Invert" size="1" start="0:21" type="bool"/>
-    <field name="Alpha-to-coverage" size="1" start="0:22" type="bool"/>
-    <field name="Scissor to bounding box" size="1" start="0:23" type="bool"/>
-    <field name="Sample mask" size="16" start="1:0" type="uint"/>
-    <field name="Render target mask" start="1:16" size="8" type="hex"/>
+    <field name="Flags 0" size="32" start="0:0" type="DCD Flags 0"/>
+    <field name="Flags 1" size="32" start="1:0" type="DCD Flags 1"/>
     <field name="Vertex array" start="2:0" size="96" type="Vertex Array"/>
     <field name="Minimum Z" start="6:0" size="32" type="float"/>
     <field name="Maximum Z" start="7:0" size="32" type="float"/>

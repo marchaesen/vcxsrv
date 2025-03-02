@@ -277,14 +277,8 @@ opt_access_impl(struct access_state *state,
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl,
-                            nir_metadata_control_flow |
-                            nir_metadata_live_defs |
-                            nir_metadata_loop_analysis);
-   }
-
-   return progress;
+   return nir_progress(progress, impl,
+                       nir_metadata_control_flow | nir_metadata_live_defs | nir_metadata_loop_analysis);
 }
 
 bool
@@ -323,12 +317,8 @@ nir_opt_access(nir_shader *shader, const nir_opt_access_options *options)
       progress |= opt_access_impl(&state, impl);
 
       /* If we make a change to the uniforms, update all the impls. */
-      if (var_progress) {
-         nir_metadata_preserve(impl,
-                               nir_metadata_control_flow |
-                               nir_metadata_live_defs |
-                               nir_metadata_loop_analysis);
-      }
+      nir_progress(var_progress, impl,
+                   nir_metadata_control_flow | nir_metadata_live_defs | nir_metadata_loop_analysis);
    }
 
    progress |= var_progress;

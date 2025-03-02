@@ -1817,6 +1817,7 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx,
 
    if (sctx->vertex_buffers_dirty || IS_DRAW_VERTEX_STATE) {
       assert(count || IS_DRAW_VERTEX_STATE);
+      assert(IS_DRAW_VERTEX_STATE || !sctx->vertex_elements_but_no_buffers);
 
       struct si_vertex_elements *velems = sctx->vertex_elements;
       unsigned alloc_size = IS_DRAW_VERTEX_STATE ?
@@ -2089,10 +2090,27 @@ static void si_draw(struct pipe_context *ctx,
 
    struct si_shader_selector *vs = sctx->shader.vs.cso;
    struct si_vertex_state *vstate = (struct si_vertex_state *)state;
-   if (unlikely(!vs ||
-                (!IS_DRAW_VERTEX_STATE && sctx->num_vertex_elements < vs->info.num_vs_inputs) ||
-                (IS_DRAW_VERTEX_STATE && vstate->velems.count < vs->info.num_vs_inputs) ||
-                !sctx->shader.ps.cso || (HAS_TESS != (info->mode == MESA_PRIM_PATCHES)))) {
+   const unsigned num_vertex_elements = IS_DRAW_VERTEX_STATE ? vstate->velems.count
+                                                             : sctx->num_vertex_elements;
+   if (unlikely(!vs || !sctx->shader.ps.cso || (HAS_TESS != (info->mode == MESA_PRIM_PATCHES))) ||
+                num_vertex_elements < vs->info.num_vs_inputs) {
+#ifndef NDEBUG
+      if (!vs)
+         fprintf(stderr, "radeonsi: draw: missing vertex shader\n");
+
+      if (!sctx->shader.ps.cso)
+         fprintf(stderr, "radeonsi: draw: missing fragment shader\n");
+
+      if (HAS_TESS != (info->mode == MESA_PRIM_PATCHES)) {
+         fprintf(stderr, HAS_TESS ? "radeonsi: draw: invalid primitive type (expected PATCHES)\n"
+                                  : "radeonsi: draw: invalid primitive type (not expected PATCHES)\n");
+      }
+
+      if (num_vertex_elements < vs->info.num_vs_inputs) {
+         fprintf(stderr, "radeonsi: draw: not enough vertex elements for a vertex shader "
+                         "(has: %u, need: %u)\n", num_vertex_elements, vs->info.num_vs_inputs);
+      }
+#endif
       assert(0);
       return;
    }

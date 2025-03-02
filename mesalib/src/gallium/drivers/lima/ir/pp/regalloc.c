@@ -500,6 +500,8 @@ static void ppir_regalloc_reset_liveness_info(ppir_compiler *comp)
    }
 
    list_for_each_entry(ppir_block, block, &comp->block_list, list) {
+      if (list_is_empty(&block->instr_list))
+         continue;
       list_for_each_entry(ppir_instr, instr, &block->instr_list, list) {
 
          if (instr->live_mask)
@@ -514,6 +516,17 @@ static void ppir_regalloc_reset_liveness_info(ppir_compiler *comp)
          if (instr->live_internal)
             ralloc_free(instr->live_internal);
          instr->live_internal = rzalloc_array(comp, BITSET_WORD, comp->reg_num);
+      }
+
+      /* Mark out regs as live for the last instruction of stop block */
+      if (block->stop) {
+         ppir_instr *last = list_last_entry(&block->instr_list, ppir_instr, list);
+         list_for_each_entry(ppir_reg, reg, &comp->reg_list, list) {
+            if (reg->out_reg) {
+               BITSET_SET(last->live_set, reg->regalloc_index);
+               set_reg_mask(last->live_mask, reg->regalloc_index, 0xf);
+            }
+         }
       }
    }
 }

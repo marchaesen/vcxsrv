@@ -107,16 +107,10 @@ RRCreateProviderProperty(Atom property)
 {
     RRPropertyPtr prop;
 
-    prop = (RRPropertyPtr) malloc(sizeof(RRPropertyRec));
+    prop = (RRPropertyPtr) calloc(1, sizeof(RRPropertyRec));
     if (!prop)
         return NULL;
-    prop->next = NULL;
     prop->propertyName = property;
-    prop->is_pending = FALSE;
-    prop->range = FALSE;
-    prop->immutable = FALSE;
-    prop->num_valid = 0;
-    prop->valid_values = NULL;
     RRInitProviderPropertyValue(&prop->current);
     RRInitProviderPropertyValue(&prop->pending);
     return prop;
@@ -391,7 +385,6 @@ ProcRRListProviderProperties(ClientPtr client)
 {
     REQUEST(xRRListProviderPropertiesReq);
     Atom *pAtoms = NULL, *temppAtoms;
-    xRRListProviderPropertiesReply rep;
     int numProps = 0;
     RRProviderPtr provider;
     RRPropertyPtr prop;
@@ -406,7 +399,7 @@ ProcRRListProviderProperties(ClientPtr client)
         if (!(pAtoms = xallocarray(numProps, sizeof(Atom))))
             return BadAlloc;
 
-    rep = (xRRListProviderPropertiesReply) {
+    xRRListProviderPropertiesReply rep = {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
         .length = bytes_to_int32(numProps * sizeof(Atom)),
@@ -434,7 +427,6 @@ int
 ProcRRQueryProviderProperty(ClientPtr client)
 {
     REQUEST(xRRQueryProviderPropertyReq);
-    xRRQueryProviderPropertyReply rep;
     RRProviderPtr provider;
     RRPropertyPtr prop;
     char *extra = NULL;
@@ -452,7 +444,8 @@ ProcRRQueryProviderProperty(ClientPtr client)
         if (!extra)
             return BadAlloc;
     }
-    rep = (xRRQueryProviderPropertyReply) {
+
+    xRRQueryProviderPropertyReply rep = {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
         .length = prop->num_valid,
@@ -614,17 +607,8 @@ ProcRRGetProviderProperty(ClientPtr client)
             break;
 
     if (!prop) {
-        reply.nItems = 0;
-        reply.length = 0;
-        reply.bytesAfter = 0;
-        reply.propertyType = None;
-        reply.format = 0;
         if (client->swapped) {
             swaps(&reply.sequenceNumber);
-            swapl(&reply.length);
-            swapl(&reply.propertyType);
-            swapl(&reply.bytesAfter);
-            swapl(&reply.nItems);
         }
         WriteToClient(client, sizeof(xRRGetProviderPropertyReply), &reply);
         return Success;
@@ -644,15 +628,11 @@ ProcRRGetProviderProperty(ClientPtr client)
         ) {
         reply.bytesAfter = prop_value->size;
         reply.format = prop_value->format;
-        reply.length = 0;
-        reply.nItems = 0;
         reply.propertyType = prop_value->type;
         if (client->swapped) {
             swaps(&reply.sequenceNumber);
-            swapl(&reply.length);
             swapl(&reply.propertyType);
             swapl(&reply.bytesAfter);
-            swapl(&reply.nItems);
         }
         WriteToClient(client, sizeof(xRRGetProviderPropertyReply), &reply);
         return Success;
@@ -684,8 +664,6 @@ ProcRRGetProviderProperty(ClientPtr client)
     reply.length = bytes_to_int32(len);
     if (prop_value->format)
         reply.nItems = len / (prop_value->format / 8);
-    else
-        reply.nItems = 0;
     reply.propertyType = prop_value->type;
 
     if (stuff->delete && (reply.bytesAfter == 0)) {
@@ -707,23 +685,25 @@ ProcRRGetProviderProperty(ClientPtr client)
         swapl(&reply.bytesAfter);
         swapl(&reply.nItems);
     }
-    WriteToClient(client, sizeof(xGenericReply), &reply);
     if (len) {
         memcpy(extra, (char *) prop_value->data + ind, len);
         switch (reply.format) {
         case 32:
-            client->pSwapReplyFunc = (ReplySwapPtr) CopySwap32Write;
+            if (client->swapped)
+                SwapLongs((CARD32*) extra, len/sizeof(CARD32));
             break;
         case 16:
-            client->pSwapReplyFunc = (ReplySwapPtr) CopySwap16Write;
+            if (client->swapped)
+                SwapShorts((short*) extra, len/sizeof(CARD16));
             break;
         default:
-            client->pSwapReplyFunc = (ReplySwapPtr) WriteToClient;
             break;
         }
-        WriteSwappedDataToClient(client, len, extra);
-        free(extra);
     }
+
+    WriteToClient(client, sizeof(xGenericReply), &reply);
+    WriteToClient(client, len, extra);
+    free(extra);
 
     if (stuff->delete && (reply.bytesAfter == 0)) {     /* delete the Property */
         *prev = prop->next;

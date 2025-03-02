@@ -832,9 +832,10 @@ hs_msg_group_vote_use_memory(nir_builder *b, lower_tess_io_state *st,
    nir_pop_if(&top_b, thread0);
 
    /* Insert a barrier to wait for initialization above if there hasn't been any other barrier
-    * in the shader.
+    * in the shader. If tcs_out_patch_fits_subgroup=true, then TCS barriers don't have a scope
+    * larger than a subgroup.
     */
-   if (!st->tcs_info.always_executes_barrier) {
+   if (!st->tcs_info.always_executes_barrier || st->tcs_out_patch_fits_subgroup) {
       nir_barrier(b, .execution_scope = SCOPE_WORKGROUP, .memory_scope = SCOPE_WORKGROUP,
                   .memory_semantics = NIR_MEMORY_ACQ_REL, .memory_modes = nir_var_mem_shared);
    }
@@ -1112,7 +1113,7 @@ hs_finale(nir_shader *shader, lower_tess_io_state *st)
    }
    nir_pop_if(b, if_invocation_id_zero);
 
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
 }
 
 static nir_def *

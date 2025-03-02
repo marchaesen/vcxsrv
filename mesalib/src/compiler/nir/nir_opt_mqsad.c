@@ -135,10 +135,9 @@ nir_opt_mqsad(nir_shader *shader)
       }
 
       if (progress_impl) {
-         nir_metadata_preserve(impl, nir_metadata_control_flow);
-         progress = true;
+         progress = nir_progress(true, impl, nir_metadata_control_flow);
       } else {
-         nir_metadata_preserve(impl, nir_metadata_block_index);
+         nir_progress(true, impl, nir_metadata_block_index);
       }
    }
 

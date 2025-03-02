@@ -651,9 +651,9 @@ opt_find_array_copies_impl(nir_function_impl *impl)
    ralloc_free(s.dead_ctx);
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
+      nir_progress(true, impl, nir_metadata_control_flow);
    } else {
-      nir_metadata_preserve(impl, nir_metadata_all & ~nir_metadata_instr_index);
+      nir_progress(true, impl, nir_metadata_all & ~nir_metadata_instr_index);
    }
 
    return progress;

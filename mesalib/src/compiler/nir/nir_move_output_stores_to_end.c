@@ -11,8 +11,8 @@
 #include "nir_builder.h"
 
 /* Put the position in the last slot to make its store last. */
-#define LAST_SLOT    NUM_TOTAL_VARYING_SLOTS
-#define NUM_SLOTS    ((LAST_SLOT + 1) * 4)
+#define LAST_SLOT NUM_TOTAL_VARYING_SLOTS
+#define NUM_SLOTS ((LAST_SLOT + 1) * 4)
 
 typedef struct {
    nir_instr *stores[NUM_SLOTS];
@@ -92,7 +92,5 @@ nir_move_output_stores_to_end(nir_shader *nir)
       progress = true;
    }
 
-   nir_metadata_preserve(impl, progress ? nir_metadata_control_flow :
-                                          nir_metadata_all);
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_control_flow);
 }

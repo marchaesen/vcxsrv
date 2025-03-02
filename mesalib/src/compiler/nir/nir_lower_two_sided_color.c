@@ -84,7 +84,6 @@ nir_lower_two_sided_color_instr(nir_builder *b, nir_instr *instr, void *data)
    } else
       return false;
 
-
    /* replace load_input(COLn) with
     * bcsel(load_system_value(FACE), load_input(COLn), load_input(BFCn))
     */

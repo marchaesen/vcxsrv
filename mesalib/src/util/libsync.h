@@ -30,6 +30,7 @@
 
 #include <io.h>
 #include <string.h>
+#include "util/os_file.h"
 
 /* accumulate fd2 into fd1.  If *fd1 is not a valid fd then dup fd2,
  * otherwise sync_merge() and close the old *fd1.  This can be used
@@ -55,7 +56,7 @@ static inline int sync_accumulate(const char *name, int *fd1, int fd2)
 	assert(fd2 >= 0);
 
 	if (*fd1 < 0) {
-		*fd1 = dup(fd2);
+		*fd1 = os_dupfd_cloexec(fd2);
 		return 0;
 	}
 

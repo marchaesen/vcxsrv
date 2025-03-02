@@ -58,7 +58,8 @@ xkb_symbols "super" {
 hidden partial modifier_keys
 xkb_symbols "hyper" {
     key <CAPS> { [ Hyper_L ], type[group1] = "ONE_LEVEL" };
-    modifier_map Mod3 { <CAPS> };
+    modifier_map None { <CAPS> };
+    include "hyper(mod3)"
 };
 
 hidden partial modifier_keys

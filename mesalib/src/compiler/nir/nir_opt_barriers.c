@@ -21,9 +21,9 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/u_vector.h"
 #include "nir.h"
 #include "nir_worklist.h"
-#include "util/u_vector.h"
 
 static bool
 combine_all_barriers(nir_intrinsic_instr *a, nir_intrinsic_instr *b, void *_)
@@ -70,14 +70,8 @@ nir_opt_combine_barriers_impl(nir_function_impl *impl,
       }
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow |
-                                     nir_metadata_live_defs);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl,
+                       nir_metadata_control_flow | nir_metadata_live_defs);
 }
 
 /* Combine adjacent scoped barriers. */
@@ -166,7 +160,8 @@ nir_opt_barrier_modes_impl(nir_function_impl *impl)
        * need to keep the mode.  Any modes not kept are discarded.
        */
       nir_deref_instr **p_deref;
-      u_vector_foreach(p_deref, &mem_derefs) {
+      u_vector_foreach(p_deref, &mem_derefs)
+      {
          nir_deref_instr *deref = *p_deref;
          const unsigned atomic_mode =
             glsl_contains_atomic(deref->type) ? nir_var_mem_ssbo : 0;
@@ -190,7 +185,7 @@ nir_opt_barrier_modes_impl(nir_function_impl *impl)
       if (nir_intrinsic_execution_scope(barrier) == SCOPE_NONE &&
           new_modes == nir_var_mem_shared) {
          nir_intrinsic_set_memory_scope(barrier,
-            MIN2(nir_intrinsic_memory_scope(barrier), SCOPE_WORKGROUP));
+                                        MIN2(nir_intrinsic_memory_scope(barrier), SCOPE_WORKGROUP));
          progress = true;
       }
    }
@@ -232,15 +227,11 @@ nir_opt_barrier_modes(nir_shader *shader)
 
    nir_foreach_function_impl(impl, shader) {
       nir_metadata_require(impl, nir_metadata_dominance |
-                                 nir_metadata_instr_index);
+                                    nir_metadata_instr_index);
 
-      if (nir_opt_barrier_modes_impl(impl)) {
-         nir_metadata_preserve(impl, nir_metadata_control_flow |
-                                     nir_metadata_live_defs);
-         progress = true;
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
+      bool impl_progress = nir_opt_barrier_modes_impl(impl);
+      progress |= nir_progress(impl_progress, impl,
+                               nir_metadata_control_flow | nir_metadata_live_defs);
    }
 
    return progress;

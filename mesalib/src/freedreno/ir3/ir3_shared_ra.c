@@ -734,6 +734,10 @@ reload_src(struct ra_ctx *ctx, struct ir3_instruction *instr,
    interval->physreg_end = best_reg + size;
    interval->needs_reload = true;
    ir3_reg_interval_insert(&ctx->reg_ctx, &interval->interval);
+
+   while (interval->interval.parent)
+      interval = ir3_reg_interval_to_ra_interval(interval->interval.parent);
+
    interval->src = true;
 }
 

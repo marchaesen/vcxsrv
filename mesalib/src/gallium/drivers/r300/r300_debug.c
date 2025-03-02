@@ -36,6 +36,7 @@ static const struct debug_named_value r300_debug_options[] = {
     { "notcl", DBG_NO_TCL, "Disable hardware accelerated Transform/Clip/Lighting" },
     { "ieeemath", DBG_IEEEMATH, "Force IEEE versions of VS math opcodes where applicable and also IEEE handling of multiply by zero (R5xx only)" },
     { "ffmath", DBG_FFMATH, "Force FF versions of VS math opcodes where applicable and 0*anything=0 rules in FS" },
+    { "dummysh", DBG_DUMMYSH, "Never report errors when compilation fails, use dummy shaders instead." },
 
     /* must be last */
     DEBUG_NAMED_VALUE_END

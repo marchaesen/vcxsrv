@@ -225,6 +225,8 @@ struct wsi_swapchain {
                               const uint32_t *indices);
    void (*set_present_mode)(struct wsi_swapchain *swap_chain,
                             VkPresentModeKHR mode);
+   void (*set_hdr_metadata)(struct wsi_swapchain *swap_chain,
+                            const VkHdrMetadataEXT* pMetadata);
 };
 
 bool

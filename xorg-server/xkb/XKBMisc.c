@@ -553,6 +553,7 @@ XkbChangeTypesOfKey(XkbDescPtr xkb,
         i = XkbSetNumGroups(i, 0);
         xkb->map->key_sym_map[key].group_info = i;
         XkbResizeKeySyms(xkb, key, 0);
+        XkbResizeKeyActions(xkb, key, 0);
         return Success;
     }
 

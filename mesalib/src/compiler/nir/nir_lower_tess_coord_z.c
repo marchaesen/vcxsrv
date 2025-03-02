@@ -34,6 +34,6 @@ bool
 nir_lower_tess_coord_z(nir_shader *shader, bool triangles)
 {
    return nir_shader_intrinsics_pass(shader, lower_tess_coord_z,
-                                       nir_metadata_control_flow,
-                                       &triangles);
+                                     nir_metadata_control_flow,
+                                     &triangles);
 }

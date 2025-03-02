@@ -302,14 +302,14 @@ libclc_add_generic_variants(nir_shader *shader)
       }
 
       progress = true;
-      nir_metadata_preserve(func->impl, nir_metadata_none);
+      nir_progress(true, func->impl, nir_metadata_none);
    }
 
    if (progress) {
       nir_foreach_function_impl(impl, shader) {
          if (impl->valid_metadata & nir_metadata_not_properly_reset) {
             /* Preserve all metadata for functions that we didn't modify. */
-            nir_metadata_preserve(impl, nir_metadata_all);
+            nir_no_progress(impl);
          }
       }
    }

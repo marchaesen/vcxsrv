@@ -1410,7 +1410,7 @@ hk_CmdCopyBuffer2(VkCommandBuffer commandBuffer, const VkCopyBufferInfo2 *info)
 static bool
 hk_copy_requires_gfx(struct hk_image *img)
 {
-   return img->vk.samples > 1 && ail_is_compressed(&img->planes[0].layout);
+   return img->vk.samples > 1 && img->planes[0].layout.compressed;
 }
 
 static bool

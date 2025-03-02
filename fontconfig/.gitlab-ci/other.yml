@@ -123,6 +123,8 @@ meson msys2:
       ninja -C build test"
 
 meson android arm64 fedora:
+  # No container images available. Disabling
+  when: "manual"
   # See https://gitlab.freedesktop.org/gstreamer/gst-ci/container_registry/164 for current images
   image: "registry.freedesktop.org/gstreamer/gst-ci/amd64/android-fedora:2020-10-22.0-master"
   stage: "test"

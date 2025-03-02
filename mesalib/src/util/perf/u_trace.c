@@ -686,6 +686,7 @@ process_chunk(void *job, void *gdata, int thread_index)
       uint64_t ns = utctx->read_timestamp(utctx,
                                           chunk->timestamps,
                                           utctx->timestamp_size_bytes * idx,
+                                          evt->tp->flags,
                                           chunk->flush_data);
       int32_t delta;
 

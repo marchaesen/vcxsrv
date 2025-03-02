@@ -150,8 +150,8 @@ nir_lower_point_smooth(nir_shader *shader, bool set_barycentrics)
    };
 
    return nir_shader_intrinsics_pass(shader, lower_point_smooth,
-                                       nir_metadata_loop_analysis |
-                                          nir_metadata_block_index |
-                                          nir_metadata_dominance,
-                                       &state);
+                                     nir_metadata_loop_analysis |
+                                        nir_metadata_block_index |
+                                        nir_metadata_dominance,
+                                     &state);
 }

@@ -95,14 +95,14 @@ ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader *shader,
 
    /* This must run after the last nir_opt_algebraic or it gets undone. */
    if (compiler->has_branch_and_or)
-      NIR_PASS_V(ctx->s, ir3_nir_opt_branch_and_or_not);
+      NIR_PASS(_, ctx->s, ir3_nir_opt_branch_and_or_not);
 
    if (compiler->has_bitwise_triops) {
       bool triops_progress = false;
       NIR_PASS(triops_progress, ctx->s, ir3_nir_opt_triops_bitwise);
 
       if (triops_progress) {
-         NIR_PASS_V(ctx->s, nir_opt_dce);
+         NIR_PASS(_, ctx->s, nir_opt_dce);
       }
    }
 
@@ -110,16 +110,16 @@ ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader *shader,
     * only enable it on generations that have been tested:
     */
    if ((so->type == MESA_SHADER_FRAGMENT) && compiler->has_fs_tex_prefetch)
-      NIR_PASS_V(ctx->s, ir3_nir_lower_tex_prefetch);
+      NIR_PASS(_, ctx->s, ir3_nir_lower_tex_prefetch);
 
    bool vectorized = false;
    NIR_PASS(vectorized, ctx->s, nir_opt_vectorize, ir3_nir_vectorize_filter,
             NULL);
 
    if (vectorized) {
-      NIR_PASS_V(ctx->s, nir_opt_undef);
-      NIR_PASS_V(ctx->s, nir_copy_prop);
-      NIR_PASS_V(ctx->s, nir_opt_dce);
+      NIR_PASS(_, ctx->s, nir_opt_undef);
+      NIR_PASS(_, ctx->s, nir_copy_prop);
+      NIR_PASS(_, ctx->s, nir_opt_dce);
    }
 
    NIR_PASS(progress, ctx->s, nir_convert_to_lcssa, true, true);
@@ -127,7 +127,7 @@ ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader *shader,
    /* This has to go at the absolute end to make sure that all SSA defs are
     * correctly marked.
     */
-   NIR_PASS_V(ctx->s, nir_divergence_analysis);
+   nir_divergence_analysis(ctx->s);
 
    /* Super crude heuristic to limit # of tex prefetch in small
     * shaders.  This completely ignores loops.. but that's really

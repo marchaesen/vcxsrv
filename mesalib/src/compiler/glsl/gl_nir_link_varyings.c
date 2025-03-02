@@ -979,6 +979,41 @@ gl_nir_cross_validate_outputs_to_inputs(const struct gl_constants *consts,
    _mesa_symbol_table_dtor(table);
 }
 
+/*
+ * GL_ARB_explicit_attrib_location defined rules for location overlap includes
+ * handling the index.
+ *
+ * So the changes to section 3.9.2 on GL, and added also on the
+ * EXT_blend_func_extended for GL-ES, includes the following:
+ *  "Output binding assignments will cause LinkProgram to fail:"
+ *
+ *   ... skip ...
+ *
+ *  if more than one varying out variable is bound to the same number and
+ *  index; or"
+ *
+ * So location checks for overlapping needs to take into account also the
+ * index.
+ *
+ */
+static bool
+location_overlap_by_index(nir_variable **assigned,
+                          unsigned assigned_attr,
+                          nir_variable *var)
+{
+   bool overlaps = false;
+
+   for (unsigned i = 0; i < assigned_attr; i++) {
+      if (assigned[i]->data.location == var->data.location &&
+          assigned[i]->data.index == var->data.index) {
+         overlaps = true;
+         break;
+      }
+   }
+
+   return overlaps;
+}
+
 /**
  * Assign locations for either VS inputs or FS outputs.
  *
@@ -1140,7 +1175,7 @@ assign_attribute_or_color_locations(void *mem_ctx,
        * add it to the list of variables that need linker-assigned locations.
        */
       if (var->data.location != -1) {
-         if (var->data.location >= generic_base && var->data.index < 1) {
+         if (var->data.location >= generic_base) {
             /* From page 61 of the OpenGL 4.0 spec:
              *
              *     "LinkProgram will fail if the attribute bindings assigned
@@ -1243,6 +1278,12 @@ assign_attribute_or_color_locations(void *mem_ctx,
                    *    members is allowed.
                    */
                   for (unsigned i = 0; i < assigned_attr; i++) {
+                     /* Skip the overlapping checks if the index is
+                      * different
+                      */
+                     if (assigned[i]->data.index != var->data.index)
+                        continue;
+
                      unsigned assigned_slots =
                         glsl_count_attribute_slots(assigned[i]->type, false);
                      unsigned assig_attr =
@@ -1282,6 +1323,10 @@ assign_attribute_or_color_locations(void *mem_ctx,
                   }
                } else if (target_index == MESA_SHADER_FRAGMENT ||
                           (prog->IsES && prog->GLSL_Version >= 300)) {
+
+                  if (!location_overlap_by_index(assigned, assigned_attr, var))
+                     continue;
+
                   linker_error(prog, "overlapping location is assigned "
                                "to %s `%s' %d %d %d\n", string, var->name,
                                used_locations, use_mask, attr);
@@ -1293,17 +1338,16 @@ assign_attribute_or_color_locations(void *mem_ctx,
                }
             }
 
-            if (target_index == MESA_SHADER_FRAGMENT && !prog->IsES) {
-               /* Only track assigned variables for non-ES fragment shaders
-                * to avoid overflowing the array.
-                *
-                * At most one variable per fragment output component should
-                * reach this.
-                */
-               assert(assigned_attr < ARRAY_SIZE(assigned));
-               assigned[assigned_attr] = var;
-               assigned_attr++;
-            }
+            /* We need to track too for ES shaders (both fragment and vertex)
+             * in order to properly skip overlapping checks when the location
+             * is the same but we have different index.
+             *
+             * At most one variable per fragment output component should reach
+             * this.
+             */
+            assert(assigned_attr < ARRAY_SIZE(assigned));
+            assigned[assigned_attr] = var;
+            assigned_attr++;
 
             used_locations |= (use_mask << attr);
 

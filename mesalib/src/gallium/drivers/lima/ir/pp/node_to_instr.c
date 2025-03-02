@@ -280,7 +280,7 @@ static ppir_node *ppir_ready_list_pick_best(ppir_block *block,
    return best;
 }
 
-static bool ppir_do_node_to_instr(ppir_block *block, ppir_node *root)
+static bool ppir_do_node_to_instr(ppir_block *block, ppir_node *root, ppir_node *previous_root)
 {
    struct list_head ready_list;
    list_inithead(&ready_list);
@@ -290,20 +290,19 @@ static bool ppir_do_node_to_instr(ppir_block *block, ppir_node *root)
       ppir_node *node = ppir_ready_list_pick_best(block, &ready_list);
       list_del(&node->sched_list);
 
-      /* first try pipeline sched, if that didn't succeed try normal sched */
-      if (!ppir_do_node_to_instr_try_insert(block, node))
-         if (!ppir_do_one_node_to_instr(block, node)) {
-            ppir_debug("%s failed on node %d\n", __func__, node->index);
-            return false;
-         }
+      /* Roots do not have dependencies. Try scheduling root node into
+       * previous root, if it's available */
+      if (node == root && previous_root)
+         ppir_instr_insert_node(previous_root->instr, node);
 
-      /* The node writes output register. We can't stop at this exact
-       * instruction because there may be another node that writes another
-       * output, so set stop flag for the block. We will set stop flag on
-       * the last instruction of the block during codegen
-       */
-      if (node->is_out)
-         block->stop = true;
+      if (!node->instr) {
+         /* first try pipeline sched, if that didn't succeed try normal sched */
+         if (!ppir_do_node_to_instr_try_insert(block, node))
+            if (!ppir_do_one_node_to_instr(block, node)) {
+               ppir_debug("%s failed on node %d\n", __func__, node->index);
+               return false;
+            }
+      }
 
       ppir_node_foreach_pred(node, dep) {
          ppir_node *pred = dep->pred;
@@ -333,10 +332,12 @@ static bool ppir_do_node_to_instr(ppir_block *block, ppir_node *root)
 static bool ppir_create_instr_from_node(ppir_compiler *comp)
 {
    list_for_each_entry(ppir_block, block, &comp->block_list, list) {
+      ppir_node *previous_root = NULL;
       list_for_each_entry(ppir_node, node, &block->node_list, list) {
          if (ppir_node_is_root(node)) {
-            if (!ppir_do_node_to_instr(block, node))
+            if (!ppir_do_node_to_instr(block, node, previous_root))
                return false;
+            previous_root = node;
          }
       }
    }

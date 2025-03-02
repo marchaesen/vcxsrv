@@ -104,5 +104,5 @@ nir_lower_helper_writes(nir_shader *shader, bool lower_plain_stores)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
    return nir_shader_intrinsics_pass(shader, lower, nir_metadata_none,
-                                       &lower_plain_stores);
+                                     &lower_plain_stores);
 }

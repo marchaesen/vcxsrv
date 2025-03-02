@@ -145,11 +145,11 @@ nir_opt_move(nir_shader *shader, nir_move_options options)
       }
 
       if (impl_progress) {
-         nir_metadata_preserve(impl, nir_metadata_control_flow |
-                                        nir_metadata_live_defs);
-         progress = true;
+         progress = nir_progress(true, impl,
+                                 nir_metadata_control_flow | nir_metadata_live_defs);
       } else {
-         nir_metadata_preserve(impl, nir_metadata_all & ~nir_metadata_instr_index);
+         nir_progress(true, impl,
+                      nir_metadata_all & ~nir_metadata_instr_index);
       }
    }
 

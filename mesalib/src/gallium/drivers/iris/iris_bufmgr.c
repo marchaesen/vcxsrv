@@ -56,6 +56,7 @@
 #include "dev/intel_device_info.h"
 #include "drm-uapi/dma-buf.h"
 #include "isl/isl.h"
+#include "util/os_file.h"
 #include "util/os_mman.h"
 #include "util/u_debug.h"
 #include "util/macros.h"
@@ -1971,7 +1972,7 @@ iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd,
    if (INTEL_DEBUG(DEBUG_CAPTURE_ALL))
       bo->real.capture = true;
    bo->gem_handle = handle;
-   bo->real.prime_fd = needs_prime_fd(bufmgr) ? dup(prime_fd) : -1;
+   bo->real.prime_fd = needs_prime_fd(bufmgr) ? os_dupfd_cloexec(prime_fd) : -1;
 
    uint64_t alignment = 1;
 

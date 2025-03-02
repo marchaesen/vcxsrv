@@ -49,6 +49,7 @@
 #include "util/compiler.h"
 #include "util/log.h"
 #include "util/macros.h"
+#include "util/os_file.h"
 #include "util/u_math.h"
 #include "vk_alloc.h"
 #include "vk_log.h"
@@ -990,7 +991,7 @@ VkResult pvr_srv_winsys_render_submit(
          to_srv_sync(submit_info->geometry.wait);
 
       if (srv_wait_sync->fd >= 0) {
-         in_geom_fd = dup(srv_wait_sync->fd);
+         in_geom_fd = os_dupfd_cloexec(srv_wait_sync->fd);
          if (in_geom_fd == -1) {
             return vk_errorf(NULL,
                              VK_ERROR_OUT_OF_HOST_MEMORY,
@@ -1005,7 +1006,7 @@ VkResult pvr_srv_winsys_render_submit(
          to_srv_sync(submit_info->fragment.wait);
 
       if (srv_wait_sync->fd >= 0) {
-         in_frag_fd = dup(srv_wait_sync->fd);
+         in_frag_fd = os_dupfd_cloexec(srv_wait_sync->fd);
          if (in_frag_fd == -1) {
             return vk_errorf(NULL,
                              VK_ERROR_OUT_OF_HOST_MEMORY,

@@ -26,7 +26,7 @@ nir_lower_terminate_cf_list(nir_builder *b, struct exec_list *cf_list)
                /* Everything after the terminate is dead */
                nir_cf_list dead_cf;
                nir_cf_extract(&dead_cf, nir_after_instr(&intrin->instr),
-                                        nir_after_cf_list(cf_list));
+                              nir_after_cf_list(cf_list));
                nir_cf_delete(&dead_cf);
 
                intrin->intrinsic = nir_intrinsic_demote;
@@ -85,13 +85,7 @@ nir_lower_terminate_impl(nir_function_impl *impl)
    nir_builder b = nir_builder_create(impl);
    bool progress = nir_lower_terminate_cf_list(&b, &impl->body);
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_none);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, impl, nir_metadata_none);
 }
 
 /** Lowers nir_intrinsic_terminate to demote + halt

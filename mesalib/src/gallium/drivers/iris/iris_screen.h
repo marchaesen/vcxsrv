@@ -204,6 +204,8 @@ struct iris_screen {
       float lower_depth_range_rate;
       bool intel_enable_wa_14018912822;
       bool enable_tbimr;
+      bool enable_vf_distribution;
+      bool enable_te_distribution;
       unsigned generated_indirect_threshold;
    } driconf;
 

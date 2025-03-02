@@ -48,7 +48,7 @@ SOFTWARE.
  * OS Dependent input routines:
  *
  *  WaitForSomething
- *  TimerForce, TimerSet, TimerCheck, TimerFree
+ *  TimerForce, TimerSet, TimerFree
  *
  *****************************************************************/
 
@@ -457,12 +457,6 @@ TimerFree(OsTimerPtr timer)
         return;
     TimerCancel(timer);
     free(timer);
-}
-
-void
-TimerCheck(void)
-{
-    DoTimers(GetTimeInMillis());
 }
 
 void

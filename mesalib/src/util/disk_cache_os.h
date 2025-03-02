@@ -131,7 +131,8 @@ char *
 disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
                               const char *driver_id,
                               const char *cache_dir_name_custom,
-                              enum disk_cache_type cache_type);
+                              enum disk_cache_type cache_type,
+                              bool mkdir);
 
 void
 disk_cache_evict_lru_item(struct disk_cache *cache);

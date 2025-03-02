@@ -176,8 +176,16 @@ lower_triangle(nir_builder *b, nir_def *p1, nir_def *p2)
 }
 
 static bool
-lower_load_barycentric_coord(nir_builder *b, lower_fs_barycentric_state *state, nir_intrinsic_instr *intrin)
+lower_load_barycentric_coord(nir_builder *b, nir_intrinsic_instr *intrin, void *data)
 {
+   lower_fs_barycentric_state *state = data;
+   if (intrin->intrinsic != nir_intrinsic_load_barycentric_coord_pixel &&
+       intrin->intrinsic != nir_intrinsic_load_barycentric_coord_centroid &&
+       intrin->intrinsic != nir_intrinsic_load_barycentric_coord_sample &&
+       intrin->intrinsic != nir_intrinsic_load_barycentric_coord_at_offset &&
+       intrin->intrinsic != nir_intrinsic_load_barycentric_coord_at_sample)
+      return false;
+
    nir_def *interp, *p1, *p2;
    nir_def *new_dest;
 
@@ -242,42 +250,12 @@ lower_load_barycentric_coord(nir_builder *b, lower_fs_barycentric_state *state, 
 bool
 radv_nir_lower_fs_barycentric(nir_shader *shader, const struct radv_graphics_state_key *gfx_state, unsigned rast_prim)
 {
-   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
-   bool progress = false;
-
-   nir_builder b;
-
    lower_fs_barycentric_state state = {
       .dynamic_rasterization_samples = gfx_state->dynamic_rasterization_samples,
       .num_rasterization_samples = gfx_state->ms.rasterization_samples,
       .rast_prim = rast_prim,
    };
 
-   nir_foreach_function (function, shader) {
-      if (!function->impl)
-         continue;
-
-      b = nir_builder_create(function->impl);
-
-      nir_foreach_block (block, impl) {
-         nir_foreach_instr_safe (instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-            if (intrin->intrinsic != nir_intrinsic_load_barycentric_coord_pixel &&
-                intrin->intrinsic != nir_intrinsic_load_barycentric_coord_centroid &&
-                intrin->intrinsic != nir_intrinsic_load_barycentric_coord_sample &&
-                intrin->intrinsic != nir_intrinsic_load_barycentric_coord_at_offset &&
-                intrin->intrinsic != nir_intrinsic_load_barycentric_coord_at_sample)
-               continue;
-
-            progress |= lower_load_barycentric_coord(&b, &state, intrin);
-         }
-      }
-   }
-
-   nir_metadata_preserve(impl, progress ? nir_metadata_none : nir_metadata_all);
-
-   return progress;
+   return nir_shader_intrinsics_pass(shader, lower_load_barycentric_coord,
+                                     nir_metadata_none, &state);
 }

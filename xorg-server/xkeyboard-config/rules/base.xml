@@ -7939,6 +7939,18 @@
       </option>
       <option>
         <configItem>
+          <name>hyper:mod3</name>
+          <description>Map Hyper to Mod3 (conflict with LevelFive)</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>hyper:mod4</name>
+          <description>Map Hyper to Mod4 (conflict with Super)</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
           <name>scrolllock:mod3</name>
           <description>Map Scroll Lock to Mod3</description>
         </configItem>

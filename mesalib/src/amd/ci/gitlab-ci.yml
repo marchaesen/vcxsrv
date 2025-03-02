@@ -15,9 +15,9 @@ radv-stoney-angle:
   extends:
     - .lava-test-deqp:x86_64
     - .radv-stoney-test:x86_64
+    - .test-angle
   variables:
     DEQP_SUITE: radv-stoney-angle
-    USE_ANGLE: 1
     GPU_VERSION: angle-radv-stoney-aco
     DEQP_FRACTION: 3
 

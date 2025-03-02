@@ -1429,7 +1429,7 @@ ac_nir_lower_ngg_mesh(nir_shader *shader,
    emit_ms_finale(b, &state);
 
    /* Take care of metadata and validation before calling other passes */
-   nir_metadata_preserve(impl, nir_metadata_none);
+   nir_progress(true, impl, nir_metadata_none);
    nir_validate_shader(shader, "after emitting NGG MS");
 
    /* Cleanup */

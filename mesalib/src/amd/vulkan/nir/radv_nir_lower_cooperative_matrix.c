@@ -521,11 +521,5 @@ radv_nir_lower_cooperative_matrix(nir_shader *shader, enum amd_gfx_level gfx_lev
 
    _mesa_hash_table_destroy(type_map, NULL);
 
-   if (progress) {
-      nir_metadata_preserve(func->impl, 0);
-   } else {
-      nir_metadata_preserve(func->impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_progress(progress, func->impl, 0);
 }

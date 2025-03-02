@@ -12,6 +12,7 @@
   pc98		*			=	nec_vndr/jp(pc98)+%l%(v)
   applealu_jis	jp			=	macintosh_vndr/apple(alukbd)+macintosh_vndr/jp(usmac)+macintosh_vndr/jp(mac):2
   applealu_jis	*			=	macintosh_vndr/apple(alukbd)+%l%(v)+macintosh_vndr/jp(mac):2
+  applealu_iso	us			=	macintosh_vndr/apple(alukbd)+macintosh_vndr/us(applealu_iso)
  $applealu	$macvendorlayouts	=	macintosh_vndr/apple(alukbd)+macintosh_vndr/%l
  $applealu	*			=	macintosh_vndr/apple(alukbd)+%l%(v)
   olpc		$olpclayouts		=	olpc+%l%(m)

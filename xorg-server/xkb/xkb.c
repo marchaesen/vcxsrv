@@ -1093,10 +1093,10 @@ XkbSizeKeySyms(XkbDescPtr xkb, xkbGetMapReply * rep)
     len = rep->nKeySyms * SIZEOF(xkbSymMapWireDesc);
     symMap = &xkb->map->key_sym_map[rep->firstKeySym];
     for (i = nSyms = 0; i < rep->nKeySyms; i++, symMap++) {
-        if (symMap->offset != 0) {
-            nSymsThisKey = XkbNumGroups(symMap->group_info) * symMap->width;
-            nSyms += nSymsThisKey;
-        }
+        nSymsThisKey = XkbNumGroups(symMap->group_info) * symMap->width;
+        if (nSymsThisKey == 0)
+            continue;
+        nSyms += nSymsThisKey;
     }
     len += nSyms * 4;
     rep->totalSyms = nSyms;

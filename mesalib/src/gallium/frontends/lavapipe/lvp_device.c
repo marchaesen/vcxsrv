@@ -37,6 +37,7 @@
 #include "frontend/drisw_api.h"
 
 #include "util/u_inlines.h"
+#include "util/os_file.h"
 #include "util/os_memory.h"
 #include "util/os_time.h"
 #include "util/u_thread.h"
@@ -212,6 +213,7 @@ static const struct vk_device_extension_table lvp_device_extensions_supported = 
    .EXT_extended_dynamic_state3           = true,
    .EXT_external_memory_host              = true,
    .EXT_graphics_pipeline_library         = true,
+   .EXT_hdr_metadata = true,
    .EXT_host_image_copy                   = true,
    .EXT_host_query_reset                  = true,
    .EXT_image_2d_view_of_3d               = true,
@@ -748,10 +750,6 @@ lvp_get_features(const struct lvp_physical_device *pdevice,
       /* VK_KHR_shader_relaxed_extended_instruction */
       .shaderRelaxedExtendedInstruction = true,
 
-      /* VK_KHR_shader_subgroup_rotate */
-      .shaderSubgroupRotate = true,
-      .shaderSubgroupRotateClustered = true,
-
       /* VK_KHR_compute_shader_derivatives */
       .computeDerivativeGroupQuads = true,
       .computeDerivativeGroupLinear = true,
@@ -802,7 +800,7 @@ lvp_get_properties(const struct lvp_physical_device *device, struct vk_propertie
    *p = (struct vk_properties) {
       /* Vulkan 1.0 */
       .apiVersion = LVP_API_VERSION,
-      .driverVersion = 1,
+      .driverVersion = vk_get_driver_version(),
       .vendorID = VK_VENDOR_ID_MESA,
       .deviceID = 0,
       .deviceType = VK_PHYSICAL_DEVICE_TYPE_CPU,
@@ -2399,7 +2397,7 @@ lvp_GetMemoryFdKHR(VkDevice _device, const VkMemoryGetFdInfoKHR *pGetFdInfo, int
    assert(pGetFdInfo->sType == VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR);
    assert_memhandle_type(pGetFdInfo->handleType);
 
-   *pFD = dup(memory->backed_fd);
+   *pFD = os_dupfd_cloexec(memory->backed_fd);
    assert(*pFD >= 0);
    return VK_SUCCESS;
 }

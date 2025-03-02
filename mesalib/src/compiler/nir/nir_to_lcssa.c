@@ -406,12 +406,8 @@ nir_convert_to_lcssa(nir_shader *shader, bool skip_invariants, bool skip_bool_in
       foreach_list_typed(nir_cf_node, node, node, &impl->body)
          convert_to_lcssa(node, state);
 
-      if (state->progress) {
-         progress = true;
-         nir_metadata_preserve(impl, nir_metadata_control_flow);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
-      }
+      progress |= nir_progress(state->progress, impl,
+                               nir_metadata_control_flow);
    }
 
    ralloc_free(state);

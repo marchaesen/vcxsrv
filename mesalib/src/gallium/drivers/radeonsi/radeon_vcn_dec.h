@@ -117,7 +117,8 @@ struct radeon_decoder {
    enum {
       DPB_MAX_RES = 0,
       DPB_DYNAMIC_TIER_1,
-      DPB_DYNAMIC_TIER_2
+      DPB_DYNAMIC_TIER_2,
+      DPB_DYNAMIC_TIER_3,
    } dpb_type;
 
    struct {
@@ -130,6 +131,10 @@ struct radeon_decoder {
       unsigned ref_size;
       unsigned num_refs;
       uint8_t ref_list[16];
+      struct {
+         uint8_t index;
+         struct pipe_video_buffer *buf;
+      } bufs[16];
    } ref_codec;
 
    struct list_head dpb_ref_list;

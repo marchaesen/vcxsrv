@@ -83,8 +83,6 @@ radv_copy_vrs_htile(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *
    VkPipeline pipeline;
    VkResult result;
 
-   assert(radv_image_has_htile(dst_image));
-
    result = get_pipeline(device, dst_image, &pipeline, &layout);
    if (result != VK_SUCCESS) {
       vk_command_buffer_set_error(&cmd_buffer->vk, result);

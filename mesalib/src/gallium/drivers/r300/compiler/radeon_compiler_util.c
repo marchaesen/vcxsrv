@@ -682,7 +682,7 @@ rc_get_constant_value(struct radeon_compiler *c, unsigned int index, unsigned in
    float base = 1.0f;
    int swz = GET_SWZ(swizzle, chan);
    if (swz >= 4 || index >= c->Program.Constants.Count) {
-      rc_error(c, "get_constant_value: Can't find a value.\n");
+      rc_error(c, "get_constant_value: Can't find a value");
       return 0.0f;
    }
    if (GET_BIT(negate, chan)) {

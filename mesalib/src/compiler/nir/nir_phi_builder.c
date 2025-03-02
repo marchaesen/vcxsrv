@@ -22,8 +22,8 @@
  */
 
 #include "nir_phi_builder.h"
-#include "nir_vla.h"
 #include "nir.h"
+#include "nir_vla.h"
 
 struct nir_phi_builder {
    nir_shader *shader;
@@ -44,7 +44,7 @@ struct nir_phi_builder {
    nir_block **W;
 };
 
-#define NEEDS_PHI ((nir_def *)(intptr_t)-1)
+#define NEEDS_PHI ((nir_def *)(intptr_t) - 1)
 
 struct nir_phi_builder_value {
    struct exec_node node;
