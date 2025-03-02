@@ -284,7 +284,6 @@ NIR_FILES = \
 	nir/nir_opt_combine_stores.c \
 	nir/nir_opt_comparison_pre.c \
 	nir/nir_split_64bit_vec3_and_vec4.c \
-	nir/nir_opt_conditional_discard.c \
 	nir/nir_opt_copy_prop_vars.c \
 	nir/nir_opt_copy_propagate.c \
 	nir/nir_opt_cse.c \
