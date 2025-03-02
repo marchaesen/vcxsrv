@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2017-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -126,11 +126,9 @@ int test_readstanza(STANZA *s)
         if (s->numpairs == 0)
             s->start = s->curr;
 
-        if (strcmp(key, "PrivateKey") == 0) {
-            if (!read_key(s))
-                return 0;
-        }
-        if (strcmp(key, "PublicKey") == 0) {
+        if (strcmp(key, "PrivateKey") == 0
+                || strcmp(key, "PublicKey") == 0
+                || strcmp(key, "ParamKey") == 0) {
             if (!read_key(s))
                 return 0;
         }

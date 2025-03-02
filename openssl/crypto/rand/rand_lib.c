@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2025 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -19,6 +19,10 @@
 #include "crypto/cryptlib.h"
 #include "rand_local.h"
 #include "crypto/context.h"
+
+#ifndef OPENSSL_DEFAULT_SEED_SRC
+# define OPENSSL_DEFAULT_SEED_SRC SEED-SRC
+#endif
 
 #ifndef FIPS_MODULE
 # include <stdio.h>
@@ -593,7 +597,7 @@ static EVP_RAND_CTX *rand_new_seed(OSSL_LIB_CTX *libctx)
                 propq = props;
             }
         }
-        name = "SEED-SRC";
+        name = OPENSSL_MSTR(OPENSSL_DEFAULT_SEED_SRC);
     }
 
     rand = EVP_RAND_fetch(libctx, name, propq);
@@ -638,7 +642,7 @@ EVP_RAND_CTX *ossl_rand_get0_seed_noncreating(OSSL_LIB_CTX *ctx)
 
 static EVP_RAND_CTX *rand_new_drbg(OSSL_LIB_CTX *libctx, EVP_RAND_CTX *parent,
                                    unsigned int reseed_interval,
-                                   time_t reseed_time_interval, int use_df)
+                                   time_t reseed_time_interval)
 {
     EVP_RAND *rand;
     RAND_GLOBAL *dgbl = rand_get_global(libctx);
@@ -646,6 +650,7 @@ static EVP_RAND_CTX *rand_new_drbg(OSSL_LIB_CTX *libctx, EVP_RAND_CTX *parent,
     OSSL_PARAM params[8], *p = params;
     const OSSL_PARAM *settables;
     char *name, *cipher;
+    int use_df = 1;
 
     if (dgbl == NULL)
         return NULL;
@@ -692,6 +697,33 @@ static EVP_RAND_CTX *rand_new_drbg(OSSL_LIB_CTX *libctx, EVP_RAND_CTX *parent,
     return ctx;
 }
 
+#ifdef FIPS_MODULE
+static EVP_RAND_CTX *rand_new_crngt(OSSL_LIB_CTX *libctx, EVP_RAND_CTX *parent)
+{
+    EVP_RAND *rand;
+    EVP_RAND_CTX *ctx;
+
+    rand = EVP_RAND_fetch(libctx, "CRNG-TEST", "fips=no");
+    if (rand == NULL) {
+        ERR_raise(ERR_LIB_RAND, RAND_R_UNABLE_TO_FETCH_DRBG);
+        return NULL;
+    }
+    ctx = EVP_RAND_CTX_new(rand, parent);
+    EVP_RAND_free(rand);
+    if (ctx == NULL) {
+        ERR_raise(ERR_LIB_RAND, RAND_R_UNABLE_TO_CREATE_DRBG);
+        return NULL;
+    }
+
+    if (!EVP_RAND_instantiate(ctx, 0, 0, NULL, 0, NULL)) {
+        ERR_raise(ERR_LIB_RAND, RAND_R_ERROR_INSTANTIATING_DRBG);
+        EVP_RAND_CTX_free(ctx);
+        return NULL;
+    }
+    return ctx;
+}
+#endif
+
 /*
  * Get the primary random generator.
  * Returns pointer to its EVP_RAND_CTX on success, NULL on failure.
@@ -723,21 +755,23 @@ EVP_RAND_CTX *RAND_get0_primary(OSSL_LIB_CTX *ctx)
         return ret;
     }
 
-#ifndef FIPS_MODULE
+#ifdef FIPS_MODULE
+    ret = rand_new_crngt(ctx, dgbl->seed);
+#else
     if (dgbl->seed == NULL) {
         ERR_set_mark();
         dgbl->seed = rand_new_seed(ctx);
         ERR_pop_to_mark();
     }
+    ret = rand_new_drbg(ctx, dgbl->seed, PRIMARY_RESEED_INTERVAL,
+                        PRIMARY_RESEED_TIME_INTERVAL);
 #endif
 
-    ret = dgbl->primary = rand_new_drbg(ctx, dgbl->seed,
-                                        PRIMARY_RESEED_INTERVAL,
-                                        PRIMARY_RESEED_TIME_INTERVAL, 1);
     /*
-    * The primary DRBG may be shared between multiple threads so we must
-    * enable locking.
-    */
+     * The primary DRBG may be shared between multiple threads so we must
+     * enable locking.
+     */
+    dgbl->primary = ret;
     if (ret != NULL && !EVP_RAND_enable_locking(ret)) {
         ERR_raise(ERR_LIB_EVP, EVP_R_UNABLE_TO_ENABLE_LOCKING);
         EVP_RAND_CTX_free(ret);
@@ -767,6 +801,9 @@ EVP_RAND_CTX *RAND_get0_public(OSSL_LIB_CTX *ctx)
             return NULL;
 
         ctx = ossl_lib_ctx_get_concrete(ctx);
+
+        if (ctx == NULL)
+            return NULL;
         /*
          * If the private is also NULL then this is the first time we've
          * used this thread.
@@ -775,7 +812,7 @@ EVP_RAND_CTX *RAND_get0_public(OSSL_LIB_CTX *ctx)
                 && !ossl_init_thread_start(NULL, ctx, rand_delete_thread_state))
             return NULL;
         rand = rand_new_drbg(ctx, primary, SECONDARY_RESEED_INTERVAL,
-                             SECONDARY_RESEED_TIME_INTERVAL, 0);
+                             SECONDARY_RESEED_TIME_INTERVAL);
         CRYPTO_THREAD_set_local(&dgbl->public, rand);
     }
     return rand;
@@ -800,6 +837,9 @@ EVP_RAND_CTX *RAND_get0_private(OSSL_LIB_CTX *ctx)
             return NULL;
 
         ctx = ossl_lib_ctx_get_concrete(ctx);
+
+        if (ctx == NULL)
+            return NULL;
         /*
          * If the public is also NULL then this is the first time we've
          * used this thread.
@@ -808,7 +848,7 @@ EVP_RAND_CTX *RAND_get0_private(OSSL_LIB_CTX *ctx)
                 && !ossl_init_thread_start(NULL, ctx, rand_delete_thread_state))
             return NULL;
         rand = rand_new_drbg(ctx, primary, SECONDARY_RESEED_INTERVAL,
-                             SECONDARY_RESEED_TIME_INTERVAL, 0);
+                             SECONDARY_RESEED_TIME_INTERVAL);
         CRYPTO_THREAD_set_local(&dgbl->private, rand);
     }
     return rand;

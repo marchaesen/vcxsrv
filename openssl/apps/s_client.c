@@ -55,7 +55,7 @@ typedef unsigned int u_int;
 #endif
 
 #undef BUFSIZZ
-#define BUFSIZZ 1024*8
+#define BUFSIZZ 1024*16
 #define S_CLIENT_IRC_READ_TIMEOUT 8
 
 #define USER_DATA_MODE_NONE     0
@@ -3175,7 +3175,7 @@ int s_client_main(int argc, char **argv)
                 }
             }
 #endif
-            k = SSL_read(con, sbuf, 1024 /* BUFSIZZ */ );
+            k = SSL_read(con, sbuf, BUFSIZZ);
 
             switch (SSL_get_error(con, k)) {
             case SSL_ERROR_NONE:
@@ -3486,6 +3486,7 @@ static void print_stuff(BIO *bio, SSL *s, int full)
     c = SSL_get_current_cipher(s);
     BIO_printf(bio, "%s, Cipher is %s\n",
                SSL_CIPHER_get_version(c), SSL_CIPHER_get_name(c));
+    BIO_printf(bio, "Protocol: %s\n", SSL_get_version(s));
     if (peer != NULL) {
         EVP_PKEY *pktmp;
 

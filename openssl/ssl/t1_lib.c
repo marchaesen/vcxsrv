@@ -54,7 +54,7 @@ SSL3_ENC_METHOD const TLSv1_1_enc_data = {
     TLS_MD_SERVER_FINISH_CONST, TLS_MD_SERVER_FINISH_CONST_SIZE,
     tls1_alert_code,
     tls1_export_keying_material,
-    SSL_ENC_FLAG_EXPLICIT_IV,
+    0,
     ssl3_set_handshake_header,
     tls_close_construct_packet,
     ssl3_handshake_write
@@ -69,7 +69,7 @@ SSL3_ENC_METHOD const TLSv1_2_enc_data = {
     TLS_MD_SERVER_FINISH_CONST, TLS_MD_SERVER_FINISH_CONST_SIZE,
     tls1_alert_code,
     tls1_export_keying_material,
-    SSL_ENC_FLAG_EXPLICIT_IV | SSL_ENC_FLAG_SIGALGS | SSL_ENC_FLAG_SHA256_PRF
+    SSL_ENC_FLAG_SIGALGS | SSL_ENC_FLAG_SHA256_PRF
         | SSL_ENC_FLAG_TLS1_2_CIPHERS,
     ssl3_set_handshake_header,
     tls_close_construct_packet,
@@ -636,7 +636,7 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
         if (EVP_KEYMGMT_get0_provider(keymgmt) == provider) {
             /*
              * We have a match - so we could use this signature;
-             * Check proper object registration first, though. 
+             * Check proper object registration first, though.
              * Don't care about return value as this may have been
              * done within providers or previous calls to
              * add_provider_sigalgs.
@@ -724,7 +724,7 @@ int ssl_load_sigalgs(SSL_CTX *ctx)
         }
     }
 
-    /* 
+    /*
      * For now, leave it at this: legacy sigalgs stay in their own
      * data structures until "legacy cleanup" occurs.
      */
@@ -1381,102 +1381,102 @@ static const uint16_t suiteb_sigalgs[] = {
 };
 
 static const SIGALG_LOOKUP sigalg_lookup_tbl[] = {
-    {"ecdsa_secp256r1_sha256", TLSEXT_SIGALG_ecdsa_secp256r1_sha256,
+    {TLSEXT_SIGALG_ecdsa_secp256r1_sha256_name, TLSEXT_SIGALG_ecdsa_secp256r1_sha256,
      NID_sha256, SSL_MD_SHA256_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA256, NID_X9_62_prime256v1, 1},
-    {"ecdsa_secp384r1_sha384", TLSEXT_SIGALG_ecdsa_secp384r1_sha384,
+    {TLSEXT_SIGALG_ecdsa_secp384r1_sha384_name, TLSEXT_SIGALG_ecdsa_secp384r1_sha384,
      NID_sha384, SSL_MD_SHA384_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA384, NID_secp384r1, 1},
-    {"ecdsa_secp521r1_sha512", TLSEXT_SIGALG_ecdsa_secp521r1_sha512,
+    {TLSEXT_SIGALG_ecdsa_secp521r1_sha512_name, TLSEXT_SIGALG_ecdsa_secp521r1_sha512,
      NID_sha512, SSL_MD_SHA512_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA512, NID_secp521r1, 1},
-    {"ed25519", TLSEXT_SIGALG_ed25519,
+    {TLSEXT_SIGALG_ed25519_name, TLSEXT_SIGALG_ed25519,
      NID_undef, -1, EVP_PKEY_ED25519, SSL_PKEY_ED25519,
      NID_undef, NID_undef, 1},
-    {"ed448", TLSEXT_SIGALG_ed448,
+    {TLSEXT_SIGALG_ed448_name, TLSEXT_SIGALG_ed448,
      NID_undef, -1, EVP_PKEY_ED448, SSL_PKEY_ED448,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_ecdsa_sha224,
+    {TLSEXT_SIGALG_ecdsa_sha224_name, TLSEXT_SIGALG_ecdsa_sha224,
      NID_sha224, SSL_MD_SHA224_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA224, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_ecdsa_sha1,
+    {TLSEXT_SIGALG_ecdsa_sha1_name, TLSEXT_SIGALG_ecdsa_sha1,
      NID_sha1, SSL_MD_SHA1_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA1, NID_undef, 1},
-    {"ecdsa_brainpoolP256r1_sha256", TLSEXT_SIGALG_ecdsa_brainpoolP256r1_sha256,
+    {TLSEXT_SIGALG_ecdsa_brainpoolP256r1_sha256_name, TLSEXT_SIGALG_ecdsa_brainpoolP256r1_sha256,
      NID_sha256, SSL_MD_SHA256_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA256, NID_brainpoolP256r1, 1},
-    {"ecdsa_brainpoolP384r1_sha384", TLSEXT_SIGALG_ecdsa_brainpoolP384r1_sha384,
+    {TLSEXT_SIGALG_ecdsa_brainpoolP384r1_sha384_name, TLSEXT_SIGALG_ecdsa_brainpoolP384r1_sha384,
      NID_sha384, SSL_MD_SHA384_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA384, NID_brainpoolP384r1, 1},
-    {"ecdsa_brainpoolP512r1_sha512", TLSEXT_SIGALG_ecdsa_brainpoolP512r1_sha512,
+    {TLSEXT_SIGALG_ecdsa_brainpoolP512r1_sha512_name, TLSEXT_SIGALG_ecdsa_brainpoolP512r1_sha512,
      NID_sha512, SSL_MD_SHA512_IDX, EVP_PKEY_EC, SSL_PKEY_ECC,
      NID_ecdsa_with_SHA512, NID_brainpoolP512r1, 1},
-    {"rsa_pss_rsae_sha256", TLSEXT_SIGALG_rsa_pss_rsae_sha256,
+    {TLSEXT_SIGALG_rsa_pss_rsae_sha256_name, TLSEXT_SIGALG_rsa_pss_rsae_sha256,
      NID_sha256, SSL_MD_SHA256_IDX, EVP_PKEY_RSA_PSS, SSL_PKEY_RSA,
      NID_undef, NID_undef, 1},
-    {"rsa_pss_rsae_sha384", TLSEXT_SIGALG_rsa_pss_rsae_sha384,
+    {TLSEXT_SIGALG_rsa_pss_rsae_sha384_name, TLSEXT_SIGALG_rsa_pss_rsae_sha384,
      NID_sha384, SSL_MD_SHA384_IDX, EVP_PKEY_RSA_PSS, SSL_PKEY_RSA,
      NID_undef, NID_undef, 1},
-    {"rsa_pss_rsae_sha512", TLSEXT_SIGALG_rsa_pss_rsae_sha512,
+    {TLSEXT_SIGALG_rsa_pss_rsae_sha512_name, TLSEXT_SIGALG_rsa_pss_rsae_sha512,
      NID_sha512, SSL_MD_SHA512_IDX, EVP_PKEY_RSA_PSS, SSL_PKEY_RSA,
      NID_undef, NID_undef, 1},
-    {"rsa_pss_pss_sha256", TLSEXT_SIGALG_rsa_pss_pss_sha256,
+    {TLSEXT_SIGALG_rsa_pss_pss_sha256_name, TLSEXT_SIGALG_rsa_pss_pss_sha256,
      NID_sha256, SSL_MD_SHA256_IDX, EVP_PKEY_RSA_PSS, SSL_PKEY_RSA_PSS_SIGN,
      NID_undef, NID_undef, 1},
-    {"rsa_pss_pss_sha384", TLSEXT_SIGALG_rsa_pss_pss_sha384,
+    {TLSEXT_SIGALG_rsa_pss_pss_sha384_name, TLSEXT_SIGALG_rsa_pss_pss_sha384,
      NID_sha384, SSL_MD_SHA384_IDX, EVP_PKEY_RSA_PSS, SSL_PKEY_RSA_PSS_SIGN,
      NID_undef, NID_undef, 1},
-    {"rsa_pss_pss_sha512", TLSEXT_SIGALG_rsa_pss_pss_sha512,
+    {TLSEXT_SIGALG_rsa_pss_pss_sha512_name, TLSEXT_SIGALG_rsa_pss_pss_sha512,
      NID_sha512, SSL_MD_SHA512_IDX, EVP_PKEY_RSA_PSS, SSL_PKEY_RSA_PSS_SIGN,
      NID_undef, NID_undef, 1},
-    {"rsa_pkcs1_sha256", TLSEXT_SIGALG_rsa_pkcs1_sha256,
+    {TLSEXT_SIGALG_rsa_pkcs1_sha256_name, TLSEXT_SIGALG_rsa_pkcs1_sha256,
      NID_sha256, SSL_MD_SHA256_IDX, EVP_PKEY_RSA, SSL_PKEY_RSA,
      NID_sha256WithRSAEncryption, NID_undef, 1},
-    {"rsa_pkcs1_sha384", TLSEXT_SIGALG_rsa_pkcs1_sha384,
+    {TLSEXT_SIGALG_rsa_pkcs1_sha384_name, TLSEXT_SIGALG_rsa_pkcs1_sha384,
      NID_sha384, SSL_MD_SHA384_IDX, EVP_PKEY_RSA, SSL_PKEY_RSA,
      NID_sha384WithRSAEncryption, NID_undef, 1},
-    {"rsa_pkcs1_sha512", TLSEXT_SIGALG_rsa_pkcs1_sha512,
+    {TLSEXT_SIGALG_rsa_pkcs1_sha512_name, TLSEXT_SIGALG_rsa_pkcs1_sha512,
      NID_sha512, SSL_MD_SHA512_IDX, EVP_PKEY_RSA, SSL_PKEY_RSA,
      NID_sha512WithRSAEncryption, NID_undef, 1},
-    {"rsa_pkcs1_sha224", TLSEXT_SIGALG_rsa_pkcs1_sha224,
+    {TLSEXT_SIGALG_rsa_pkcs1_sha224_name, TLSEXT_SIGALG_rsa_pkcs1_sha224,
      NID_sha224, SSL_MD_SHA224_IDX, EVP_PKEY_RSA, SSL_PKEY_RSA,
      NID_sha224WithRSAEncryption, NID_undef, 1},
-    {"rsa_pkcs1_sha1", TLSEXT_SIGALG_rsa_pkcs1_sha1,
+    {TLSEXT_SIGALG_rsa_pkcs1_sha1_name, TLSEXT_SIGALG_rsa_pkcs1_sha1,
      NID_sha1, SSL_MD_SHA1_IDX, EVP_PKEY_RSA, SSL_PKEY_RSA,
      NID_sha1WithRSAEncryption, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_dsa_sha256,
+    {TLSEXT_SIGALG_dsa_sha256_name, TLSEXT_SIGALG_dsa_sha256,
      NID_sha256, SSL_MD_SHA256_IDX, EVP_PKEY_DSA, SSL_PKEY_DSA_SIGN,
      NID_dsa_with_SHA256, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_dsa_sha384,
+    {TLSEXT_SIGALG_dsa_sha384_name, TLSEXT_SIGALG_dsa_sha384,
      NID_sha384, SSL_MD_SHA384_IDX, EVP_PKEY_DSA, SSL_PKEY_DSA_SIGN,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_dsa_sha512,
+    {TLSEXT_SIGALG_dsa_sha512_name, TLSEXT_SIGALG_dsa_sha512,
      NID_sha512, SSL_MD_SHA512_IDX, EVP_PKEY_DSA, SSL_PKEY_DSA_SIGN,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_dsa_sha224,
+    {TLSEXT_SIGALG_dsa_sha224_name, TLSEXT_SIGALG_dsa_sha224,
      NID_sha224, SSL_MD_SHA224_IDX, EVP_PKEY_DSA, SSL_PKEY_DSA_SIGN,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_dsa_sha1,
+    {TLSEXT_SIGALG_dsa_sha1_name, TLSEXT_SIGALG_dsa_sha1,
      NID_sha1, SSL_MD_SHA1_IDX, EVP_PKEY_DSA, SSL_PKEY_DSA_SIGN,
      NID_dsaWithSHA1, NID_undef, 1},
 #ifndef OPENSSL_NO_GOST
-    {NULL, TLSEXT_SIGALG_gostr34102012_256_intrinsic,
+    {TLSEXT_SIGALG_gostr34102012_256_intrinsic_name, TLSEXT_SIGALG_gostr34102012_256_intrinsic,
      NID_id_GostR3411_2012_256, SSL_MD_GOST12_256_IDX,
      NID_id_GostR3410_2012_256, SSL_PKEY_GOST12_256,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_gostr34102012_512_intrinsic,
+    {TLSEXT_SIGALG_gostr34102012_512_intrinsic_name, TLSEXT_SIGALG_gostr34102012_512_intrinsic,
      NID_id_GostR3411_2012_512, SSL_MD_GOST12_512_IDX,
      NID_id_GostR3410_2012_512, SSL_PKEY_GOST12_512,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_gostr34102012_256_gostr34112012_256,
+    {TLSEXT_SIGALG_gostr34102012_256_gostr34112012_256_name, TLSEXT_SIGALG_gostr34102012_256_gostr34112012_256,
      NID_id_GostR3411_2012_256, SSL_MD_GOST12_256_IDX,
      NID_id_GostR3410_2012_256, SSL_PKEY_GOST12_256,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_gostr34102012_512_gostr34112012_512,
+    {TLSEXT_SIGALG_gostr34102012_512_gostr34112012_512_name, TLSEXT_SIGALG_gostr34102012_512_gostr34112012_512,
      NID_id_GostR3411_2012_512, SSL_MD_GOST12_512_IDX,
      NID_id_GostR3410_2012_512, SSL_PKEY_GOST12_512,
      NID_undef, NID_undef, 1},
-    {NULL, TLSEXT_SIGALG_gostr34102001_gostr3411,
+    {TLSEXT_SIGALG_gostr34102001_gostr3411_name, TLSEXT_SIGALG_gostr34102001_gostr3411,
      NID_id_GostR3411_94, SSL_MD_GOST94_IDX,
      NID_id_GostR3410_2001, SSL_PKEY_GOST01,
      NID_undef, NID_undef, 1}
@@ -1594,6 +1594,81 @@ int ssl_setup_sigalgs(SSL_CTX *ctx)
     return ret;
 }
 
+#define SIGLEN_BUF_INCREMENT 100
+
+char *SSL_get1_builtin_sigalgs(OSSL_LIB_CTX *libctx)
+{
+    size_t i, maxretlen = SIGLEN_BUF_INCREMENT;
+    const SIGALG_LOOKUP *lu;
+    EVP_PKEY *tmpkey = EVP_PKEY_new();
+    char *retval = OPENSSL_malloc(maxretlen);
+
+    if (retval == NULL)
+        return NULL;
+
+    /* ensure retval string is NUL terminated */
+    retval[0] = (char)0;
+
+    for (i = 0, lu = sigalg_lookup_tbl;
+         i < OSSL_NELEM(sigalg_lookup_tbl); lu++, i++) {
+        EVP_PKEY_CTX *pctx;
+        int enabled = 1;
+
+        ERR_set_mark();
+        /* Check hash is available in some provider. */
+        if (lu->hash != NID_undef) {
+            EVP_MD *hash = EVP_MD_fetch(libctx, OBJ_nid2ln(lu->hash), NULL);
+
+            /* If unable to create we assume the hash algorithm is unavailable */
+            if (hash == NULL) {
+                enabled = 0;
+                ERR_pop_to_mark();
+                continue;
+            }
+            EVP_MD_free(hash);
+        }
+
+        if (!EVP_PKEY_set_type(tmpkey, lu->sig)) {
+            enabled = 0;
+            ERR_pop_to_mark();
+            continue;
+        }
+        pctx = EVP_PKEY_CTX_new_from_pkey(libctx, tmpkey, NULL);
+        /* If unable to create pctx we assume the sig algorithm is unavailable */
+        if (pctx == NULL)
+            enabled = 0;
+        ERR_pop_to_mark();
+        EVP_PKEY_CTX_free(pctx);
+
+        if (enabled) {
+            const char *sa = lu->name;
+
+            if (sa != NULL) {
+                if (strlen(sa) + strlen(retval) + 1 >= maxretlen) {
+                    char *tmp;
+
+                    maxretlen += SIGLEN_BUF_INCREMENT;
+                    tmp = OPENSSL_realloc(retval, maxretlen);
+                    if (tmp == NULL) {
+                        OPENSSL_free(retval);
+                        return NULL;
+                    }
+                    retval = tmp;
+                }
+                if (strlen(retval) > 0)
+                    OPENSSL_strlcat(retval, ":", maxretlen);
+                OPENSSL_strlcat(retval, sa, maxretlen);
+            } else {
+                /* lu->name must not be NULL */
+                ERR_raise(ERR_LIB_SSL, ERR_R_INTERNAL_ERROR);
+            }
+        }
+    }
+
+    EVP_PKEY_free(tmpkey);
+    return retval;
+}
+
 /* Lookup TLS signature algorithm */
 static const SIGALG_LOOKUP *tls1_lookup_sigalg(const SSL_CONNECTION *s,
                                                uint16_t sigalg)
@@ -1648,6 +1723,8 @@ static int rsa_pss_check_min_key_size(SSL_CTX *ctx, const EVP_PKEY *pkey,
     if (pkey == NULL)
         return 0;
     if (!tls1_lookup_md(ctx, lu, &md) || md == NULL)
+        return 0;
+    if (EVP_MD_get_size(md) <= 0)
         return 0;
     if (EVP_PKEY_get_size(pkey) < RSA_PSS_MINIMUM_KEY_SIZE(md))
         return 0;
@@ -1831,6 +1908,8 @@ static int sigalg_security_bits(SSL_CTX *ctx, const SIGALG_LOOKUP *lu)
 
         /* Security bits: half digest bits */
         secbits = EVP_MD_get_size(md) * 4;
+        if (secbits <= 0)
+            return 0;
         /*
          * SHA1 and MD5 are known to be broken. Reduce security bits so that
          * they're no longer accepted at security level 1. The real values don't
@@ -2288,7 +2367,8 @@ SSL_TICKET_STATUS tls_decrypt_ticket(SSL_CONNECTION *s,
         int rv = 0;
 
         if (tctx->ext.ticket_key_evp_cb != NULL)
-            rv = tctx->ext.ticket_key_evp_cb(SSL_CONNECTION_GET_SSL(s), nctick,
+            rv = tctx->ext.ticket_key_evp_cb(SSL_CONNECTION_GET_USER_SSL(s),
+                                             nctick,
                                              nctick + TLSEXT_KEYNAME_LENGTH,
                                              ctx,
                                              ssl_hmac_get0_EVP_MAC_CTX(hctx),
@@ -2296,7 +2376,7 @@ SSL_TICKET_STATUS tls_decrypt_ticket(SSL_CONNECTION *s,
 #ifndef OPENSSL_NO_DEPRECATED_3_0
         else if (tctx->ext.ticket_key_cb != NULL)
             /* if 0 is returned, write an empty ticket */
-            rv = tctx->ext.ticket_key_cb(SSL_CONNECTION_GET_SSL(s), nctick,
+            rv = tctx->ext.ticket_key_cb(SSL_CONNECTION_GET_USER_SSL(s), nctick,
                                          nctick + TLSEXT_KEYNAME_LENGTH,
                                          ctx, ssl_hmac_get0_HMAC_CTX(hctx), 0);
 #endif

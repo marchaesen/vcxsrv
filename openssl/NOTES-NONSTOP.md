@@ -124,12 +124,9 @@ correctly, you also need the `COMP_ROOT` set, as in:
 
 `COMP_ROOT` needs to be in Windows form.
 
-`Configure` must specify the `no-makedepend` option otherwise errors will
-result when running the build because the c99 cross-compiler does not support
-the `gcc -MT` option. An example of a `Configure` command to be run from the
-OpenSSL directory is:
+An example of a `Configure` command to be run from the OpenSSL directory is:
 
-    ./Configure nonstop-nsx_64 no-makedepend --with-rand-seed=rdcpu
+    ./Configure nonstop-nsx_64 --with-rand-seed=rdcpu
 
 Do not forget to include any OpenSSL cross-compiling prefix and certificate
 options when creating your libraries.
@@ -217,13 +214,10 @@ Example Configure Targets
 -------------------------
 
 For OSS targets, the main DLL names will be `libssl.so` and `libcrypto.so`.
-For GUARDIAN targets, DLL names will be `ssl` and `crypto`. The following
-assumes that your PWD is set according to your installation standards.
+The following assumes that your PWD is set according to your installation
+standards.
 
     ./Configure nonstop-nsx           --prefix=${PWD} \
-        --openssldir=${PWD}/ssl no-threads \
-        --with-rand-seed=rdcpu ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}
-    ./Configure nonstop-nsx_g         --prefix=${PWD} \
         --openssldir=${PWD}/ssl no-threads \
         --with-rand-seed=rdcpu ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}
     ./Configure nonstop-nsx_put       --prefix=${PWD} \
@@ -234,9 +228,6 @@ assumes that your PWD is set according to your installation standards.
         --with-rand-seed=rdcpu ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}
     ./Configure nonstop-nsx_64_put    --prefix=${PWD} \
         --openssldir=${PWD}/ssl threads "-D_REENTRANT" \
-        --with-rand-seed=rdcpu ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}
-    ./Configure nonstop-nsx_g_tandem  --prefix=${PWD} \
-        --openssldir=${PWD}/ssl no-threads \
         --with-rand-seed=rdcpu ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}
 
     ./Configure nonstop-nse           --prefix=${PWD} \
@@ -253,7 +244,4 @@ assumes that your PWD is set according to your installation standards.
         --with-rand-seed=egd ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}
     ./Configure nonstop-nse_64_put    --prefix=${PWD} \
         --openssldir=${PWD}/ssl threads "-D_REENTRANT"
-        --with-rand-seed=egd ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}
-    ./Configure nonstop-nse_g_tandem  --prefix=${PWD} \
-        --openssldir=${PWD}/ssl no-threads \
         --with-rand-seed=egd ${CIPHENABLES} ${DBGFLAG} ${SYSTEMLIBS}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2025 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -571,8 +571,13 @@ int BIO_parse_hostserv(const char *hostserv, char **host, char **service,
             *service = NULL;
         } else {
             *service = OPENSSL_strndup(p, pl);
-            if (*service == NULL)
+            if (*service == NULL) {
+                if (h != NULL && host != NULL) {
+                    OPENSSL_free(*host);
+                    *host = NULL;
+                }
                 return 0;
+            }
         }
     }
 
@@ -774,16 +779,19 @@ int BIO_lookup_ex(const char *host, const char *service, int lookup_type,
         /* Windows doesn't seem to have in_addr_t */
 #if defined(OPENSSL_SYS_WINDOWS) || defined(OPENSSL_SYS_MSDOS)
         static uint32_t he_fallback_address;
-        static const char *he_fallback_addresses[] =
-            { (char *)&he_fallback_address, NULL };
+        static const char *he_fallback_addresses[] = {
+            (char *)&he_fallback_address, NULL
+        };
 #else
         static in_addr_t he_fallback_address;
-        static const char *he_fallback_addresses[] =
-            { (char *)&he_fallback_address, NULL };
+        static const char *he_fallback_addresses[] = {
+            (char *)&he_fallback_address, NULL
+        };
 #endif
-        static const struct hostent he_fallback =
-            { NULL, NULL, AF_INET, sizeof(he_fallback_address),
-              (char **)&he_fallback_addresses };
+        static const struct hostent he_fallback = {
+            NULL, NULL, AF_INET, sizeof(he_fallback_address),
+            (char **)&he_fallback_addresses
+        };
 #if defined(OPENSSL_SYS_VMS) && defined(__DECC)
 # pragma pointer_size restore
 #endif

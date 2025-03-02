@@ -4,7 +4,9 @@ Welcome to the OpenSSL Project
 [![openssl logo]][www.openssl.org]
 
 [![github actions ci badge]][github actions ci]
-[![appveyor badge]][appveyor jobs]
+![Nightly OS Zoo ci badge](https://github.com/openssl/openssl/actions/workflows/os-zoo.yml/badge.svg)
+![Provider Compatibility]( https://github.com/openssl/openssl/actions/workflows/provider-compatibility.yml/badge.svg)
+![Daily checks](https://github.com/openssl/openssl/actions/workflows/run-checker-daily.yml/badge.svg)
 
 OpenSSL is a robust, commercial-grade, full-featured Open Source Toolkit
 for the TLS (formerly SSL), DTLS and QUIC (currently client side only)
@@ -64,7 +66,7 @@ For Production Use
 ------------------
 
 Source code tarballs of the official releases can be downloaded from
-[www.openssl.org/source](https://www.openssl.org/source).
+[openssl-library.org/source/](https://openssl-library.org/source/).
 The OpenSSL project does not distribute the toolkit in binary form.
 
 However, for a large variety of operating systems precompiled versions
@@ -84,22 +86,18 @@ the source tarballs, having a local copy of the git repository with
 the entire project history gives you much more insight into the
 code base.
 
-The official OpenSSL Git Repository is located at [git.openssl.org].
-There is a GitHub mirror of the repository at [github.com/openssl/openssl],
+The main OpenSSL Git repository is private.
+There is a public GitHub mirror of it at [github.com/openssl/openssl],
 which is updated automatically from the former on every commit.
 
-A local copy of the Git Repository can be obtained by cloning it from
-the original OpenSSL repository using
-
-    git clone git://git.openssl.org/openssl.git
-
-or from the GitHub mirror using
+A local copy of the Git repository can be obtained by cloning it from
+the GitHub mirror using
 
     git clone https://github.com/openssl/openssl.git
 
 If you intend to contribute to OpenSSL, either to fix bugs or contribute
-new features, you need to fork the OpenSSL repository openssl/openssl on
-GitHub and clone your public fork instead.
+new features, you need to fork the GitHub mirror and clone your public fork
+instead.
 
     git clone https://github.com/yourname/openssl.git
 
@@ -159,7 +157,7 @@ available online.
 Demos
 -----
 
-The are numerous source code demos for using various OpenSSL capabilities in the
+There are numerous source code demos for using various OpenSSL capabilities in the
 [demos subfolder](./demos).
 
 Wiki
@@ -199,7 +197,7 @@ attempting to develop or distribute cryptographic code.
 Copyright
 =========
 
-Copyright (c) 1998-2024 The OpenSSL Project Authors
+Copyright (c) 1998-2025 The OpenSSL Project Authors
 
 Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson
 
@@ -210,14 +208,6 @@ All rights reserved.
 [www.openssl.org]:
     <https://www.openssl.org>
     "OpenSSL Homepage"
-
-[git.openssl.org]:
-    <https://git.openssl.org>
-    "OpenSSL Git Repository"
-
-[git.openssl.org]:
-    <https://git.openssl.org>
-    "OpenSSL Git Repository"
 
 [github.com/openssl/openssl]:
     <https://github.com/openssl/openssl>

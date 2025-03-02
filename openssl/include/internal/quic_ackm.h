@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2022-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -115,7 +115,7 @@ struct ossl_ackm_tx_pkt_st {
     void (*on_discarded)(void *arg);
     void  *cb_arg;
 
-    /* 
+    /*
      * (Internal use fields; must be zero-initialized.)
      *
      * Keep a TX history list, anext is used to manifest

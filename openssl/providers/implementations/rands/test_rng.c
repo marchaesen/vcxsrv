@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2020-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -16,6 +16,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 #include <openssl/randerr.h>
+#include "prov/securitycheck.h"
 #include "prov/providercommon.h"
 #include "prov/provider_ctx.h"
 #include "prov/provider_util.h"
@@ -196,8 +197,14 @@ static int test_rng_get_ctx_params(void *vtest, OSSL_PARAM params[])
         return 0;
 
     p = OSSL_PARAM_locate(params, OSSL_RAND_PARAM_GENERATE);
-    if (p != NULL && OSSL_PARAM_set_uint(p, t->generate))
+    if (p != NULL && !OSSL_PARAM_set_uint(p, t->generate))
         return 0;
+
+#ifdef FIPS_MODULE
+    p = OSSL_PARAM_locate(params, OSSL_RAND_PARAM_FIPS_APPROVED_INDICATOR);
+    if (p != NULL && !OSSL_PARAM_set_int(p, 0))
+        return 0;
+#endif  /* FIPS_MODULE */
     return 1;
 }
 
@@ -209,6 +216,7 @@ static const OSSL_PARAM *test_rng_gettable_ctx_params(ossl_unused void *vtest,
         OSSL_PARAM_uint(OSSL_RAND_PARAM_STRENGTH, NULL),
         OSSL_PARAM_size_t(OSSL_RAND_PARAM_MAX_REQUEST, NULL),
         OSSL_PARAM_uint(OSSL_RAND_PARAM_GENERATE, NULL),
+        OSSL_FIPS_IND_GETTABLE_CTX_PARAM()
         OSSL_PARAM_END
     };
     return known_gettable_ctx_params;

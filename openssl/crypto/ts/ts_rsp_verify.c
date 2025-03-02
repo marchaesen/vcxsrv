@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2006-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -448,7 +448,7 @@ static int ts_compute_imprint(BIO *data, TS_TST_INFO *tst_info,
     (void)ERR_pop_to_mark();
 
     length = EVP_MD_get_size(md);
-    if (length < 0)
+    if (length <= 0)
         goto err;
     *imprint_len = length;
     if ((*imprint = OPENSSL_malloc(*imprint_len)) == NULL)

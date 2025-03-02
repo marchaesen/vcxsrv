@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -28,6 +28,11 @@ long PKCS7_ctrl(PKCS7 *p7, int cmd, long larg, char *parg)
     /* NOTE(emilia): does not support detached digested data. */
     case PKCS7_OP_SET_DETACHED_SIGNATURE:
         if (nid == NID_pkcs7_signed) {
+            if (p7->d.sign == NULL) {
+                ERR_raise(ERR_LIB_PKCS7, PKCS7_R_NO_CONTENT);
+                ret = 0;
+                break;
+            }
             ret = p7->detached = (int)larg;
             if (ret && PKCS7_type_is_data(p7->d.sign->contents)) {
                 ASN1_OCTET_STRING *os;
@@ -413,7 +418,7 @@ PKCS7_SIGNER_INFO *PKCS7_add_signature(PKCS7 *p7, X509 *x509, EVP_PKEY *pkey,
     return NULL;
 }
 
-static STACK_OF(X509) *pkcs7_get_signer_certs(const PKCS7 *p7)
+STACK_OF(X509) *pkcs7_get0_certificates(const PKCS7 *p7)
 {
     if (p7->d.ptr == NULL)
         return NULL;
@@ -454,7 +459,7 @@ void ossl_pkcs7_resolve_libctx(PKCS7 *p7)
 
     rinfos = pkcs7_get_recipient_info(p7);
     sinfos = PKCS7_get_signer_info(p7);
-    certs = pkcs7_get_signer_certs(p7);
+    certs = pkcs7_get0_certificates(p7);
 
     for (i = 0; i < sk_X509_num(certs); i++)
         ossl_x509_set0_libctx(sk_X509_value(certs, i), libctx, propq);

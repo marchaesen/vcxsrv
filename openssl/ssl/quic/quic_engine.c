@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2023-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -131,7 +131,7 @@ static void qeng_tick(QUIC_TICK_RESULT *res, void *arg, uint32_t flags)
         return;
 
     /* Iterate through all ports and service them. */
-    LIST_FOREACH(port, port, &qeng->port_list) {
+    OSSL_LIST_FOREACH(port, port, &qeng->port_list) {
         QUIC_TICK_RESULT subr = {0};
 
         ossl_quic_port_subtick(port, &subr, flags);

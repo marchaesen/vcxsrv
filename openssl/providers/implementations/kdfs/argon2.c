@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2022-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -1071,8 +1071,8 @@ static int kdf_argon2_derive(void *vctx, unsigned char *out, size_t outlen,
 # else
         if (ctx->threads > ossl_get_avail_threads(ctx->libctx)) {
             ERR_raise_data(ERR_LIB_PROV, PROV_R_INVALID_THREAD_POOL_SIZE,
-                           "requested %u threads, available: 1",
-                           ossl_get_avail_threads(ctx->libctx));
+                           "requested %u threads, available: %u",
+                           ctx->threads, ossl_get_avail_threads(ctx->libctx));
             return 0;
         }
 # endif

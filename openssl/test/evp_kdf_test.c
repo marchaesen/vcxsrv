@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2024 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2018-2025 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2018-2020, Oracle and/or its affiliates.  All rights reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
@@ -273,9 +273,9 @@ static int do_kdf_hkdf_gettables(int expand_only, int has_digest)
             goto err;
     }
 
-    /* Get params returns -2 if an unsupported parameter is requested */
+    /* Get params returns 1 if an unsupported parameter is requested */
     params_get[0] = OSSL_PARAM_construct_end();
-    if (!TEST_int_eq(EVP_KDF_CTX_get_params(kctx, params_get), -2))
+    if (!TEST_int_eq(EVP_KDF_CTX_get_params(kctx, params_get), 1))
         goto err;
     ret = 1;
 err:
@@ -857,7 +857,7 @@ err:
 #ifndef OPENSSL_NO_SCRYPT
 static int test_kdf_scrypt(void)
 {
-    int ret;
+    int i, ret;
     EVP_KDF_CTX *kctx;
     OSSL_PARAM params[7], *p = params;
     unsigned char out[64];
@@ -883,15 +883,21 @@ static int test_kdf_scrypt(void)
     *p++ = OSSL_PARAM_construct_uint(OSSL_KDF_PARAM_SCRYPT_MAXMEM, &maxmem);
     *p = OSSL_PARAM_construct_end();
 
-    ret =
-        TEST_ptr(kctx = get_kdfbyname(OSSL_KDF_NAME_SCRYPT))
-        && TEST_true(EVP_KDF_CTX_set_params(kctx, params))
-        /* failure test *//*
-        && TEST_int_le(EVP_KDF_derive(kctx, out, sizeof(out), NULL), 0)*/
-        && TEST_true(OSSL_PARAM_set_uint(p - 1, 10 * 1024 * 1024))
-        && TEST_true(EVP_KDF_CTX_set_params(kctx, p - 1))
-        && TEST_int_gt(EVP_KDF_derive(kctx, out, sizeof(out), NULL), 0)
-        && TEST_mem_eq(out, sizeof(out), expected, sizeof(expected));
+    ret = TEST_ptr(kctx = get_kdfbyname(OSSL_KDF_NAME_SCRYPT));
+    for (i = 0; ret && i < 2; ++i) {
+        ret = ret
+            && TEST_true(EVP_KDF_CTX_set_params(kctx, params));
+        if (i == 0)
+            ret = ret
+                && TEST_int_le(EVP_KDF_derive(kctx, out, sizeof(out), NULL), 0)
+                && TEST_true(OSSL_PARAM_set_uint(p - 1, 10 * 1024 * 1024))
+                && TEST_true(EVP_KDF_CTX_set_params(kctx, p - 1));
+        ret = ret
+            && TEST_int_gt(EVP_KDF_derive(kctx, out, sizeof(out), NULL), 0)
+            && TEST_mem_eq(out, sizeof(out), expected, sizeof(expected));
+        if (i == 0)
+            EVP_KDF_CTX_reset(kctx);
+    }
 
     EVP_KDF_CTX_free(kctx);
     return ret;
@@ -1771,7 +1777,7 @@ static int test_kdf_get_kdf(void)
         || !TEST_ptr(kdf2 = EVP_KDF_fetch(NULL, LN_tls1_prf, NULL))
         || !test_kdfs_same(kdf1, kdf2))
         ok = 0;
-    /* kdf1 is re-used below, so don't free it here */
+    /* kdf1 is reused below, so don't free it here */
     EVP_KDF_free(kdf2);
     kdf2 = NULL;
 

@@ -1,5 +1,5 @@
 #! /usr/bin/env perl
-# Copyright 2015-2023 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 2015-2024 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the Apache License 2.0 (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -63,6 +63,7 @@ my @files = qw(
                 evppbe_pbkdf2.txt
                 evppkey_kdf_hkdf.txt
                 evppkey_rsa_common.txt
+                evppkey_rsa_sigalg.txt
                 evprand.txt
               );
 push @files, qw(
@@ -73,15 +74,20 @@ push @files, qw(
                 evpkdf_x942_des.txt
                 evpmac_cmac_des.txt
                ) unless $no_des;
-push @files, qw(evppkey_dsa.txt) unless $no_dsa;
+push @files, qw(
+                evppkey_dsa.txt
+                evppkey_dsa_sigalg.txt
+               ) unless $no_dsa;
 push @files, qw(
                 evppkey_ecx.txt
+                evppkey_ecx_sigalg.txt
                 evppkey_mismatch_ecx.txt
                ) unless $no_ecx;
 push @files, qw(
                 evppkey_ecc.txt
                 evppkey_ecdh.txt
                 evppkey_ecdsa.txt
+                evppkey_ecdsa_sigalg.txt
                 evppkey_kas.txt
                 evppkey_mismatch.txt
                ) unless $no_ec;

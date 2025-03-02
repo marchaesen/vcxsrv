@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2020-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -112,7 +112,8 @@ static int print_labeled_bignum(BIO *out, const char *label, const BIGNUM *bn)
             use_sep = 0; /* The first byte on the next line doesn't have a : */
         }
         if (BIO_printf(out, "%s%c%c", use_sep ? ":" : "",
-                       tolower(p[0]), tolower(p[1])) <= 0)
+                       tolower((unsigned char)p[0]),
+                       tolower((unsigned char)p[1])) <= 0)
             goto err;
         ++bytes;
         p += 2;

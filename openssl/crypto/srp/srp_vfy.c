@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2004-2024 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2004, EdelKey Project. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
@@ -214,6 +214,8 @@ int SRP_user_pwd_set1_ids(SRP_user_pwd *vinfo, const char *id,
 {
     OPENSSL_free(vinfo->id);
     OPENSSL_free(vinfo->info);
+    vinfo->id = NULL;
+    vinfo->info = NULL;
     if (id != NULL && NULL == (vinfo->id = OPENSSL_strdup(id)))
         return 0;
     return (info == NULL || NULL != (vinfo->info = OPENSSL_strdup(info)));

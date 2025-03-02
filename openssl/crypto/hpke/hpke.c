@@ -45,8 +45,7 @@ static const char OSSL_HPKE_SECRET_LABEL[] = "\x73\x65\x63\x72\x65\x74";
 /**
  * @brief sender or receiver context
  */
-struct ossl_hpke_ctx_st
-{
+struct ossl_hpke_ctx_st {
     OSSL_LIB_CTX *libctx; /* library context */
     char *propq; /* properties */
     int mode; /* HPKE mode */
@@ -842,6 +841,7 @@ OSSL_HPKE_CTX *OSSL_HPKE_CTX_new(int mode, OSSL_HPKE_SUITE suite, int role,
 
  err:
     EVP_CIPHER_free(ctx->aead_ciph);
+    OPENSSL_free(ctx->propq);
     OPENSSL_free(ctx);
     return NULL;
 }

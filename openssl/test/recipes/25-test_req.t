@@ -15,7 +15,7 @@ use OpenSSL::Test qw/:DEFAULT srctop_file/;
 
 setup("test_req");
 
-plan tests => 108;
+plan tests => 110;
 
 require_ok(srctop_file('test', 'recipes', 'tconversion.pl'));
 
@@ -36,7 +36,7 @@ if (disabled("rsa")) {
 $ENV{MSYS2_ARG_CONV_EXCL} = "/CN=";
 
 # Check for duplicate -addext parameters, and one "working" case.
-my @addext_args = ( "openssl", "req", "-new", "-out", "testreq.pem",
+my @addext_args = ( "openssl", "req", "-new", "-out", "testreq-addexts.pem",
                     "-key",  srctop_file(@certs, "ee-key.pem"),
     "-config", srctop_file("test", "test.cnf"), @req_new );
 my $val = "subjectAltName=DNS:example.com";
@@ -54,6 +54,9 @@ ok(!run(app([@addext_args, "-addext", $val, "-addext", $val3])));
 ok(!run(app([@addext_args, "-addext", $val2, "-addext", $val3])));
 ok(run(app([@addext_args, "-addext", "SXNetID=1:one, 2:two, 3:three"])));
 ok(run(app([@addext_args, "-addext", "subjectAltName=dirName:dirname_sec"])));
+
+ok(run(app([@addext_args, "-addext", "keyUsage=digitalSignature",
+           "-reqexts", "reqexts"]))); # referring to section in test.cnf
 
 # If a CSR is provided with neither of -key or -CA/-CAkey, this should fail.
 ok(!run(app(["openssl", "req", "-x509",
@@ -607,3 +610,16 @@ ok(run(app(["openssl", "req", "-x509", "-new", "-days", "365",
 # Verify cert
 ok(run(app(["openssl", "x509", "-in", "testreq-cert.pem",
             "-noout", "-text"])), "cert verification");
+
+# Generate cert with explicit start and end dates
+my %today = (strftime("%Y-%m-%d", gmtime) => 1);
+my $cert = "self-signed_explicit_date.pem";
+ok(run(app(["openssl", "req", "-x509", "-new", "-text",
+            "-config", srctop_file('test', 'test.cnf'),
+            "-key", srctop_file("test", "testrsa.pem"),
+            "-not_before", "today",
+            "-not_after", "today",
+            "-out", $cert]))
+&& ++$today{strftime("%Y-%m-%d", gmtime)}
+&& (grep { defined $today{$_} } get_not_before_date($cert))
+&& (grep { defined $today{$_} } get_not_after_date($cert)), "explicit start and end dates");

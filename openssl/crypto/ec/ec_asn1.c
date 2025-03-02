@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2002-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -1156,7 +1156,7 @@ int i2o_ECPublicKey(const EC_KEY *a, unsigned char **out)
     size_t buf_len = 0;
     int new_buffer = 0;
 
-    if (a == NULL) {
+    if (a == NULL || a->pub_key == NULL) {
         ERR_raise(ERR_LIB_EC, ERR_R_PASSED_NULL_PARAMETER);
         return 0;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2022-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -20,33 +20,33 @@
 #  define OSSL_LIST_DBG(x) x;
 # endif
 
-# define LIST_FOREACH_FROM(p, name, init)                                   \
+# define OSSL_LIST_FOREACH_FROM(p, name, init)                              \
     for ((p) = (init);                                                      \
          (p) != NULL;                                                       \
          (p) = ossl_list_##name##_next(p))
-# define LIST_FOREACH(p, name, l)                                           \
-    LIST_FOREACH_FROM(p, name, ossl_list_##name##_head(l))
+# define OSSL_LIST_FOREACH(p, name, l)                                      \
+    OSSL_LIST_FOREACH_FROM(p, name, ossl_list_##name##_head(l))
 
-# define LIST_FOREACH_REV_FROM(p, name, init)                               \
+# define OSSL_LIST_FOREACH_REV_FROM(p, name, init)                          \
     for ((p) = (init);                                                      \
          (p) != NULL;                                                       \
          (p) = ossl_list_##name##_prev(p))
-# define LIST_FOREACH_REV(p, name, l)                                       \
-    LIST_FOREACH_FROM(p, name, ossl_list_##name##_tail(l))
+# define OSSL_LIST_FOREACH_REV(p, name, l)                                  \
+    OSSL_LIST_FOREACH_FROM(p, name, ossl_list_##name##_tail(l))
 
-# define LIST_FOREACH_DELSAFE_FROM(p, pn, name, init)                       \
+# define OSSL_LIST_FOREACH_DELSAFE_FROM(p, pn, name, init)                  \
     for ((p) = (init);                                                      \
          (p) != NULL && (((pn) = ossl_list_##name##_next(p)), 1);           \
          (p) = (pn))
-#define LIST_FOREACH_DELSAFE(p, pn, name, l)                                \
-    LIST_FOREACH_DELSAFE_FROM(p, pn, name, ossl_list_##name##_head(l))
+#define OSSL_LIST_FOREACH_DELSAFE(p, pn, name, l)                           \
+    OSSL_LIST_FOREACH_DELSAFE_FROM(p, pn, name, ossl_list_##name##_head(l))
 
-# define LIST_FOREACH_REV_DELSAFE_FROM(p, pn, name, init)                   \
+# define OSSL_LIST_FOREACH_REV_DELSAFE_FROM(p, pn, name, init)              \
     for ((p) = (init);                                                      \
          (p) != NULL && (((pn) = ossl_list_##name##_prev(p)), 1);           \
          (p) = (pn))
-# define LIST_FOREACH_REV_DELSAFE(p, pn, name, l)                           \
-    LIST_FOREACH_REV_DELSAFE_FROM(p, pn, name, ossl_list_##name##_tail(l))
+# define OSSL_LIST_FOREACH_REV_DELSAFE(p, pn, name, l)                      \
+    OSSL_LIST_FOREACH_REV_DELSAFE_FROM(p, pn, name, ossl_list_##name##_tail(l))
 
 /* Define a list structure */
 # define OSSL_LIST(name) OSSL_LIST_ ## name

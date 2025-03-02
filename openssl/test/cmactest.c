@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -327,13 +327,15 @@ err:
     return ret;
 }
 
+#define OSSL_HEX_CHARS_PER_BYTE 2
 static char *pt(unsigned char *md, unsigned int len)
 {
     unsigned int i;
-    static char buf[80];
+    static char buf[81];
 
-    for (i = 0; i < len; i++)
-        sprintf(&(buf[i * 2]), "%02x", md[i]);
+    for (i = 0; i < len && (i + 1) * OSSL_HEX_CHARS_PER_BYTE < sizeof(buf); i++)
+        BIO_snprintf(buf + i * OSSL_HEX_CHARS_PER_BYTE,
+                     OSSL_HEX_CHARS_PER_BYTE + 1, "%02x", md[i]);
     return buf;
 }
 
