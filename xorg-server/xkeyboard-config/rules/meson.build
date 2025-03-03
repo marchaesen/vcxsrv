@@ -235,6 +235,11 @@ if get_option('xorg-rules-symlinks')
     endif
   endforeach
 endif
+if get_option('xorg-rules-copy')
+  foreach suffix: ['', '.lst', '.xml']
+    meson.add_install_script('sh', '-c', 'cp ${MESON_INSTALL_PREFIX}/@1@/base@0@ ${MESON_INSTALL_PREFIX}/@1@/xorg@0@'.format(suffix, dir_xkb_rules))
+  endforeach
+endif
 # Copy the DTD to the build directory, the man page generation expects it in
 # the same directory as the input XML file.
 configure_file(output: 'xkb.dtd',
