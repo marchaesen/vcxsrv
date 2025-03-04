@@ -16,7 +16,7 @@
  *  along with vcxsrv.  If not, see <http://www.gnu.org/licenses/>.
 */
 ;--------------------------------
- !include "FileFunc.nsh"
+!include "FileFunc.nsh"
 
 !define NAME "VcXsrv"
 !define VERSION "21.1.16.0"
@@ -214,10 +214,10 @@ Section "Start Menu Shortcuts"
 
   SetRegView 64
 
-  SetOutPath $INSTDIR
-  CreateShortCut "$INSTDIR\Uninstall VcXsrv.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$INSTDIR\XLaunch.lnk" "$INSTDIR\xlaunch.exe" "" "$INSTDIR\xlaunch.exe" 0
-
+  SetOutPath "$SMPROGRAMS\VcXsrv"
+  CreateDirectory "$SMPROGRAMS\VcXsrv"
+  CreateShortCut "$SMPROGRAMS\VcXsrv\Uninstall VcXsrv.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\VcXsrv\XLaunch.lnk" "$INSTDIR\xlaunch.exe" "" "$INSTDIR\xlaunch.exe" 0
 SectionEnd
 
 ; Optional section (can be disabled by the user)
@@ -307,10 +307,12 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\bitmaps"
 
   ; Remove shortcuts, if any
+  Delete "$SMPROGRAMS\VcXsrv\*.*"
   Delete "$DESKTOP\VcXsrv.lnk"
   Delete "$DESKTOP\XLaunch.lnk"
 
   ; Remove directories used
+  RMDir "$SMPROGRAMS\VcXsrv"
   RMDir "$INSTDIR"
 
 SectionEnd
