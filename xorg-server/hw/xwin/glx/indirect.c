@@ -344,7 +344,7 @@ fbConfigsDump(unsigned int n, __GLXconfig * c, PixelFormatRejectStats *rejects)
         if (c->renderType & GLX_RGBA_UNSIGNED_FLOAT_BIT_EXT) float_col = "u";
 
         ErrorF("%3d %3x %3x "
-               "%-11s"
+               "%11s"
                " %3d %3d   %s   %s  %s %s  %s  "
                "%2d %2d %2d %2d  "
                "%2d %2d  "
