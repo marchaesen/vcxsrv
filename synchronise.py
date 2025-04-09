@@ -10,7 +10,7 @@ parser = OptionParser(usage=usage)
 parser.add_option("-n", "--donothing", action='store_true', dest="DoNothing", default=False, help="Do not copy the files.")
 parser.add_option("", "--extension", action='store', dest="Extension", default=None, help="Copy only files with this extension.")
 parser.add_option("-y", "--ask", action='store_true', dest="Ask", default=False, help="Ask confirmation to copy.")
-parser.add_option("-a", "--ask-file", action='append', dest="FilesToConfirm", default=[], help="Ask confirmation to copy for this speicific file (only useful if -y is not used).")
+parser.add_option("-a", "--ask-file", action='append', dest="FilesToConfirm", default=[], help="Ask confirmation to copy for this specific file (only useful if -y is not used).")
 parser.add_option("-d", "--delete-file_re", dest="FilesToDeleteRe", default="", help="Regular expression of files to delete.")
 parser.add_option("-s", "--no-skip-svn", dest="NoSkipSvn", action='store_true', default=False, help="Do not Skip .svn directories.")
 parser.add_option("-g", "--no-skip-git", dest="NoSkipGit", action='store_true', default=False, help="Do not Skip .git directories.")
@@ -125,7 +125,7 @@ def FileDiff(SrcFile,DestFile):
       if not SrcLine:
         return 0
   except Exception as Object:
-    #print "Exception occured"
+    #print "Exception occurred"
     #print Object
     return 1
 
