@@ -14,7 +14,7 @@
 #	This also results in a 32GB docker image
 
 # Use the Long-Term Support Channel Windows Server Core image
-FROM mcr.microsoft.com/windows/server:ltsc2022
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
 SHELL ["cmd", "/S", "/C"]
 
 #Install VS Community 2022; based on https://docs.microsoft.com/en-us/visualstudio/install/build-tools-container?view=vs-2022
@@ -35,7 +35,7 @@ RUN \
 #Install Chocolatey
 RUN powershell -NoProfile -Command \
 	Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')); \
-	Start-Process \ProgramData\chocolatey\bin\choco.exe -ArgumentList 'feature disable –name showDownloadProgress' -Wait
+	Start-Process %ProgramData%\chocolatey\bin\choco.exe -ArgumentList 'feature disable –name showDownloadProgress' -Wait
 
 #Install Strawberry Perl into C:\Perl
 RUN choco install -y strawberryperl \
@@ -71,7 +71,7 @@ RUN choco install -y python3 --version 3.9.13 \
 	&& C:\Python39\Scripts\pip install mako \
 	&& popd \
 	&& del c:\programdata\chocolatey\lib\python3\*.nupkg \
-	&& setx /m path "%path%;C:\Python39
+	&& setx /m path "%path%;C:\Python39"
 
 #Install git
 RUN choco install -y git \
@@ -83,7 +83,7 @@ RUN choco install -y git \
 
 # Launch VS2022 developer command prompt when started
 SHELL ["cmd", "/S", "/K"]
-ENTRYPOINT ""C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat""
+ENTRYPOINT ""%ProgramFiles%\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat""
 
 # Launch with docker run -m 4G -v:<VcXSrvGit>:c:\src -it <ContainerName>
 # Once inside:
