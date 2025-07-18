@@ -31,8 +31,12 @@ def escapepath(val):
   for path in paths:
     if not path in tmp:
       tmp[path]=1
-      path=path.replace("c:","/mnt/c")
-      path=path.replace("C:","/mnt/c")
+      if os.path.exists("/cygdrive/c"):
+        path=path.replace("c:","/cygdrive/c")
+        path=path.replace("C:","/cygdrive/c")
+      else:
+        path=path.replace("c:","/mnt/c")
+        path=path.replace("C:","/mnt/c")
       path=path.replace("\\","/")
       path=path.replace(" ","\\ ")
       path=path.replace("(","\\(")

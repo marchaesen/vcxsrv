@@ -81,6 +81,12 @@ RUN choco install -y git \
 	&& git config --global core.autocrlf false \
 	&& del c:\programdata\chocolatey\lib\git.install\*.nupkg
 
+# Make src safe since it has different ownership
+RUN git config --global --add safe.directory C:/src/.git
+
+# Set the timezone to UTC
+RUN setx /M TZ "UTC"
+
 # Launch VS2022 developer command prompt when started
 SHELL ["cmd", "/S", "/K"]
 ENTRYPOINT ""%ProgramFiles%\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat""
