@@ -53,9 +53,9 @@ which perl.exe > /dev/null 2>&1
 check-error 'Please install strawberry perl portable edition into c:\perl'
 
 if [ -z "${CYGWIN}" ]; then
-    FREETYPESLN=freetype/freetypevc10.sln
-else
     FREETYPESLN=freetype/MSBuild.sln
+else
+    FREETYPESLN=freetype/freetypevc10.sln
 fi
 
 # echo script lines from now one
