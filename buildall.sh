@@ -52,30 +52,36 @@ check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2
 which perl.exe > /dev/null 2>&1
 check-error 'Please install strawberry perl portable edition into c:\perl'
 
+if [ -z "${CYGWIN}" ]; then
+    FREETYPESLN=freetype/freetypevc10.sln
+else
+    FREETYPESLN=freetype/MSBuild.sln
+fi
+
 # echo script lines from now one
 #set -v
 if [[ "$BUILDDEPS" == "1" ]] ; then
 
 if [[ "$IS64" == "1" ]]; then
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo ${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
-		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
+		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
+		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo ${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
-		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
+		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
+		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 else
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo ${MSBUILD} freetype/MSBuild/freetype.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
-		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
+		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
+		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo ${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
-		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
+		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
+		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 fi
@@ -133,11 +139,11 @@ fi
 
 cd pthreads
 if [[ "$BUILDRELEASE" == "1" ]] ; then
-	${NMAKE} VC-static
+	nmake.exe VC-static
 	check-error 'Error compiling pthreads for release'
 fi
 if [[ "$BUILDDEBUG" == "1" ]] ; then
-	${NMAKE} VC-static-debug
+	nmake.exe VC-static-debug
 	check-error 'Error compiling pthreads for debug'
 fi
 cd ..
@@ -150,13 +156,13 @@ if [[ "$IS64" == "1" ]]; then
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
 
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2                  
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2                  
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi
@@ -180,12 +186,12 @@ else
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi
