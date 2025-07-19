@@ -52,36 +52,30 @@ check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2
 which perl.exe > /dev/null 2>&1
 check-error 'Please install strawberry perl portable edition into c:\perl'
 
-if [ -z "${CYGWIN}" ]; then
-    FREETYPESLN=freetype/MSBuild.sln
-else
-    FREETYPESLN=freetype/freetypevc10.sln
-fi
-
 # echo script lines from now one
 #set -v
 if [[ "$BUILDDEPS" == "1" ]] ; then
 
 if [[ "$IS64" == "1" ]]; then
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
-		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
+		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
+		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
-		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
+		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
+		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 else
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
-		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
+		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
+		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
-		MSBuild.exe ${FREETYPESLN} -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
+		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
+		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 fi
