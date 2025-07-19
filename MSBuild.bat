@@ -1,2 +1,0 @@
-MSBuild.exe %*
-
