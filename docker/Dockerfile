@@ -109,7 +109,7 @@ ENTRYPOINT ""%ProgramFiles%\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxil
 # Ensure any local changes have been committed to git
 #
 # Launch with: runDocker.cmd
-# Or docker run -m 2G -v:<VcXSrvGit>:c:\src -it vcsb
+# Or docker run -m 2G -v:<VcXSrvGit>:c:\src -it vcxb
 #
 # Once inside:
 #   git clone src vcx
