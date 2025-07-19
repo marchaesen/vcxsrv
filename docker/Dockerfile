@@ -41,7 +41,7 @@ RUN \
         --installPath "%ProgramFiles%\Microsoft Visual Studio\2022\Community" \
         --add Microsoft.VisualStudio.Workload.VCTools;includeRecommended \
         --add Microsoft.VisualStudio.Component.Windows10SDK.19041 \
-        --remove Microsoft.VisualStudio.Component.Windows10SDK.26100 \
+        --remove Microsoft.VisualStudio.Component.Windows11SDK.26100 \
         --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 \
         --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 \
         --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 \
