@@ -14,7 +14,8 @@
 #        (This can take a couple hours and looks frozen soon after starting.  Let it have more memory if you can.)
 #        This also results in a 32GB docker image
 
-# Use .net 4.8 with Long-Term Support Channel Windows Server Core Image 2019
+# Use .net 4.8 with Long-Term Support Channel Windows Server Core Image 2022
+# (ltsc 2019 does not like cygwin).
 #
 # This is used as microsoft state:
 #
