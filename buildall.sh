@@ -58,24 +58,24 @@ if [[ "$BUILDDEPS" == "1" ]] ; then
 
 if [[ "$IS64" == "1" ]]; then
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
-		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
+		echo ${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
+		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
-		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
+		echo ${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
+		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=x64 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 else
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo MSBuild.exe freetype/MSBuild/freetype.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
-		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
+		echo ${MSBUILD} freetype/MSBuild/freetype.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
+		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 	if [[ "$BUILDDEBUG" == "1" ]] ; then
-		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
-		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
+		echo ${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
+		${MSBUILD} freetype/MSBuild.sln -t:Build -p:Configuration="Debug" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
 fi
@@ -133,11 +133,11 @@ fi
 
 cd pthreads
 if [[ "$BUILDRELEASE" == "1" ]] ; then
-	nmake.exe VC-static
+	${NMAKE} VC-static
 	check-error 'Error compiling pthreads for release'
 fi
 if [[ "$BUILDDEBUG" == "1" ]] ; then
-	nmake.exe VC-static-debug
+	${NMAKE} VC-static-debug
 	check-error 'Error compiling pthreads for debug'
 fi
 cd ..
@@ -150,13 +150,13 @@ if [[ "$IS64" == "1" ]]; then
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
+		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
 
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2
+		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2                  
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi
@@ -180,12 +180,12 @@ else
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
+		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
+		${MSBUILD} tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi

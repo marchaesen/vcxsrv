@@ -26,7 +26,7 @@
 # Full tag list: https://mcr.microsoft.com/v2/dotnet/framework/runtime/tags/list
 #
 # https://learn.microsoft.com/en-us/visualstudio/install/build-tools-container?view=vs-2022#create-and-build-the-dockerfile
-FROM mcr.microsoft.com/dotnet/framework/runtime:4.8-windowsservercore-ltsc2019
+FROM mcr.microsoft.com/dotnet/framework/runtime:4.8-windowsservercore-ltsc2022
 SHELL ["cmd", "/S", "/C"]
 
 # Install VS Community 2022; based on https://docs.microsoft.com/en-us/visualstudio/install/build-tools-container?view=vs-2022
