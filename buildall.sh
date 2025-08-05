@@ -121,7 +121,7 @@ if [[ "$BUILDDEBUG" == "1" ]] ; then
 		fi
 		cd debug64
 		perl.exe ../Configure VC-WIN64A --debug /FS
-# 	else
+ 	else
 		if [[ ! -d "debug32" ]]; then
 		  mkdir debug32
 		fi
