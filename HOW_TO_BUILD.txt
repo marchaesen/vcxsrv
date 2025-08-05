@@ -1,33 +1,78 @@
+WSL Builds
+
 Prerequisites:
 - Visual Studio 2022 Community Edition
 - Strawberry perl portable edition installed in c:\perl
-- Cygwin (with the following packages: bison, flex, gawk, gperf, gzip, nasm, sed, python27, python38, python38-lxml)
-- Python39 with lxml and mako
+    choco install -y strawberryperl --install-arguments="INSTALLDIR=""C:\Perl"""
+- Python39 with lxml and mako:
+    choco install python39 --params "/InstallDir:C:\Python39"
+    C:\python39\Scripts\pip.exe install lxml mako pyyaml
+- WSL2
 - To build the installer: nsis
+    choco install -y nsis
+- Jom for parallell nmake builds
+- Version 2.52.5 of winflexbison unzipped into c:\winflexbison
+- Gperf: choco install gperf
 
-or make it easy on yourself and use the new Docker-based build environment:
+Then start wsl (ensuring the default default distribution is set to the one
+you're using. This is because if you have installed Docker on windows, it has a
+tendency in creating a new default distribution when running under WSL mode
+rather than HyperV mode).
 
-Run buildDocker.cmd and give it a couple hours to build the build environment.
-From inside the VcXSrv source directory, launch the build environment using
+WSL builds only work if checkout to a windows filesystem (accessible in WSL via /mnt/[drive]/path)
 
-		runDocker.cmd
+Run:
 
-When the container is up, run the following to clone the source into the container and enter the Cygwin build environment:
+  sudo apt install meson ninja-build gettext pytest pytest-xdist python-gettext
 
-		git clone src vcx
-		cygwin
-		cd /cygdrive/c/vcx
-        export SHELLOPTS
-        set -o igncr
+in WSL to install prerequisites.
 
-Now you can build a 64-bit Debug build on an 8-core system...
+Then kick off a build with:
 
-		./buildall.cmd 1 9 D
+./buildall.sh 1 9 [RDA] - Pick on of: D = Debug build, R = Release build, A = Both debug and release.
 
-buildall.sh <32/64-bit flag> <build tasks> <Debug/Release flag> [Build deps flag]
+
+Docker builds
+
+1. Switch to Windows Containers Mode:
+   Right click on docker system tray icon, and select "Switch to Windows Containers Mode"
+
+2. Docker => Settings => Docker Engine
+   (Without this the docker build will fail during VS Community install)
+   Add to Docker -> Settings -> Docker Engin:
+       "storage-opts": [
+         "size=120GB"
+       ]
+
+  Click on Apply and let it restart.
+
+
+3. Run buildDocker.cmd and give it a couple hours to build the build environment.
+
+4. Run runDocker.cmd. and then run the following to clone the source into the
+   container and enter the Cygwin build environment:
+
+	git clone src vcx
+	cygwin
+	cd /mnt/c/vcx
+
+Now you can kick off a build:
+
+        buildall.sh <32/64-bit flag> <build tasks> <Debug/Release flag> [Build deps flag]
 
 Where:
   - 32/64-bit flag - 1=64-bit, 0=32-bit
-  - build tasks is the number of parallel build tasks to run (use cpu count + 1)
+  - build tasks is the number of parallel build tasks to run (currently best left at 1
+    until jom parallel builds issues is fixed under cygwin)
   - Debug/Release flag - D=Debug, R=Release, A=All
   - optional Build deps flag - N=Only build the server
+
+After a successful build then run:
+
+  ./copyRelease.sh
+
+Or:
+
+  ./copyDebug.sh
+
+Which copies the installer and other files into release or debug directory in the vcxsrv directory outside of Docker.
