@@ -40,5 +40,3 @@ else
     export PYTHON3=python
 fi
 rm -f commands.sh
-export CFLAGS="-FS"
-

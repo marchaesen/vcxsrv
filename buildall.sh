@@ -95,7 +95,7 @@ if [[ "$BUILDRELEASE" == "1" ]] ; then
 		fi
 		cd release64
 
-		perl.exe ../Configure VC-WIN64A --release
+		perl.exe ../Configure VC-WIN64A --release /FS
 	else
 
 		if [[ ! -d "release32" ]]; then
@@ -103,11 +103,11 @@ if [[ "$BUILDRELEASE" == "1" ]] ; then
 		fi
 		cd release32
 
-		perl.exe ../Configure VC-WIN32 --release
+		perl.exe ../Configure VC-WIN32 --release /FS
 	fi
 	check-error 'Error executing perl'
 
-	jom.exe /J$2
+	jom.exe /J$2 || jom.exe /J1
 	check-error 'Error compiling openssl for release'
 
 	cd ../..
@@ -120,17 +120,17 @@ if [[ "$BUILDDEBUG" == "1" ]] ; then
 		  mkdir debug64
 		fi
 		cd debug64
-		perl.exe ../Configure VC-WIN64A --debug
-	else
+		perl.exe ../Configure VC-WIN64A --debug /FS
+# 	else
 		if [[ ! -d "debug32" ]]; then
 		  mkdir debug32
 		fi
 		cd debug32
-		perl.exe ../Configure VC-WIN32 --debug
+		perl.exe ../Configure VC-WIN32 --debug /FS
 	fi
 	check-error 'Error executing perl'
 
-	jom.exe /J$2
+	jom.exe /J$2 || jom.exe /J1
 	check-error 'Error compiling openssl for debug'
 
 	cd ../..

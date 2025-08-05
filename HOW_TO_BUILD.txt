@@ -6,12 +6,15 @@ Prerequisites:
     choco install -y strawberryperl --install-arguments="INSTALLDIR=""C:\Perl"""
 - Python39 with lxml and mako:
     choco install python39 --params "/InstallDir:C:\Python39"
-    C:\python39\Scripts\pip.exe install lxml mako pyyaml
-- WSL2
+    C:\python39\Scripts\pip.exe install lxml mako pyyaml StrEnum pytest pytest-xdist python-gettext
+- WSL2 (Standard Ubuntu seems to do the trick)
 - To build the installer: nsis
     choco install -y nsis
-- Jom for parallell nmake builds
+- Jom for parallell nmake builds (version 1.1.4):
+    https://download.qt.io/official_releases/jom/
+  And unzip it say in c:\jom, and add c:\bin\ to PATH.
 - Version 2.52.5 of winflexbison unzipped into c:\winflexbison
+    From: https://sourceforge.net/projects/winflexbison/files/
 - Gperf: choco install gperf
 
 Then start wsl (ensuring the default default distribution is set to the one
@@ -29,7 +32,7 @@ in WSL to install prerequisites.
 
 Then kick off a build with:
 
-./buildall.sh 1 9 [RDA] - Pick on of: D = Debug build, R = Release build, A = Both debug and release.
+./buildall.sh 1 8 [RDA] - Pick on of: D = Debug build, R = Release build, A = Both debug and release.
 
 
 Docker builds
@@ -62,8 +65,7 @@ Now you can kick off a build:
 
 Where:
   - 32/64-bit flag - 1=64-bit, 0=32-bit
-  - build tasks is the number of parallel build tasks to run (currently best left at 1
-    until jom parallel builds issues is fixed under cygwin)
+  - build tasks is the number of parallel build tasks to run (8 is a good number)
   - Debug/Release flag - D=Debug, R=Release, A=All
   - optional Build deps flag - N=Only build the server
 

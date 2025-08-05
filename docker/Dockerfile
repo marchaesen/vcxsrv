@@ -29,9 +29,6 @@
 # https://learn.microsoft.com/en-us/visualstudio/install/build-tools-container?view=vs-2022#create-and-build-the-dockerfile
 FROM mcr.microsoft.com/dotnet/framework/runtime:4.8-windowsservercore-ltsc2022
 
-# Metadata indicating an image maintainer.
-LABEL maintainer="charlie@rusbridger.com"
-
 SHELL ["cmd", "/S", "/C"]
 
 # Install VS Community 2022; based on https://docs.microsoft.com/en-us/visualstudio/install/build-tools-container?view=vs-2022
@@ -64,7 +61,8 @@ RUN powershell -NoProfile -Command \
 RUN choco install -y strawberryperl --install-arguments="INSTALLDIR=""C:\Perl""" \
         && refreshenv \
         && rd /s /q %TEMP% \
-        && mkdir %TEMP%
+        && mkdir %TEMP% \
+        && del %ChocolateyInstall%\lib\strawberryperl\*.nupkg
 
 # Install Nullsoft Scriptable Install System
 RUN choco install -y nsis \
@@ -116,13 +114,14 @@ ENV CYGWIN=winsymlinks:lnk
 RUN setx /M TZ "America/Los_Angeles"
 
 # Use /mnt rather than /cygdrive and treat DOS line endings same as UNIX.
-COPY fstab igncr.sh /
+COPY fstab igncr.sh c:/
 
-# Install Cygwin
+# Install Cygwin, install vim,gawk,gzip and sed. Remove python3 (windows
+# version is installed later).
 RUN choco install -y cygwin --install-arguments="INSTALLDIR=""C:\tools\cygwin"" /NoStartMenu /DesktopIcon:false" \
         && setx /m path "%path%;c:\tools\cygwin" \
         && refreshenv \
-        && cygwinsetup.exe -q -v -P vim,gawk,gzip,sed -x python3 -W -R c:\tools\cygwin -a x86_64 \
+        && cygwinsetup.exe -q -v -P vim,gawk,gzip,sed -x python3 -W -R c:\tools\cygwin -a x86_64 -n \
         && if exist c:\tools\cygwin\bin\link.exe ren c:\tools\cygwin\bin\link.exe link_cygwin.exe \
         && if exist %ChocolateyInstall%\bin\cygwin.exe ren %ChocolateyInstall%\bin\cygwin.exe choco_cygwin.exe \
         && dos2unix -n c:\fstab c:\tools\cygwin\etc\fstab \
@@ -148,8 +147,8 @@ RUN choco install -y unzip \
         && mkdir %TEMP% \
         && del %ChocolateyInstall%\lib\unzip\*.nupkg
 
-# Install jom (latest version in chocolatey is from 2015)
-RUN curl -SL --output jom.zip http://download.qt.io/official_releases/jom/jom.zip \
+# Install jom 1.1.4 (chocolatey only has a version from 2018)
+RUN curl -SL --output jom.zip https://download.qt.io/official_releases/jom/jom_1_1_3.zip \
         && unzip -d jom jom.zip \
         && setx /m path "%path%;c:\jom" \
         && del jom.zip
@@ -166,6 +165,8 @@ RUN curl -SL --output gettext.zip https://github.com/mlocati/gettext-iconv-windo
         && setx /m path "%path%;c:\gettext\bin" \
         && del gettext.zip
 
+SHELL ["cmd", "/S", "/K"]
+
 # Ensure any local changes have been committed to git
 #
 # Launch with: runDocker.cmd
@@ -175,7 +176,7 @@ RUN curl -SL --output gettext.zip https://github.com/mlocati/gettext-iconv-windo
 #   git clone src vcx
 #   cygwin
 #   cd /mnt/c/vcx
-#   ./buildall.sh 1 1 R (Currently openssl has issues with parallel builds)
+#   ./buildall.sh 1 8 R
 #   ./copyRelease.sh
 #
 # For debug builds best to ensure paths are the same, so:
@@ -184,5 +185,5 @@ RUN curl -SL --output gettext.zip https://github.com/mlocati/gettext-iconv-windo
 #   git clone src <path on the outside>, replacing d: etc with /mnt/d/...
 #   cygwin
 #   cd /mnt/c/vcx
-#   ./buildall.sh 1 1 D (Currently openssl has issues with parallel builds)
+#   ./buildall.sh 1 8 D
 #   ./copyDebug.sh
