@@ -148,7 +148,7 @@ RUN choco install -y unzip \
         && del %ChocolateyInstall%\lib\unzip\*.nupkg
 
 # Install jom 1.1.4 (chocolatey only has a version from 2018)
-RUN curl -SL --output jom.zip https://download.qt.io/official_releases/jom/jom_1_1_3.zip \
+RUN curl -SL --output jom.zip https://download.qt.io/official_releases/jom/jom_1_1_4.zip \
         && unzip -d jom jom.zip \
         && setx /m path "%path%;c:\jom" \
         && del jom.zip
