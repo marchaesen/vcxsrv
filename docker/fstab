@@ -1,0 +1,8 @@
+# /etc/fstab
+#
+#    This file is read once by the first process in a Cygwin process tree.
+#    To pick up changes, restart all Cygwin processes.  For a description
+#    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
+
+# This is changing /cygdrive to /mnt
+none /mnt cygdrive binary,posix=0,user 0 0
