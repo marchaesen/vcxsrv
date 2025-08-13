@@ -49,6 +49,6 @@ libdix_la_SOURCES = 	\
 	window.c
 
 initatoms.c:
-	wsl ./generate-atoms BuiltInAtoms $(notdir $@)
+	bash.exe ./generate-atoms BuiltInAtoms $(notdir $@)
 
 CSRCS = $(filter %.c,$(libdix_la_SOURCES)) $(filter %.c,$(libmain_la_SOURCES))
