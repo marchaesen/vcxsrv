@@ -1,37 +1,41 @@
 #!/bin/bash
 
-if [[ "$1" == "1" ]] ; then
-source ./setenv.sh 1
-elif [[ "$1" == "0" ]] ; then
-source ./setenv.sh 0
+if [ "${1}" == "1" ]; then
+    IS64=1
+elif [ "${1}" == "0" ]; then
+    IS64=0
 else
-  echo "Please pass 1 (64-bit compilation) or 0 (32-bit compilation) as first argument"
-  exit
+    echo "Please pass 1 (64-bit compilation) or 0 (32-bit compilation) as first argument"
+    exit 1
 fi
-if [[ "$2" == "" ]] ; then
-  echo "Please pass number of parallel builds as second argument"
-  exit
+if [ "${2}" == "" ] ; then
+    echo "Please pass number of parallel builds as second argument"
+    exit 1
 fi
-if [[ "$3" == "" ]] ; then
-  echo "Please pass build type as third argument.  D for DEBUG, R for RELEASE, A for ALL"
-  exit
+if [ "${3}" == "" ] ; then
+    echo "Please pass build type as third argument.  D for DEBUG, R for RELEASE, A for ALL"
+    exit 1
 fi
-if [[ "$3" == "A" ]] ; then
-BUILDRELEASE=1
-BUILDDEBUG=1
+if [ "${3}" == "A" ] ; then
+    BUILDRELEASE=1
+    BUILDDEBUG=1
 fi
-if [[ "$3" == "R" ]] ; then
-BUILDRELEASE=1
-BUILDDEBUG=0
+if [ "${3}" == "R" ] ; then
+    BUILDRELEASE=1
+    BUILDDEBUG=0
 fi
-if [[ "$3" == "D" ]] ; then
-BUILDRELEASE=0
-BUILDDEBUG=1
+if [ "${3}" == "D" ] ; then
+    BUILDRELEASE=0
+    BUILDDEBUG=1
 fi
+
+source ./setenv.sh ${IS64}
+
 BUILDDEPS=1
-if [[ "$4" == "N" ]] ; then
-BUILDDEPS=0
+if [ "${4}" == "N" ] ; then
+    BUILDDEPS=0
 fi
+
 function check-error {
     errorcode=$?
     if [[ $errorcode != 0 ]]; then
@@ -42,11 +46,12 @@ function check-error {
 
 which nasm.exe > /dev/null 2>&1
 check-error 'Please install nasm'
-
 which MSBuild.exe > /dev/null 2>&1
 check-error 'Please install/set environment for visual studio 2022'
 which python.exe > /dev/null 2>&1
-check-error 'Make sure that python.exe is in the PATH. (e.g. cp /usr/bin/python2.7.exe /usr/bin/python.exe)'
+check-error 'Please install python'
+which jom.exe > /dev/null 2>&1
+check-error 'Please install jom'
 
 # c:\perl should have a copy of strawberry perl portable edition
 which perl.exe > /dev/null 2>&1
@@ -69,7 +74,7 @@ if [[ "$IS64" == "1" ]]; then
 	fi
 else
 	if [[ "$BUILDRELEASE" == "1" ]] ; then
-		echo MSBuild.exe freetype/MSBuild/freetype.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
+		echo MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
 		MSBuild.exe freetype/MSBuild.sln -t:Build -p:Configuration="Release" -p:Platform=Win32 -m:$2
 		check-error 'Error compiling freetype'
 	fi
@@ -90,7 +95,7 @@ if [[ "$BUILDRELEASE" == "1" ]] ; then
 		fi
 		cd release64
 
-		perl.exe ../Configure VC-WIN64A --release
+		perl.exe ../Configure VC-WIN64A --release /FS
 	else
 
 		if [[ ! -d "release32" ]]; then
@@ -98,11 +103,11 @@ if [[ "$BUILDRELEASE" == "1" ]] ; then
 		fi
 		cd release32
 
-		perl.exe ../Configure VC-WIN32 --release
+		perl.exe ../Configure VC-WIN32 --release /FS
 	fi
 	check-error 'Error executing perl'
 
-	jom.exe /J$2
+	jom.exe /J$2 || jom.exe /J1
 	check-error 'Error compiling openssl for release'
 
 	cd ../..
@@ -115,17 +120,17 @@ if [[ "$BUILDDEBUG" == "1" ]] ; then
 		  mkdir debug64
 		fi
 		cd debug64
-		perl.exe ../Configure VC-WIN64A --debug
-	else
+		perl.exe ../Configure VC-WIN64A --debug /FS
+ 	else
 		if [[ ! -d "debug32" ]]; then
 		  mkdir debug32
 		fi
 		cd debug32
-		perl.exe ../Configure VC-WIN32 --debug
+		perl.exe ../Configure VC-WIN32 --debug /FS
 	fi
 	check-error 'Error executing perl'
 
-	jom.exe /J$2
+	jom.exe /J$2 || jom.exe /J1
 	check-error 'Error compiling openssl for debug'
 
 	cd ../..
@@ -150,25 +155,25 @@ if [[ "$IS64" == "1" ]]; then
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=x64 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
 
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -m:$2                  
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi
   fi
 
 	if [[ "$BUILDRELEASE" == "1" ]]; then
-		tools/mhmake/Release64/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
+		${MHMAKEPATH}/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
 		check-error 'Error compiling vcxsrv for release'
 	fi
 
 	if [[ "$BUILDDEBUG" == "1" ]]; then
-		tools/mhmake/Release64/mhmake.exe -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
+		${MHMAKEPATH}/mhmake.exe -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
 		check-error 'Error compiling vcxsrv for debug'
 	fi
 
@@ -180,22 +185,22 @@ else
   if [[ "$BUILDDEPS" == "1" ]]; then
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Release -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for release'
   	fi
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-  		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
+		MSBuild.exe tools/mhmake/mhmakevc10.sln -t:Build -p:Configuration=Debug -p:Platform=Win32 -m:$2
       wait
   		check-error 'Error compiling mhmake for debug'
   	fi
 
   	if [[ "$BUILDRELEASE" == "1" ]]; then
-  		tools/mhmake/Release/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
+		${MHMAKEPATH}/mhmake.exe -P$2 -C xorg-server MAKESERVER=1
   		check-error 'Error compiling vcxsrv for release'
   	fi
   	if [[ "$BUILDDEBUG" == "1" ]]; then
-  		tools/mhmake/Release/mhmake.exe -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
+		${MHMAKEPATH}/mhmake.exe -P$2 -C xorg-server MAKESERVER=1 DEBUG=1
   		check-error 'Error compiling vcxsrv for debug'
   	fi
 
