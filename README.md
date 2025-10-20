@@ -3,6 +3,6 @@ Windows X-server based on the xorg git sources (like xming or cygwin's xwin), bu
 Branches:
 
 - released: contains original sources of all used packages.
-- master: contains all necessary changes to be able to compile with Visual Studio. From this branch the binary released are build.
+- master: contains all necessary changes to be able to compile with Visual Studio. From this branch the binary releases are built.
 
 Currently compilation scripts assume they are run from a WSL terminal inside a windows folder (because a case insensitive filesystem is needed).
