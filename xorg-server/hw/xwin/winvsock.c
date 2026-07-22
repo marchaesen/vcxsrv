@@ -13,10 +13,12 @@
  *    is not bound to an unusable wildcard address by default.
  *
  *  - winVsockStartWatcher: called from InitOutput (serverGeneration 1).
- *    Starts a worker thread that polls the VM id (~2 s, without ever
- *    starting a stopped WSL VM) plus a main-thread OsTimer that rebinds the
- *    listener when the id changes (WSL restart), or creates it late when
- *    WSL2 only starts after the server.
+ *    Starts a worker thread that watches the WSL2 VM instance (every
+ *    0.5 s, cheaply, via the vmmemWSL process id + creation time, without
+ *    ever starting a stopped VM) and only queries the VM id when the
+ *    instance changed. A main-thread OsTimer rebinds the listener when the
+ *    id changes (WSL restart), or creates it late when WSL2 only starts
+ *    after the server.
  *
  * The worker thread never calls into the X server; it only hands a new VM
  * id to the main thread through a small locked state block. All X side
@@ -47,8 +49,8 @@
 /* implemented in os/connection.c */
 extern int HyperVRebindListener(void);
 
-#define WIN_VSOCK_POLL_MS   2000    /* worker poll interval */
-#define WIN_VSOCK_TIMER_MS  1000    /* main-thread timer interval */
+#define WIN_VSOCK_POLL_MS   500     /* worker poll interval */
+#define WIN_VSOCK_TIMER_MS  500     /* main-thread timer interval */
 #define WIN_VSOCK_CMD_MS    5000    /* wsl.exe spawn timeout */
 #define WIN_VSOCK_GUID_LEN  40      /* 36 chars + braces + NUL, rounded up */
 
@@ -170,16 +172,34 @@ winWslRunCapture(const char *cmdLine, char *out, size_t outLen,
 }
 
 /*
+ * Identifies the currently running WSL2 utility VM instance. The VM id
+ * (GUID) changes whenever the VM restarts, but querying it requires
+ * spawning wsl.exe; the instance below is free to obtain and is enough to
+ * tell "same VM as last poll" from "VM (re)started".
+ */
+typedef struct {
+    DWORD pid;
+    ULONGLONG creationTime;     /* 0 when unavailable */
+} winWslVmInfo;
+
+/*
  * Is the WSL2 utility VM running? Its memory process shows up as "vmmemWSL"
  * ("vmmem" on older Windows). Checking process names never starts the VM,
- * unlike running a command inside WSL would.
+ * unlike running a command inside WSL would. On success also returns the
+ * process id and creation time of that process: a VM restart replaces it,
+ * so callers can detect restarts without spawning anything.
  */
 static BOOL
-winWslVmRunning(void)
+winWslVmInstance(winWslVmInfo *info)
 {
-    HANDLE snap;
+    HANDLE snap, hProc;
     PROCESSENTRY32W pe;
+    FILETIME ftCreate, ftExit, ftKernel, ftUser;
+    ULARGE_INTEGER u;
     BOOL found = FALSE;
+
+    info->pid = 0;
+    info->creationTime = 0;
 
     snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE)
@@ -197,7 +217,24 @@ winWslVmRunning(void)
         } while (Process32NextW(snap, &pe));
     }
     CloseHandle(snap);
-    return found;
+    if (!found)
+        return FALSE;
+
+    info->pid = pe.th32ProcessID;
+
+    /* Best effort: the creation time distinguishes a restarted VM even if
+     * the pid got recycled. Unavailable -> stays 0 -> caller has to query
+     * the VM id on every poll, as before. */
+    hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, info->pid);
+    if (hProc) {
+        if (GetProcessTimes(hProc, &ftCreate, &ftExit, &ftKernel, &ftUser)) {
+            u.LowPart = ftCreate.dwLowDateTime;
+            u.HighPart = ftCreate.dwHighDateTime;
+            info->creationTime = u.QuadPart;
+        }
+        CloseHandle(hProc);
+    }
+    return TRUE;
 }
 
 /*
@@ -269,24 +306,38 @@ winWslQueryVmId(char guid[37])
 }
 
 /*
- * Worker thread: poll the VM id. Never touches the X server, only hands
- * new ids to the main thread via the shared state block.
+ * Worker thread: watch the VM instance, and only when it changed query the
+ * VM id (spawning wsl.exe). Never touches the X server, only hands new ids
+ * to the main thread via the shared state block.
  */
 static void *
 winVsockWorkerProc(void *arg)
 {
+    winWslVmInfo lastVm = { 0, 0 }, curVm;
     char guid[37];
 
     (void)arg;
     for (;;) {
         Sleep(WIN_VSOCK_POLL_MS);
 
-        /* skip without spawning anything while the VM is down, and never
-         * boot a stopped VM */
-        if (!winWslVmRunning())
+        if (!winWslVmInstance(&curVm)) {
+            /* VM is down: the next appearance counts as a new instance */
+            lastVm.pid = 0;
+            lastVm.creationTime = 0;
             continue;
+        }
+
+        if (curVm.creationTime != 0 &&
+            curVm.pid == lastVm.pid &&
+            curVm.creationTime == lastVm.creationTime)
+            continue;           /* same VM instance as last poll */
+
+        /* New VM instance (or first poll, or instance data unavailable):
+         * fetch the VM id. Failure usually means the VM is still booting;
+         * retry next poll without recording the instance. */
         if (!winWslQueryVmId(guid))
             continue;
+        lastVm = curVm;
 
         EnterCriticalSection(&g_vsockLock);
         if (_stricmp(guid, g_vsockBoundGuid) != 0) {
@@ -380,6 +431,7 @@ winVsockStartWatcher(void)
 void
 winVsockPreInit(int argc, char *argv[])
 {
+    winWslVmInfo vmInfo;
     char guid[37], braced[WIN_VSOCK_GUID_LEN];
 
     if (!g_fVsock) {
@@ -401,7 +453,7 @@ winVsockPreInit(int argc, char *argv[])
 
     g_vsockAuto = TRUE;
 
-    if (winWslVmRunning() && winWslQueryVmId(guid)) {
+    if (winWslVmInstance(&vmInfo) && winWslQueryVmId(guid)) {
         snprintf(braced, sizeof(braced), "{%s}", guid);
         _XSERVTransSetHyperVVmId(braced);
 
