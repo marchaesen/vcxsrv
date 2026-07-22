@@ -85,6 +85,7 @@ srcs_windows += [
     'winwakeup.c',
     'winwindow.c',
     'winwndproc.c',
+    'winvsock.c',
     'ddraw.h',
     'winconfig.h',
     'win.h',

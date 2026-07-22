@@ -1006,6 +1006,14 @@ Bool
 winCreateMsgWindowThread(void);
 
 /*
+ * winvsock.c
+ */
+void
+winVsockPreInit(int argc, char *argv[]);
+void
+winVsockStartWatcher(void);
+
+/*
  * winos.c
  */
 void

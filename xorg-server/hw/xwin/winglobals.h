@@ -74,6 +74,7 @@ typedef int (*winDispatchProcPtr) (ClientPtr);
  * Wrapped DIX functions
  */
 extern winDispatchProcPtr winProcEstablishConnectionOrig;
+extern Bool g_fVsock;
 extern Bool g_fClipboard;
 extern Bool g_fClipboardStarted;
 

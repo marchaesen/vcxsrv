@@ -719,6 +719,26 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     /*
+     * Look for the '-vsock' argument
+     */
+    if (IS_OPTION("-vsock")) {
+        g_fVsock = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-novsock' argument
+     */
+    if (IS_OPTION("-novsock")) {
+        g_fVsock = FALSE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
      * Look for the '-primary' argument
      */
     if (IS_OPTION("-primary")) {

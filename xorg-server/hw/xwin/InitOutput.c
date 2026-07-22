@@ -662,6 +662,10 @@ OsVendorPreInit(int argc, char *argv[])
     /* Log the command line */
     winLogCommandLine(argc, argv);
 
+    /* Configure the Hyper-V vsock listener for WSL2 (-vsock). Must happen
+     * here, before CreateWellKnownSockets() runs. */
+    winVsockPreInit(argc, argv);
+
 }
 
 void
@@ -743,6 +747,12 @@ winUseMsg(void)
 
     ErrorF("-[no]clipboard\n"
            "\tEnable [disable] the clipboard integration. Default is enabled.\n");
+
+    ErrorF("-[no]vsock\n"
+           "\tEnable [disable] the Hyper-V vsock listener for WSL2. When\n"
+           "\tenabled, the WSL2 VM id is detected automatically (via wsl.exe)\n"
+           "\tand the listener is rebound if the WSL2 VM restarts.\n"
+           "\tDefault is disabled.\n");
     ErrorF ("-noprimary\n"
 	        "\tDo not map the PRIMARY selection to the windows clipboard.\n"
           "\tThe CLIPBOARD selection is always mapped if -clipboard is enabled.\n"
@@ -1073,6 +1083,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     if (g_fXdmcpEnabled || g_fAuthEnabled)
         winGenerateAuthorization();
 
+    /* Start the WSL2 vsock watcher (worker thread + rebind timer) */
+    winVsockStartWatcher();
 
     winDebug("InitOutput - Returning.\n");
 }

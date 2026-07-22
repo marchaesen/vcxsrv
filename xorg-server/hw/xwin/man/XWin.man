@@ -196,6 +196,14 @@ The default is disabled.
 Enables [disables] the integration between the X11 clipboard and
 \fIWindows\fP clipboard.  The default is enabled.
 .TP 8
+.B \-[no]vsock
+Enables [disables] the Hyper-V vsock listener for \fIWSL2\fP. When enabled,
+the \fIWSL2\fP VM id is detected automatically (via \fIwsl.exe\fP,
+unprivileged) and the listener is rebound automatically if the \fIWSL2\fP VM
+restarts. When disabled (the default), no vsock listener is created unless
+\fB-listen hyperv\fP or \fB-vmid\fP is given explicitly. See the
+\fBWSL2 AND HYPER-V VSOCK\fP section below.
+.TP 8
 .B "\-emulate3buttons [\fItimeout\fP]"
 Emulate a three button mouse; pressing both buttons within
 .I timeout
@@ -388,6 +396,41 @@ window, in both the generic case and for particular programs.
 \fXWin I-multiwindow\fP produces for each top-level X window.
 .PP
 The format of the \fI.XWinrc\fP file is given in the XWinrc(5) manual page.
+
+.SH WSL2 AND HYPER-V VSOCK
+\fIXWin\fP can accept X client connections from \fIWSL2\fP (and other
+Hyper-V guests) over Hyper-V sockets (vsock), bypassing the NAT and
+localhost-forwarding TCP path entirely. This avoids firewall prompts and is
+unaffected by VPN or sleep/resume transitions.
+.PP
+WSL2's utility VM never matches a wildcard-bound vsock listener; the
+listener must be bound to the VM's exact id, which changes at every WSL VM
+boot. With
+.B \-vsock
+\fIXWin\fP takes care of this: it detects the VM id at startup via
+\fIwsl.exe -- wslinfo --vm-id\fP (unprivileged) and rebinds the listener
+automatically whenever the WSL2 VM restarts. If no WSL2 VM is running, the
+vsock listener is simply not created (TCP continues to work as before), and
+it is created later if a WSL2 VM starts.
+.PP
+On the \fIWSL2\fP side, point your X clients at the vsock listener with a
+relay such as socat (>= 1.7.4):
+.PP
+.RS
+.nf
+socat UNIX-LISTEN:/tmp/.X11-unix/X0,fork,mode=777 VSOCK-CONNECT:2:106000 &
+export DISPLAY=:0
+.fi
+.RE
+.PP
+(replace 106000 with 106000 + \fIdisplay\fP if the server is not on :0).
+.PP
+Manual operation is also possible: \fB-vmid {\fIguid\fB}\fP binds a specific
+VM id (manual mode, takes precedence over auto-detection),
+\fB-vsockport \fIport\fP changes the base port (default 106000), and
+\fB-listen hyperv\fP binds the wildcard address, which works for regular
+Hyper-V VMs but not for \fIWSL2\fP. Connections arriving over vsock are
+treated as local clients (no cookie authorization required).
 
 .SH EXAMPLES
 Need some examples

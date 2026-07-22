@@ -333,6 +333,81 @@ CreateWellKnownSockets(void)
 #endif
 }
 
+#if defined(WIN32) && defined(HYPERV)
+/*
+ * (Re)bind the "hyperv" vsock listener with the VM id most recently set
+ * through _XSERVTransSetHyperVVmId().
+ *
+ * Used by hw/xwin (winvsock.c) to follow the WSL2 VM id: the id changes
+ * every time the WSL2 VM reboots, so the listener has to be torn down and
+ * recreated with the new id. Also creates the listener if it was not
+ * created at startup (e.g. WSL2 was not running yet). Must be called on
+ * the main thread. Returns 0 on success, -1 otherwise.
+ */
+int
+HyperVRebindListener(void)
+{
+    XtransConnInfo conn;
+    char name[32];
+    int i, fd;
+
+    if (NoListenAll)
+        return -1;
+
+    /* Tear down an existing hyperv listener, if any */
+    for (i = 0; i < ListenTransCount; i++) {
+        if (!ListenTransConns[i] || !ListenTransConns[i]->transptr ||
+            !ListenTransConns[i]->transptr->TransName ||
+            strcmp(ListenTransConns[i]->transptr->TransName, "hyperv") != 0)
+            continue;
+
+        fd = _XSERVTransGetConnectionNumber(ListenTransConns[i]);
+        RemoveNotifyFd(fd);
+        _XSERVTransClose(ListenTransConns[i]);
+
+        /* compact the arrays */
+        ListenTransCount--;
+        ListenTransConns[i] = ListenTransConns[ListenTransCount];
+        ListenTransFds[i] = ListenTransFds[ListenTransCount];
+        break;
+    }
+
+    /* winvsock may have marked the transport "nolisten" at startup when
+     * no WSL2 VM was running; clear that again for the late bind */
+    _XSERVTransListen("hyperv");
+
+    snprintf(name, sizeof(name), "hyperv/:%s", display);
+    conn = _XSERVTransOpenCOTSServer(name);
+    if (conn == NULL) {
+        ErrorF("HyperVRebindListener: unable to open %s\n", name);
+        return -1;
+    }
+    if (_XSERVTransCreateListener(conn, display, 0) < 0) {
+        ErrorF("HyperVRebindListener: unable to create listener for %s\n",
+               name);
+        _XSERVTransClose(conn);
+        return -1;
+    }
+
+    fd = _XSERVTransGetConnectionNumber(conn);
+
+    ListenTransConns = reallocarray(ListenTransConns, ListenTransCount + 1,
+                                    sizeof(XtransConnInfo));
+    ListenTransFds = reallocarray(ListenTransFds, ListenTransCount + 1,
+                                  sizeof(int));
+    if (!ListenTransConns || !ListenTransFds)
+        FatalError("HyperVRebindListener: allocation failure\n");
+
+    ListenTransConns[ListenTransCount] = conn;
+    ListenTransFds[ListenTransCount] = fd;
+    ListenTransCount++;
+
+    SetNotifyFd(fd, EstablishNewConnections_local, X_NOTIFY_READ, NULL);
+
+    return 0;
+}
+#endif                          /* WIN32 && HYPERV */
+
 void
 ResetWellKnownSockets(void)
 {
