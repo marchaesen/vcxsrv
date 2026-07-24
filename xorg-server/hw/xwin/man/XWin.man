@@ -196,7 +196,7 @@ The default is disabled.
 Enables [disables] the integration between the X11 clipboard and
 \fIWindows\fP clipboard.  The default is enabled.
 .TP 8
-.B \-[no]vsock
+.B \-[no]wslvsock
 Enables [disables] the Hyper-V vsock listener for \fIWSL2\fP. When enabled,
 the \fIWSL2\fP VM id is detected automatically (via \fIwsl.exe\fP,
 unprivileged) and the listener is rebound automatically if the \fIWSL2\fP VM
@@ -406,7 +406,7 @@ unaffected by VPN or sleep/resume transitions.
 WSL2's utility VM never matches a wildcard-bound vsock listener; the
 listener must be bound to the VM's exact id, which changes at every WSL VM
 boot. With
-.B \-vsock
+.B \-wslvsock
 \fIXWin\fP takes care of this: it detects the VM id at startup via
 \fIwsl.exe -- wslinfo --vm-id\fP (unprivileged) and rebinds the listener
 automatically whenever the WSL2 VM restarts. If no WSL2 VM is running, the

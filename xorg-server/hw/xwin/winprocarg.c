@@ -719,20 +719,20 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     /*
-     * Look for the '-vsock' argument
+     * Look for the '-wslvsock' argument
      */
-    if (IS_OPTION("-vsock")) {
-        g_fVsock = TRUE;
+    if (IS_OPTION("-wslvsock")) {
+        g_fWslVsock = TRUE;
 
         /* Indicate that we have processed this argument */
         return 1;
     }
 
     /*
-     * Look for the '-novsock' argument
+     * Look for the '-nowslvsock' argument
      */
-    if (IS_OPTION("-novsock")) {
-        g_fVsock = FALSE;
+    if (IS_OPTION("-nowslvsock")) {
+        g_fWslVsock = FALSE;
 
         /* Indicate that we have processed this argument */
         return 1;

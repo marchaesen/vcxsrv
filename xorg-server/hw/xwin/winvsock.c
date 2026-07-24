@@ -7,10 +7,10 @@
  * boot, so this file
  *
  *  - winVsockPreInit: called from OsVendorPreInit (before the listeners are
- *    created). With -vsock, detects the WSL2 VM id unprivileged via
- *    'wsl.exe -- wslinfo --vm-id' and binds it. Without -vsock (and without
- *    an explicit -vmid/-listen hyperv), disables the hyperv listener so it
- *    is not bound to an unusable wildcard address by default.
+ *    created). With -wslvsock, detects the WSL2 VM id unprivileged via
+ *    'wsl.exe -- wslinfo --vm-id' and binds it. Without -wslvsock (and
+ *    without an explicit -vmid/-listen hyperv), disables the hyperv listener
+ *    so it is not bound to an unusable wildcard address by default.
  *
  *  - winVsockStartWatcher: called from InitOutput (serverGeneration 1).
  *    Starts a worker thread that watches the WSL2 VM instance (every
@@ -61,7 +61,7 @@ static char g_vsockBoundGuid[WIN_VSOCK_GUID_LEN];   /* currently bound, "" if no
 static char g_vsockPendingGuid[WIN_VSOCK_GUID_LEN]; /* latest id seen by worker */
 static BOOL g_vsockDirty = FALSE;                   /* pending needs binding */
 
-static BOOL g_vsockAuto = FALSE;          /* -vsock auto-detection active */
+static BOOL g_vsockAuto = FALSE;          /* -wslvsock auto-detection active */
 static BOOL g_vsockWatcherStarted = FALSE;
 
 /*
@@ -434,7 +434,7 @@ winVsockPreInit(int argc, char *argv[])
     winWslVmInfo vmInfo;
     char guid[37], braced[WIN_VSOCK_GUID_LEN];
 
-    if (!g_fVsock) {
+    if (!g_fWslVsock) {
         /* default: don't bind an unusable wildcard listener; explicit
          * -vmid or -listen hyperv means the user manages it themselves */
         if (!winArgvHas(argc, argv, "-listen", "hyperv") &&
@@ -443,7 +443,7 @@ winVsockPreInit(int argc, char *argv[])
         return;
     }
 
-    /* -vsock: explicit manual options take precedence */
+    /* -wslvsock: explicit manual options take precedence */
     if (winArgvHas(argc, argv, "-vmid", NULL)) {
         ErrorF("winVsock: -vmid specified, skipping WSL2 auto-detection\n");
         return;

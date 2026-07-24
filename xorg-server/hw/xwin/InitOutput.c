@@ -662,8 +662,8 @@ OsVendorPreInit(int argc, char *argv[])
     /* Log the command line */
     winLogCommandLine(argc, argv);
 
-    /* Configure the Hyper-V vsock listener for WSL2 (-vsock). Must happen
-     * here, before CreateWellKnownSockets() runs. */
+    /* Configure the Hyper-V vsock listener for WSL2 (-wslvsock). Must
+     * happen here, before CreateWellKnownSockets() runs. */
     winVsockPreInit(argc, argv);
 
 }
@@ -748,7 +748,7 @@ winUseMsg(void)
     ErrorF("-[no]clipboard\n"
            "\tEnable [disable] the clipboard integration. Default is enabled.\n");
 
-    ErrorF("-[no]vsock\n"
+    ErrorF("-[no]wslvsock\n"
            "\tEnable [disable] the Hyper-V vsock listener for WSL2. When\n"
            "\tenabled, the WSL2 VM id is detected automatically (via wsl.exe)\n"
            "\tand the listener is rebound if the WSL2 VM restarts.\n"
