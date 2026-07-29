@@ -16,9 +16,11 @@
  *    Starts a worker thread that watches the WSL2 VM instance (every
  *    0.5 s, cheaply, via the vmmemWSL process id + creation time, without
  *    ever starting a stopped VM) and only queries the VM id when the
- *    instance changed. A main-thread OsTimer rebinds the listener when the
- *    id changes (WSL restart), or creates it late when WSL2 only starts
- *    after the server.
+ *    instance changed. Every wslinfo query goes through a distro that is
+ *    already Running (via 'wsl.exe -l -v' first), so neither startup nor
+ *    polling ever boots a stopped distro. A main-thread OsTimer rebinds
+ *    the listener when the id changes (WSL restart), or creates it late
+ *    when WSL2 only starts after the server.
  *
  * The worker thread never calls into the X server; it only hands a new VM
  * id to the main thread through a small locked state block. All X side
@@ -49,10 +51,12 @@
 /* implemented in os/connection.c */
 extern int HyperVRebindListener(void);
 
-#define WIN_VSOCK_POLL_MS   500     /* worker poll interval */
+#define WIN_VSOCK_POLL_MS   500     /* worker poll interval (vmmemWSL probe) */
+#define WIN_VSOCK_STATE_MS  2000    /* worker interval for 'wsl -l -v' checks */
 #define WIN_VSOCK_TIMER_MS  500     /* main-thread timer interval */
 #define WIN_VSOCK_CMD_MS    5000    /* wsl.exe spawn timeout */
 #define WIN_VSOCK_GUID_LEN  40      /* 36 chars + braces + NUL, rounded up */
+#define WIN_VSOCK_DISTRO_LEN 64     /* max distro name length we handle */
 
 /* shared state, protected by g_vsockLock */
 static CRITICAL_SECTION g_vsockLock;
@@ -238,6 +242,118 @@ winWslVmInstance(winWslVmInfo *info)
 }
 
 /*
+ * Decode captured wsl.exe output: tolerates plain ASCII and UTF-16LE
+ * (no BOM), trims trailing whitespace (CR/LF).
+ */
+static void
+winWslDecodeOutput(const char *raw, char *out, size_t outLen)
+{
+    size_t i, j, len;
+
+    /* wsl.exe output encoding varies: plain ASCII for wslinfo, UTF-16LE
+     * (no BOM) for e.g. --list. */
+    if (raw[0] != '\0' && raw[1] == '\0') {
+        for (i = 0, j = 0; raw[i] != '\0' && j < outLen - 1; i += 2)
+            out[j++] = raw[i];
+        out[j] = '\0';
+    }
+    else {
+        snprintf(out, outLen, "%s", raw);
+    }
+
+    len = strlen(out);
+    while (len > 0 && isspace((unsigned char)out[len - 1]))
+        out[--len] = '\0';
+}
+
+/*
+ * Name of the first WSL2 distro in the "Running" state, or FALSE if none.
+ * 'wsl.exe -l -v' is a pure service-side query: it creates no process
+ * inside any distro, so it neither disturbs a running instance nor boots
+ * a stopped one. WSL1 distros (VERSION=1) are skipped: they have no VM
+ * and cannot serve the vsock query.
+ */
+static BOOL
+winWslFirstRunningDistro(char *name, size_t nameLen)
+{
+    char raw[2048], decoded[2048];
+    DWORD exitCode = 1;
+    char *p;
+
+    if (!winWslRunCapture("wsl.exe -l -v", raw, sizeof(raw),
+                          WIN_VSOCK_CMD_MS, &exitCode))
+        return FALSE;
+    if (exitCode != 0)
+        return FALSE;
+
+    winWslDecodeOutput(raw, decoded, sizeof(decoded));
+
+    /* Table format: a header line ("NAME STATE VERSION"), then one line
+     * per distro ("[*] <name> <STATE> <version>"). Distro names may
+     * contain spaces, so parse from the end of each line: the last token
+     * is the version number, the one before it the state word. The header
+     * is excluded naturally ("VERSION" is not a number). */
+    p = decoded;
+    while (*p) {
+        char *s, *eol, *end, *ver, *state;
+
+        eol = strchr(p, '\n');
+        if (eol)
+            *eol = '\0';
+
+        s = p;
+        while (*s == ' ' || *s == '*')
+            s++;
+
+        /* trim trailing whitespace of the line (stray CR etc.) */
+        end = s + strlen(s);
+        while (end > s && isspace((unsigned char)end[-1]))
+            *--end = '\0';
+
+        ver = strrchr(s, ' ');
+        if (ver && ver[1] != '\0') {
+            BOOL allDigits = TRUE;
+            char *v;
+            int wslVer;
+
+            for (v = ver + 1; *v; v++)
+                if (!isdigit((unsigned char)*v))
+                    allDigits = FALSE;
+            if (allDigits) {
+                wslVer = atoi(ver + 1);
+                *ver = '\0';
+                /* the cut leaves the column padding behind "STATE" as
+                 * trailing spaces; trim it before looking for the state
+                 * word, or strrchr finds padding instead of "Running" */
+                end = s + strlen(s);
+                while (end > s && isspace((unsigned char)end[-1]))
+                    *--end = '\0';
+                state = strrchr(s, ' ');
+                /* only WSL2 distros can serve the vsock query; a WSL1
+                 * distro (VERSION=1) has no VM id and querying it would
+                 * spawn wslinfo into it for nothing */
+                if (wslVer == 2 && state &&
+                    _stricmp(state + 1, "Running") == 0) {
+                    *state = '\0';
+                    end = s + strlen(s);
+                    while (end > s && isspace((unsigned char)end[-1]))
+                        *--end = '\0';
+                    if (*s) {
+                        snprintf(name, nameLen, "%s", s);
+                        return TRUE;
+                    }
+                }
+            }
+        }
+
+        if (!eol)
+            break;
+        p = eol + 1;
+    }
+    return FALSE;
+}
+
+/*
  * Validate a 36-character GUID string (xxxxxxxx-xxxx-...-xxxxxxxxxxxx).
  * Doubles as the failure detector: WSL1, ancient WSL versions and machines
  * without WSL all fail to produce this, so they fall through to the TCP
@@ -268,35 +384,30 @@ winIsGuidStr(const char *s)
  * Query the WSL2 VM id via the default distro. Only call this when the VM
  * is already running, or wsl.exe would boot it.
  */
+/*
+ * Query the WSL2 VM id by running wslinfo inside an already-running
+ * distro, so the query itself never boots a distro. Callers must pass a
+ * distro that is currently Running (see winWslFirstRunningDistro).
+ */
 static BOOL
-winWslQueryVmId(char guid[37])
+winWslQueryVmId(char guid[37], const char *distro)
 {
-    char raw[256], decoded[256];
+    char raw[256], decoded[256], cmd[320];
     DWORD exitCode = 1;
-    size_t i, j, len;
 
-    if (!winWslRunCapture("wsl.exe -- wslinfo --vm-id", raw, sizeof(raw),
-                          WIN_VSOCK_CMD_MS, &exitCode))
+    /* NOTE: no quotes around the distro name: wsl.exe's own argument
+     * parser takes the -d value literally, so -d "name" fails with
+     * WSL_E_DISTRO_NOT_FOUND. Distro names with spaces are not handled
+     * (query fails conservatively). */
+    snprintf(cmd, sizeof(cmd), "wsl.exe -d %s -- wslinfo --vm-id", distro);
+
+    if (!winWslRunCapture(cmd, raw, sizeof(raw), WIN_VSOCK_CMD_MS,
+                          &exitCode))
         return FALSE;
     if (exitCode != 0)
         return FALSE;
 
-    /* wsl.exe output encoding varies: plain ASCII here, UTF-16LE (no BOM)
-     * for e.g. --list. Tolerate both. */
-    if (raw[0] != '\0' && raw[1] == '\0') {
-        /* looks like UTF-16LE */
-        for (i = 0, j = 0; raw[i] != '\0' && j < sizeof(decoded) - 1; i += 2)
-            decoded[j++] = raw[i];
-        decoded[j] = '\0';
-    }
-    else {
-        snprintf(decoded, sizeof(decoded), "%s", raw);
-    }
-
-    /* trim trailing whitespace (CR/LF) */
-    len = strlen(decoded);
-    while (len > 0 && isspace((unsigned char)decoded[len - 1]))
-        decoded[--len] = '\0';
+    winWslDecodeOutput(raw, decoded, sizeof(decoded));
 
     if (!winIsGuidStr(decoded))
         return FALSE;
@@ -314,7 +425,8 @@ static void *
 winVsockWorkerProc(void *arg)
 {
     winWslVmInfo lastVm = { 0, 0 }, curVm;
-    char guid[37];
+    char guid[37], distro[WIN_VSOCK_DISTRO_LEN];
+    int stateTick = 0;
 
     (void)arg;
     for (;;) {
@@ -327,25 +439,54 @@ winVsockWorkerProc(void *arg)
             continue;
         }
 
-        if (curVm.creationTime != 0 &&
-            curVm.pid == lastVm.pid &&
-            curVm.creationTime == lastVm.creationTime)
-            continue;           /* same VM instance as last poll */
+        if (!(curVm.creationTime != 0 &&
+              curVm.pid == lastVm.pid &&
+              curVm.creationTime == lastVm.creationTime)) {
+            /* New VM instance (or first poll, or instance data
+             * unavailable): fetch the VM id, but only through a distro
+             * that is already Running - querying into a stopped distro
+             * would boot it. If none is running (VM still booting),
+             * retry next poll without recording the instance. */
+            if (!winWslFirstRunningDistro(distro, sizeof(distro)) ||
+                !winWslQueryVmId(guid, distro))
+                continue;
+            lastVm = curVm;
 
-        /* New VM instance (or first poll, or instance data unavailable):
-         * fetch the VM id. Failure usually means the VM is still booting;
-         * retry next poll without recording the instance. */
-        if (!winWslQueryVmId(guid))
-            continue;
-        lastVm = curVm;
-
-        EnterCriticalSection(&g_vsockLock);
-        if (_stricmp(guid, g_vsockBoundGuid) != 0) {
-            snprintf(g_vsockPendingGuid, sizeof(g_vsockPendingGuid),
-                     "%s", guid);
-            g_vsockDirty = TRUE;
+            EnterCriticalSection(&g_vsockLock);
+            if (_stricmp(guid, g_vsockBoundGuid) != 0) {
+                snprintf(g_vsockPendingGuid, sizeof(g_vsockPendingGuid),
+                         "%s", guid);
+                g_vsockDirty = TRUE;
+            }
+            LeaveCriticalSection(&g_vsockLock);
         }
-        LeaveCriticalSection(&g_vsockLock);
+        else {
+            /* Same VM instance: while unbound (e.g. no distro was running
+             * at startup), check every WIN_VSOCK_STATE_MS whether a
+             * distro has come up, then bind late. */
+            BOOL unbound;
+
+            stateTick += WIN_VSOCK_POLL_MS;
+            if (stateTick < WIN_VSOCK_STATE_MS)
+                continue;
+            stateTick = 0;
+
+            EnterCriticalSection(&g_vsockLock);
+            unbound = (g_vsockBoundGuid[0] == '\0');
+            LeaveCriticalSection(&g_vsockLock);
+
+            if (unbound &&
+                winWslFirstRunningDistro(distro, sizeof(distro)) &&
+                winWslQueryVmId(guid, distro)) {
+                EnterCriticalSection(&g_vsockLock);
+                if (_stricmp(guid, g_vsockBoundGuid) != 0) {
+                    snprintf(g_vsockPendingGuid, sizeof(g_vsockPendingGuid),
+                             "%s", guid);
+                    g_vsockDirty = TRUE;
+                }
+                LeaveCriticalSection(&g_vsockLock);
+            }
+        }
     }
     return NULL;
 }
@@ -432,7 +573,7 @@ void
 winVsockPreInit(int argc, char *argv[])
 {
     winWslVmInfo vmInfo;
-    char guid[37], braced[WIN_VSOCK_GUID_LEN];
+    char guid[37], braced[WIN_VSOCK_GUID_LEN], distro[WIN_VSOCK_DISTRO_LEN];
 
     if (!g_fWslVsock) {
         /* default: don't bind an unusable wildcard listener; explicit
@@ -453,7 +594,15 @@ winVsockPreInit(int argc, char *argv[])
 
     g_vsockAuto = TRUE;
 
-    if (winWslVmInstance(&vmInfo) && winWslQueryVmId(guid)) {
+    /* Bind only if the VM is up AND a distro is already Running: querying
+     * wslinfo in a stopped distro would boot it. If none is running, stay
+     * unbound - the watcher binds late as soon as one comes up. */
+    {
+        BOOL vmUp = winWslVmInstance(&vmInfo);
+        BOOL haveDistro = vmUp ? winWslFirstRunningDistro(distro, sizeof(distro)) : FALSE;
+        BOOL haveGuid = haveDistro ? winWslQueryVmId(guid, distro) : FALSE;
+
+        if (vmUp && haveDistro && haveGuid) {
         snprintf(braced, sizeof(braced), "{%s}", guid);
         _XSERVTransSetHyperVVmId(braced);
 
@@ -470,8 +619,9 @@ winVsockPreInit(int argc, char *argv[])
     }
     else {
         _XSERVTransNoListen("hyperv");
-        ErrorF("winVsock: no running WSL2 VM detected, "
+        ErrorF("winVsock: no running WSL2 distro detected, "
                "vsock listener disabled for now (TCP unaffected)\n");
+    }
     }
 }
 
