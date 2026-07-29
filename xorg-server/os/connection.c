@@ -379,12 +379,11 @@ HyperVRebindListener(void)
     snprintf(name, sizeof(name), "hyperv/:%s", display);
     conn = _XSERVTransOpenCOTSServer(name);
     if (conn == NULL) {
-        ErrorF("HyperVRebindListener: unable to open %s\n", name);
+        /* silent: the caller (winvsock.c) retries every tick and logs
+         * rate-limited */
         return -1;
     }
     if (_XSERVTransCreateListener(conn, display, 0) < 0) {
-        ErrorF("HyperVRebindListener: unable to create listener for %s\n",
-               name);
         _XSERVTransClose(conn);
         return -1;
     }

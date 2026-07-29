@@ -13,19 +13,22 @@
  *    so it is not bound to an unusable wildcard address by default.
  *
  *  - winVsockStartWatcher: called from InitOutput (serverGeneration 1).
- *    Starts a worker thread that watches the WSL2 VM instance (every
- *    0.5 s, cheaply, via the vmmemWSL process id + creation time, without
- *    ever starting a stopped VM) and only queries the VM id when the
- *    instance changed. Every wslinfo query goes through a distro that is
- *    already Running (via 'wsl.exe -l -v' first), so neither startup nor
- *    polling ever boots a stopped distro. A main-thread OsTimer rebinds
- *    the listener when the id changes (WSL restart), or creates it late
- *    when WSL2 only starts after the server.
+ *    Starts a worker thread that watches for the WSL2 VM's presence (the
+ *    vmmemWSL process, a free Toolhelp scan). A disappearance->reappearance
+ *    edge means the VM rebooted and its id changed, so the id is re-queried
+ *    (through the first Running distro, so a stopped distro is never
+ *    booted) and a main-thread OsTimer rebinds the listener. While unbound,
+ *    the worker polls 'wsl -l -v' every WIN_VSOCK_STATE_MS until a distro
+ *    is Running; while bound, it spawns nothing at all, so the server never
+ *    disturbs the WSL instance/VM idle timeouts.
  *
  * The worker thread never calls into the X server; it only hands a new VM
  * id to the main thread through a small locked state block. All X side
  * effects happen on the main thread via HyperVRebindListener() in
- * os/connection.c.
+ * os/connection.c. If a posted id has not been applied yet (the bind keeps
+ * failing, e.g. the port is taken by another program), the worker stops
+ * querying and waits: the main thread retries the bind by itself at zero
+ * cost, and re-querying would spawn wslinfo into the distro for nothing.
  */
 
 #ifdef HAVE_DIX_CONFIG_H
@@ -52,7 +55,7 @@
 extern int HyperVRebindListener(void);
 
 #define WIN_VSOCK_POLL_MS   500     /* worker poll interval (vmmemWSL probe) */
-#define WIN_VSOCK_STATE_MS  2000    /* worker interval for 'wsl -l -v' checks */
+#define WIN_VSOCK_STATE_MS  1000    /* worker interval for 'wsl -l -v' checks while unbound */
 #define WIN_VSOCK_TIMER_MS  500     /* main-thread timer interval */
 #define WIN_VSOCK_CMD_MS    5000    /* wsl.exe spawn timeout */
 #define WIN_VSOCK_GUID_LEN  40      /* 36 chars + braces + NUL, rounded up */
@@ -176,34 +179,19 @@ winWslRunCapture(const char *cmdLine, char *out, size_t outLen,
 }
 
 /*
- * Identifies the currently running WSL2 utility VM instance. The VM id
- * (GUID) changes whenever the VM restarts, but querying it requires
- * spawning wsl.exe; the instance below is free to obtain and is enough to
- * tell "same VM as last poll" from "VM (re)started".
- */
-typedef struct {
-    DWORD pid;
-    ULONGLONG creationTime;     /* 0 when unavailable */
-} winWslVmInfo;
-
-/*
  * Is the WSL2 utility VM running? Its memory process shows up as "vmmemWSL"
- * ("vmmem" on older Windows). Checking process names never starts the VM,
- * unlike running a command inside WSL would. On success also returns the
- * process id and creation time of that process: a VM restart replaces it,
- * so callers can detect restarts without spawning anything.
+ * ("vmmem" on older Windows). A pure process-name scan: free to call, needs
+ * no privileges, and never starts a stopped VM (unlike running a command
+ * inside WSL would). A disappearance->reappearance transition is all the
+ * caller needs to know: the VM id changes at every VM boot, and a boot
+ * always takes far longer than one poll interval.
  */
 static BOOL
-winWslVmInstance(winWslVmInfo *info)
+winWslVmPresent(void)
 {
-    HANDLE snap, hProc;
+    HANDLE snap;
     PROCESSENTRY32W pe;
-    FILETIME ftCreate, ftExit, ftKernel, ftUser;
-    ULARGE_INTEGER u;
     BOOL found = FALSE;
-
-    info->pid = 0;
-    info->creationTime = 0;
 
     snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (snap == INVALID_HANDLE_VALUE)
@@ -221,24 +209,7 @@ winWslVmInstance(winWslVmInfo *info)
         } while (Process32NextW(snap, &pe));
     }
     CloseHandle(snap);
-    if (!found)
-        return FALSE;
-
-    info->pid = pe.th32ProcessID;
-
-    /* Best effort: the creation time distinguishes a restarted VM even if
-     * the pid got recycled. Unavailable -> stays 0 -> caller has to query
-     * the VM id on every poll, as before. */
-    hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, info->pid);
-    if (hProc) {
-        if (GetProcessTimes(hProc, &ftCreate, &ftExit, &ftKernel, &ftUser)) {
-            u.LowPart = ftCreate.dwLowDateTime;
-            u.HighPart = ftCreate.dwHighDateTime;
-            info->creationTime = u.QuadPart;
-        }
-        CloseHandle(hProc);
-    }
-    return TRUE;
+    return found;
 }
 
 /*
@@ -381,10 +352,6 @@ winIsGuidStr(const char *s)
 }
 
 /*
- * Query the WSL2 VM id via the default distro. Only call this when the VM
- * is already running, or wsl.exe would boot it.
- */
-/*
  * Query the WSL2 VM id by running wslinfo inside an already-running
  * distro, so the query itself never boots a distro. Callers must pass a
  * distro that is currently Running (see winWslFirstRunningDistro).
@@ -417,14 +384,24 @@ winWslQueryVmId(char guid[37], const char *distro)
 }
 
 /*
- * Worker thread: watch the VM instance, and only when it changed query the
- * VM id (spawning wsl.exe). Never touches the X server, only hands new ids
- * to the main thread via the shared state block.
+ * Worker thread: watch for the WSL2 VM's presence. A VM appearance edge
+ * (or the first poll at startup) triggers an id query; while the VM is
+ * gone there is nothing to do. While bound, no wsl.exe is ever spawned:
+ * the steady state is just the free presence scan, so the server never
+ * disturbs the WSL instance/VM idle timeouts.
+ *
+ * The query itself is gated on a Running distro, so it never boots a
+ * stopped one. If a posted id has not been applied yet (g_vsockDirty is
+ * still set, e.g. the bind keeps failing because the port is taken), the
+ * query is skipped: the main thread retries the bind by itself at zero
+ * cost, and re-querying would spawn wslinfo into the distro for nothing
+ * (worse: each wslinfo run resets the distro's idle timeout and would
+ * keep the instance alive forever).
  */
 static void *
 winVsockWorkerProc(void *arg)
 {
-    winWslVmInfo lastVm = { 0, 0 }, curVm;
+    BOOL wasUp = FALSE;
     char guid[37], distro[WIN_VSOCK_DISTRO_LEN];
     int stateTick = 0;
 
@@ -432,26 +409,38 @@ winVsockWorkerProc(void *arg)
     for (;;) {
         Sleep(WIN_VSOCK_POLL_MS);
 
-        if (!winWslVmInstance(&curVm)) {
-            /* VM is down: the next appearance counts as a new instance */
-            lastVm.pid = 0;
-            lastVm.creationTime = 0;
+        if (!winWslVmPresent()) {
+            /* VM is down: its next appearance is a new boot with a new id */
+            wasUp = FALSE;
             continue;
         }
 
-        if (!(curVm.creationTime != 0 &&
-              curVm.pid == lastVm.pid &&
-              curVm.creationTime == lastVm.creationTime)) {
-            /* New VM instance (or first poll, or instance data
-             * unavailable): fetch the VM id, but only through a distro
-             * that is already Running - querying into a stopped distro
-             * would boot it. If none is running (VM still booting),
-             * retry next poll without recording the instance. */
-            if (!winWslFirstRunningDistro(distro, sizeof(distro)) ||
-                !winWslQueryVmId(guid, distro))
-                continue;
-            lastVm = curVm;
+        if (wasUp) {
+            BOOL skip;
 
+            /* Same VM as last poll. Nothing to do while bound, nor while
+             * a previously posted id still awaits the bind. */
+            EnterCriticalSection(&g_vsockLock);
+            skip = (g_vsockBoundGuid[0] != '\0') || g_vsockDirty;
+            LeaveCriticalSection(&g_vsockLock);
+            if (skip)
+                continue;
+
+            /* Unbound: keep the STATE_MS cadence until a distro is Running */
+            stateTick += WIN_VSOCK_POLL_MS;
+            if (stateTick < WIN_VSOCK_STATE_MS)
+                continue;
+        }
+        else {
+            /* VM (re)appeared: a new boot, so the id must be (re)queried.
+             * Query right away, then keep the STATE_MS cadence while the
+             * distro is still booting. */
+            wasUp = TRUE;
+        }
+        stateTick = 0;
+
+        if (winWslFirstRunningDistro(distro, sizeof(distro)) &&
+            winWslQueryVmId(guid, distro)) {
             EnterCriticalSection(&g_vsockLock);
             if (_stricmp(guid, g_vsockBoundGuid) != 0) {
                 snprintf(g_vsockPendingGuid, sizeof(g_vsockPendingGuid),
@@ -460,45 +449,22 @@ winVsockWorkerProc(void *arg)
             }
             LeaveCriticalSection(&g_vsockLock);
         }
-        else {
-            /* Same VM instance: while unbound (e.g. no distro was running
-             * at startup), check every WIN_VSOCK_STATE_MS whether a
-             * distro has come up, then bind late. */
-            BOOL unbound;
-
-            stateTick += WIN_VSOCK_POLL_MS;
-            if (stateTick < WIN_VSOCK_STATE_MS)
-                continue;
-            stateTick = 0;
-
-            EnterCriticalSection(&g_vsockLock);
-            unbound = (g_vsockBoundGuid[0] == '\0');
-            LeaveCriticalSection(&g_vsockLock);
-
-            if (unbound &&
-                winWslFirstRunningDistro(distro, sizeof(distro)) &&
-                winWslQueryVmId(guid, distro)) {
-                EnterCriticalSection(&g_vsockLock);
-                if (_stricmp(guid, g_vsockBoundGuid) != 0) {
-                    snprintf(g_vsockPendingGuid, sizeof(g_vsockPendingGuid),
-                             "%s", guid);
-                    g_vsockDirty = TRUE;
-                }
-                LeaveCriticalSection(&g_vsockLock);
-            }
-        }
     }
     return NULL;
 }
 
 /*
- * Main-thread timer: apply VM id changes posted by the worker.
+ * Main-thread timer: apply VM id changes posted by the worker. Bind
+ * failures are retried on every tick (g_vsockDirty stays set): retrying
+ * is a pure socket operation with no child process involved, so it is
+ * free - but it is logged only once until the bind eventually succeeds.
  */
 static CARD32
 winVsockTimerProc(OsTimerPtr timer, CARD32 now, void *arg)
 {
     char guid[WIN_VSOCK_GUID_LEN];
     BOOL doRebind = FALSE;
+    static BOOL s_bindFailReported = FALSE;
 
     (void)now;
     (void)arg;
@@ -525,11 +491,18 @@ winVsockTimerProc(OsTimerPtr timer, CARD32 now, void *arg)
             g_vsockDirty = FALSE;
             LeaveCriticalSection(&g_vsockLock);
 
-            ErrorF("winVsock: %s WSL2 VM %s\n",
+            ErrorF("winVsock: %s WSL2 VM %s%s\n",
                    had ? "vsock listener rebound to" : "vsock listener bound to",
-                   guid);
+                   guid,
+                   s_bindFailReported ? " (recovered after earlier bind failures)" : "");
+            s_bindFailReported = FALSE;
         }
-        /* on failure g_vsockDirty stays set: retried on the next tick */
+        else if (!s_bindFailReported) {
+            ErrorF("winVsock: vsock listener bind to WSL2 VM %s failed, "
+                   "retrying (another program holding the vsock port?)\n",
+                   guid);
+            s_bindFailReported = TRUE;
+        }
     }
 
     /* re-arm */
@@ -572,7 +545,6 @@ winVsockStartWatcher(void)
 void
 winVsockPreInit(int argc, char *argv[])
 {
-    winWslVmInfo vmInfo;
     char guid[37], braced[WIN_VSOCK_GUID_LEN], distro[WIN_VSOCK_DISTRO_LEN];
 
     if (!g_fWslVsock) {
@@ -598,7 +570,7 @@ winVsockPreInit(int argc, char *argv[])
      * wslinfo in a stopped distro would boot it. If none is running, stay
      * unbound - the watcher binds late as soon as one comes up. */
     {
-        BOOL vmUp = winWslVmInstance(&vmInfo);
+        BOOL vmUp = winWslVmPresent();
         BOOL haveDistro = vmUp ? winWslFirstRunningDistro(distro, sizeof(distro)) : FALSE;
         BOOL haveGuid = haveDistro ? winWslQueryVmId(guid, distro) : FALSE;
 
