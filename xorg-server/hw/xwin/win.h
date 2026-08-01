@@ -86,6 +86,7 @@
  */
 #define WIN_E3B_TIMER_ID		1
 #define WIN_POLLING_MOUSE_TIMER_ID	2
+#define WIN_CLIPCURSOR_TIMER_ID        3
 
 #define MOUSE_POLLING_INTERVAL		50
 
@@ -530,6 +531,7 @@ extern int g_patternROP[];
 extern const char *g_pszQueryHost;
 extern DeviceIntPtr g_pwinPointer;
 extern DeviceIntPtr g_pwinKeyboard;
+extern HWND g_hwndGrabWindow;
 
 /*
  * Extern declares for dynamically loaded library function pointers
@@ -791,6 +793,9 @@ winMouseButtonsHandle(ScreenPtr pScreen,
 
 void
  winEnqueueMotion(int x, int y);
+
+void
+ winEnqueueRawMotion(int dx, int dy);
 
 /*
  * winscrinit.c

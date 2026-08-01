@@ -48,8 +48,193 @@
 #include "xserver-properties.h"
 #include "inpututils.h"
 
+#include "winwindow.h"   /* for winGetWindowPriv, winPrivWinRec */
+
+/* Prevent POINTER_ABSOLUTE events from generating XI_RawMotion.
+ * Only POINTER_RELATIVE events should produce XI_RawMotion for
+ * XInput2 relative-mode clients (SDL2, etc.). */
+#ifndef POINTER_NORAW
+#define POINTER_NORAW 0x20
+#endif
+
 /* Peek the internal button mapping */
 static CARD8 const *g_winMouseButtonMap = NULL;
+
+/* Master device grab callback hooks (for Core XGrabPointer) */
+static void (*winOrigMasterActivateGrab)(DeviceIntPtr, GrabPtr, TimeStamp, Bool) = NULL;
+static void (*winOrigMasterDeactivateGrab)(DeviceIntPtr) = NULL;
+
+/* Slave device grab callback hooks (for XI2 XGrabDevice) */
+static void (*winOrigSlaveActivateGrab)(DeviceIntPtr, GrabPtr, TimeStamp, Bool) = NULL;
+static void (*winOrigSlaveDeactivateGrab)(DeviceIntPtr) = NULL;
+
+/* HWND of the vcxsrv window that currently has the mouse. */
+HWND g_hwndGrabWindow = NULL;
+
+/* Timer ID for periodic ClipCursor re-apply */
+static UINT_PTR g_grabTimerId = 0;
+
+/*
+ * Apply cursor constraint to foreground window
+ */
+static void
+winApplyCursorConstraint(void)
+{
+    HWND hwnd;
+    RECT rect;
+
+    hwnd = g_hwndGrabWindow;
+    if (!hwnd)
+        hwnd = GetForegroundWindow();
+    if (!hwnd)
+        return;
+
+    GetClientRect(hwnd, &rect);
+    ClientToScreen(hwnd, (LPPOINT)&rect.left);
+    ClientToScreen(hwnd, (LPPOINT)&rect.right);
+    /* 1px padding: keep cursor away from sizing border */
+    rect.left   += 1;
+    rect.top    += 1;
+    rect.right  -= 1;
+    rect.bottom -= 1;
+    ClipCursor(&rect);
+}
+
+/*
+ * Release cursor constraint
+ */
+static void
+winReleaseCursorConstraint(void)
+{
+    ClipCursor(NULL);
+}
+
+/*
+ * Force-hide cursor during grab
+ */
+static void
+winGrabHideCursor(void)
+{
+    while (ShowCursor(FALSE) >= 0)
+        ;
+}
+
+/*
+ * Force-show cursor after grab release
+ */
+static void
+winGrabShowCursor(void)
+{
+    while (ShowCursor(TRUE) < 0)
+        ;
+}
+
+/*
+ * Master device ActivateGrab hook.
+ * SDL2 X11 backend uses XGrabPointer (Core protocol), which operates
+ * on the MASTER pointer device. This hook handles that path.
+ */
+static void
+winMasterActivateGrab(DeviceIntPtr dev, GrabPtr grab, TimeStamp time, Bool autoGrab)
+{
+    if (winOrigMasterActivateGrab)
+        winOrigMasterActivateGrab(dev, grab, time, autoGrab);
+
+    /* Only confine cursor position if grab specifies a confine window. */
+    if (grab && grab->confineTo) {
+        /* Map X11 grab window to Windows hwnd for precise constraint. */
+        WindowPtr pGrabWin = grab->confineTo ? grab->confineTo : grab->window;
+        winPrivWinPtr pWinPriv = winGetWindowPriv(pGrabWin);
+        if (pWinPriv && pWinPriv->hWnd) {
+            g_hwndGrabWindow = pWinPriv->hWnd;
+        }
+        winApplyCursorConstraint();
+        /* Windows may silently cancel ClipCursor (Win key,
+         * cursor skipping, etc.). This timer defends against it. */
+        if (!g_grabTimerId && g_hwndGrabWindow) {
+            g_grabTimerId = SetTimer(g_hwndGrabWindow, WIN_CLIPCURSOR_TIMER_ID, 10, NULL);
+        }
+        winGrabHideCursor();
+    }
+    /* confineTo=None: no Windows-side effect */
+}
+
+/*
+ * Master device DeactivateGrab hook.
+ */
+static void
+winMasterDeactivateGrab(DeviceIntPtr dev)
+{
+    /* dev->deviceGrab.grab points to the grab being released. */
+    GrabPtr grab = dev->deviceGrab.grab;
+    /* Confining grab: release Windows cursor state */
+    if (grab && grab->confineTo) {
+        winReleaseCursorConstraint();
+        winGrabShowCursor();
+        /* Stop periodic timer */
+        if (g_grabTimerId) {
+            KillTimer(g_hwndGrabWindow, g_grabTimerId);
+            g_grabTimerId = 0;
+        }
+    }
+
+    if (winOrigMasterDeactivateGrab)
+        winOrigMasterDeactivateGrab(dev);
+}
+
+/*
+ * Slave device ActivateGrab hook.
+ * XI2 XGrabDevice may operate on slave devices directly.
+ */
+static void
+winSlaveActivateGrab(DeviceIntPtr dev, GrabPtr grab, TimeStamp time, Bool autoGrab)
+{
+    if (winOrigSlaveActivateGrab)
+        winOrigSlaveActivateGrab(dev, grab, time, autoGrab);
+
+    /* Only confine cursor position if grab specifies a confine window. */
+    if (grab && grab->confineTo) {
+        /* Map X11 grab window to Windows hwnd for precise constraint. */
+        WindowPtr pGrabWin = grab->confineTo ? grab->confineTo : grab->window;
+        winPrivWinPtr pWinPriv = winGetWindowPriv(pGrabWin);
+        if (pWinPriv && pWinPriv->hWnd) {
+            g_hwndGrabWindow = pWinPriv->hWnd;
+        }
+        winApplyCursorConstraint();
+        /* Windows may silently cancel ClipCursor (Win key,
+         * cursor skipping, etc.). This timer defends against it. */
+        if (!g_grabTimerId && g_hwndGrabWindow) {
+            g_grabTimerId = SetTimer(g_hwndGrabWindow, WIN_CLIPCURSOR_TIMER_ID, 10, NULL);
+        }
+        winGrabHideCursor();
+    }
+    /* confineTo=None: no Windows-side effect */
+}
+
+
+/*
+ * Slave device DeactivateGrab hook.
+ */
+static void
+winSlaveDeactivateGrab(DeviceIntPtr dev)
+{
+    /* dev->deviceGrab.grab points to the grab being released. */
+    GrabPtr grab = dev->deviceGrab.grab;
+    /* Confining grab: release Windows cursor state */
+    if (grab && grab->confineTo) {
+        winReleaseCursorConstraint();
+        winGrabShowCursor();
+        /* Stop periodic timer */
+        if (g_grabTimerId) {
+            KillTimer(g_hwndGrabWindow, g_grabTimerId);
+            g_grabTimerId = 0;
+        }
+    }
+
+    if (winOrigSlaveDeactivateGrab)
+        winOrigSlaveDeactivateGrab(dev);
+}
+
 
 /*
  * See Porting Layer Definition - p. 18
@@ -119,6 +304,38 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
                                 btn_labels,
                                 (PtrCtrlProcPtr)NoopDDA,
                                 GetMotionHistorySize(), 2, axes_labels);
+
+        /* Hook master device (for Core XGrabPointer used by SDL2) */
+        {
+            DeviceIntPtr master = inputInfo.pointer;
+            if (master && master != pDeviceInt) {
+                winOrigMasterActivateGrab = master->deviceGrab.ActivateGrab;
+                winOrigMasterDeactivateGrab = master->deviceGrab.DeactivateGrab;
+                master->deviceGrab.ActivateGrab = winMasterActivateGrab;
+                master->deviceGrab.DeactivateGrab = winMasterDeactivateGrab;
+            }
+        }
+
+        /* Hook slave device too (for XI2 XGrabDevice) */
+        winOrigSlaveActivateGrab = pDeviceInt->deviceGrab.ActivateGrab;
+        winOrigSlaveDeactivateGrab = pDeviceInt->deviceGrab.DeactivateGrab;
+        pDeviceInt->deviceGrab.ActivateGrab = winSlaveActivateGrab;
+        pDeviceInt->deviceGrab.DeactivateGrab = winSlaveDeactivateGrab;
+
+        /* XInput2 clients query the master pointer's valuator mode
+         * (Virtual core pointer, device 2) to determine how to
+         * interpret XI_RawMotion values. Mode must be Relative for
+         * SDL2 relative mouse mode to work correctly.
+         * The slave (Windows pointer, device 6) mode is set
+         * automatically by InitPointerDeviceStruct, but the master
+         * mode must be updated explicitly.
+         */
+        if (inputInfo.pointer && inputInfo.pointer->valuator &&
+            inputInfo.pointer->valuator->numAxes >= 2) {
+            inputInfo.pointer->valuator->axes[0].mode = Relative;
+            inputInfo.pointer->valuator->axes[1].mode = Relative;
+        }
+
         free(map);
 
         g_winMouseButtonMap = pDeviceInt->button->map;
@@ -133,6 +350,14 @@ winMouseProc(DeviceIntPtr pDeviceInt, int iState)
 
     case DEVICE_OFF:
         pDevice->on = FALSE;
+
+        /* Force release cursor constraint on device shutdown */
+        winReleaseCursorConstraint();
+        winGrabShowCursor();
+        if (g_grabTimerId) {
+            KillTimer(g_hwndGrabWindow, g_grabTimerId);
+            g_grabTimerId = 0;
+        }
         break;
     }
     return Success;
@@ -333,11 +558,38 @@ winEnqueueMotion(int x, int y)
     int valuators[2];
     ValuatorMask mask;
 
+    valuator_mask_zero(&mask);
+
     valuators[0] = x;
     valuators[1] = y;
 
     valuator_mask_set_range(&mask, 0, 2, valuators);
     QueuePointerEvents(g_pwinPointer, MotionNotify, 0,
-                       POINTER_ABSOLUTE | POINTER_SCREEN, &mask);
+                       POINTER_ABSOLUTE | POINTER_SCREEN | POINTER_NORAW, &mask);
+                       /* ADD POINTER_NORAW */
 
+}
+
+/*
+ * Enqueue a raw motion event with relative coordinates.
+ *
+ * WM_INPUT delivers hardware-level relative displacement (lLastX/Y)
+ * via GetRawInputData. We inject it into the X server's
+ * POINTER_RELATIVE pipeline so XInput2 generates XI_RawMotion
+ * events for clients in relative mouse mode.
+ */
+void
+winEnqueueRawMotion(int dx, int dy)
+{
+    int valuators[2];
+    ValuatorMask mask;
+
+    valuator_mask_zero(&mask);
+
+    valuators[0] = dx;
+    valuators[1] = dy;
+
+    valuator_mask_set_range(&mask, 0, 2, valuators);
+    QueuePointerEvents(g_pwinPointer, MotionNotify, 0,
+                       POINTER_RELATIVE, &mask);
 }

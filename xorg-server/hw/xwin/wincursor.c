@@ -199,24 +199,14 @@ winLoadCursor(ScreenPtr pScreen, CursorPtr pCursor, int screen)
     memset(pAnd, 0xFF, nBytes);
     pXor = calloc(1, nBytes);
 
-    /* Convert the X11 bitmap to a win32 bitmap
-     * The first is for an empty mask */
-    if (pCursor->bits->emptyMask) {
-        int x, y, xmax = bits_to_bytes(nCX);
-
-        for (y = 0; y < nCY; ++y)
-            for (x = 0; x < xmax; ++x) {
-                int nWinPix = bits_to_bytes(pScreenPriv->cursor.sm_cx) * y + x;
-                int nXPix = BitmapBytePad(pCursor->bits->width) * y + x;
-
-                pAnd[nWinPix] = 0;
-                if (fReverse)
-                    pXor[nWinPix] = reverse(~pCursor->bits->source[nXPix]);
-                else
-                    pXor[nWinPix] = reverse(pCursor->bits->source[nXPix]);
-            }
-    }
-    else {
+    /* Convert the X11 bitmap to a win32 bitmap.
+     * A cursor whose mask is all zeros must not be displayed at all
+     * (see dix/cursor.c CheckForEmptyMask: "We check for empty cursors
+     * so that we won't have to display them"). Keep the AND mask
+     * all-ones (0xFF) and the XOR mask all-zeros so the resulting
+     * Win32 cursor is fully transparent -- this is what X clients
+     * such as SDL rely on to hide the mouse pointer. */
+    if (!pCursor->bits->emptyMask) {
         int x, y, xmax = bits_to_bytes(nCX);
 
         for (y = 0; y < nCY; ++y)
@@ -603,6 +593,15 @@ winInitCursor(ScreenPtr pScreen)
     {
         pScreenPriv->cursor.spriteFuncs = pPointPriv->spriteFuncs;
         pPointPriv->spriteFuncs = &winSpriteFuncsRec;
+
+        /* Win32 cursors can be fully transparent, so let empty-mask
+         * cursors reach winSetCursor/winLoadCursor instead of being
+         * converted to NullCursor by miPointerUpdateSprite -- the same
+         * approach as xf86 HARDWARE_CURSOR_SHOW_TRANSPARENT. Together
+         * with the transparent rendering in winLoadCursor this makes
+         * "hide the cursor" (e.g. SDL's empty 1x1 cursor) actually
+         * work in the default (hardware cursor) mode. */
+        pPointPriv->showTransparent = TRUE;
     }
     pScreenPriv->cursor.handle = NULL;
     pScreenPriv->cursor.visible = FALSE;

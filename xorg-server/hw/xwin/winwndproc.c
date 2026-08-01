@@ -223,6 +223,27 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             winInitNotifyIcon(s_pScreenPriv,FALSE);
         }
+
+        /* Register for WM_INPUT (Raw Input) mouse events.
+         * These provide hardware-level relative displacement
+         * (lLastX/Y), independent of cursor position or screen
+         * boundaries, needed for XInput2 XI_RawMotion.
+         * dwFlags=0: receive only when focused; do NOT use
+         * RIDEV_NOLEGACY (breaks WM_MOUSEMOVE for absolute mode).
+         */
+        {
+            RAWINPUTDEVICE rid;
+            rid.usUsagePage = 0x01;       /* Generic Desktop Controls */
+            rid.usUsage = 0x02;           /* Mouse */
+            rid.dwFlags = 0;              /* Focused window only */
+            rid.hwndTarget = hwnd;
+            if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
+                ErrorF("winWindowProc - WM_CREATE: "
+                       "RegisterRawInputDevices failed (error %lu)\n",
+                       GetLastError());
+            }
+        }
+
         return 0;
 
     case WM_DISPLAYCHANGE:
@@ -772,6 +793,43 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
     }
 
+    case WM_INPUT:
+    {
+        RAWINPUT raw;
+        UINT rawSize = sizeof(raw);
+
+        /* We can't do anything without privates or pointer */
+        if (s_pScreenPriv == NULL || s_pScreenInfo->fIgnoreInput)
+            break;
+        if (g_pwinPointer == NULL)
+            break;
+
+        if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw,
+                            &rawSize, sizeof(RAWINPUTHEADER)) == (UINT)-1) {
+            ErrorF("winWindowProc - WM_INPUT: GetRawInputData failed\n");
+            break;
+        }
+
+        if (raw.header.dwType == RIM_TYPEMOUSE) {
+            LONG dx = raw.data.mouse.lLastX;
+            LONG dy = raw.data.mouse.lLastY;
+
+            if (dx != 0 || dy != 0) {
+                /* Filter absolute-position devices (touchscreens,
+                 * tablets). They use the same Raw Input API but
+                 * deliver absolute coordinates, not relative deltas. */
+                if (!(raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)) {
+                    winEnqueueRawMotion((int)dx, (int)dy);
+                }
+            }
+        }
+
+        /* Must break (not return 0) so DefWindowProc cleans up
+         * Raw Input resources. Return 0 causes resource leak and
+         * eventual Raw Input failure. */
+        break;
+    }
+
     case WM_MOUSEMOVE:
         if (wParam & (MK_LBUTTON|MK_RBUTTON|MK_MBUTTON))
         {
@@ -983,6 +1041,26 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (g_fButton[2] && !wR)
                 PostMessage(hwnd, WM_RBUTTONUP, wCtrl | wL | wM | wShift, lPos);
         }
+
+        case WIN_CLIPCURSOR_TIMER_ID:
+        {
+            if (inputInfo.pointer &&
+                inputInfo.pointer->deviceGrab.grab &&
+                g_hwndGrabWindow) {
+                /* Windows may silently cancel it (cursor skipping,
+                * Win key, system notifications, etc.). */
+                RECT rect;
+                GetClientRect(g_hwndGrabWindow, &rect);
+                ClientToScreen(g_hwndGrabWindow, (LPPOINT)&rect.left);
+                ClientToScreen(g_hwndGrabWindow, (LPPOINT)&rect.right);
+                /* 1px padding: keep cursor away from sizing border */
+                rect.left   += 1;
+                rect.top    += 1;
+                rect.right  -= 1;
+                rect.bottom -= 1;
+                ClipCursor(&rect);
+            }
+        }
         }
         return 0;
 
@@ -1030,6 +1108,7 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Remove our keyboard hook if it is installed */
         winRemoveKeyboardHookLL();
+
         return 0;
 
     case WM_SYSKEYDOWN:
@@ -1170,11 +1249,39 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* Activate or deactivate */
         s_pScreenPriv->fActive = wParam;
 
-        /* Reshow the Windows mouse cursor if we are being deactivated */
-        if (g_fSoftwareCursor && !s_pScreenPriv->fActive && !g_fCursor) {
-            /* Show Windows cursor */
-            g_fCursor = TRUE;
-            ShowCursor(TRUE);
+        if (!s_pScreenPriv->fActive) {
+            /* DEACTIVATING */
+            if (inputInfo.pointer && inputInfo.pointer->deviceGrab.grab) {
+                ClipCursor(NULL);
+                while (ShowCursor(TRUE) < 0)
+                    ;
+            }
+            else {
+                /* Original logic: restore hover-hidden cursor */
+                if (g_fSoftwareCursor && !g_fCursor) {
+                    g_fCursor = TRUE;
+                    ShowCursor(TRUE);
+                }
+            }
+        }
+        else {
+            /* ACTIVATING */
+            if (inputInfo.pointer && inputInfo.pointer->deviceGrab.grab) {
+                if (g_hwndGrabWindow) {
+                    RECT rect;
+                    GetClientRect(g_hwndGrabWindow, &rect);
+                    ClientToScreen(g_hwndGrabWindow, (LPPOINT)&rect.left);
+                    ClientToScreen(g_hwndGrabWindow, (LPPOINT)&rect.right);
+                    /* 1px padding: keep cursor away from sizing border */
+                    rect.left   += 1;
+                    rect.top    += 1;
+                    rect.right  -= 1;
+                    rect.bottom -= 1;
+                    ClipCursor(&rect);
+                }
+                while (ShowCursor(FALSE) >= 0)
+                    ;
+            }
         }
 
         /* Call engine specific screen activation/deactivation function */
