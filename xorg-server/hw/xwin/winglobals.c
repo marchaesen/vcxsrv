@@ -88,6 +88,11 @@ pthread_mutex_t g_pmTerminating = PTHREAD_MUTEX_INITIALIZER;
 winDispatchProcPtr winProcEstablishConnectionOrig = NULL;
 
 /*
+ * Hyper-V vsock (WSL2) auto-configuration, disabled by default (-wslvsock)
+ */
+Bool g_fWslVsock = FALSE;
+
+/*
  * Clipboard variables
  */
 

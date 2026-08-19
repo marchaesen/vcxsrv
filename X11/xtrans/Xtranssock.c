@@ -554,7 +554,15 @@ TRANS(SocketHyperVCreateListener) (XtransConnInfo ciptr, const char *port,
 	sockname.Family = AF_HYPERV;
 	sockname.Reserved = 0;
 	sockname.ServiceId = HV_GUID_VSOCK_TEMPLATE;
-	sockname.ServiceId.Data1 = vsockPort;
+	/*
+	 * The port argument is really the display number string. Add it to the
+	 * base port so that concurrent server instances (e.g. :0 and :1) bind
+	 * distinct service ids (106000, 106001, ...), matching the client-side
+	 * convention in SocketHyperVConnect(). Previously the display number was
+	 * ignored here and every instance collided on the same port.
+	 */
+	sockname.ServiceId.Data1 = vsockPort +
+	    (port ? (unsigned int) strtoul (port, (char **)NULL, 10) : 0);
 	sockname.VmId = vmId;
 	sockname.Flags = 0;
 
